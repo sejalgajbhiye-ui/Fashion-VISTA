@@ -5,7 +5,8 @@ import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { EmptyState } from '../components/EmptyState';
 import { wardrobeCategories } from '../data/wardrobeData';
-import { Plus, Search, Filter, Sparkles, Image, Check, AlertCircle, Shirt } from 'lucide-react';
+import { Plus, Search, Filter, Sparkles, Image, Check, AlertCircle, Shirt, Loader2 } from 'lucide-react';
+import { classifyWardrobeGarment } from '../services/api';
 
 export const Wardrobe = () => {
   const {
@@ -13,7 +14,8 @@ export const Wardrobe = () => {
     wardrobeStats,
     addWardrobeItem,
     deleteWardrobeItem,
-    updateWardrobeItem
+    updateWardrobeItem,
+    showToast
   } = useFashion();
 
   // Filters & Search
@@ -34,11 +36,17 @@ export const Wardrobe = () => {
     season: 'All Season',
     brand: '',
     description: '',
-    image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80'
+    image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80',
+    predicted_category: null,
+    confidence: null,
+    model_used: null
   };
 
   const [formData, setFormData] = useState(initialForm);
   const [customImageFile, setCustomImageFile] = useState(null);
+  const [isClassifying, setIsClassifying] = useState(false);
+  const [aiPrediction, setAiPrediction] = useState(null);
+  const [classifyError, setClassifyError] = useState(null);
 
   // Quick preset sample images to choose from if no camera/file upload is selected
   const presetImages = [
@@ -50,28 +58,67 @@ export const Wardrobe = () => {
     { label: "Jacket", url: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=700&q=80" }
   ];
 
+  const runClassification = async (imageInput) => {
+    const target = imageInput || customImageFile || formData.image;
+    if (!target) return;
+    setIsClassifying(true);
+    setClassifyError(null);
+    try {
+      const res = await classifyWardrobeGarment(target);
+      if (res && res.status === 'success') {
+        setAiPrediction(res);
+        setFormData(prev => ({
+          ...prev,
+          category: res.mapped_category || prev.category,
+          name: prev.name.trim() ? prev.name : res.predicted_category,
+          image: res.image_url || prev.image,
+          predicted_category: res.predicted_category,
+          confidence: res.confidence,
+          model_used: res.model_used
+        }));
+        showToast(`AI Detected: ${res.predicted_category} (${res.confidence_pct}% confidence)`, 'success');
+      } else {
+        throw new Error(res?.error || 'Classification returned no results');
+      }
+    } catch (err) {
+      const msg = err.message || 'AI Classification failed';
+      setClassifyError(msg);
+      showToast(msg, 'error');
+    } finally {
+      setIsClassifying(false);
+    }
+  };
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setCustomImageFile(file);
+      setAiPrediction(null);
+      setClassifyError(null);
       const reader = new FileReader();
       reader.onload = (uploadEvent) => {
         setFormData(prev => ({ ...prev, image: uploadEvent.target.result }));
       };
       reader.readAsDataURL(file);
+      // Automatically trigger AI classification for uploaded photo
+      runClassification(file);
     }
   };
 
-  const handleAddSubmit = (e) => {
+  const handleAddSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    addWardrobeItem({
+    await addWardrobeItem({
       ...formData,
       image: formData.image || presetImages[0].url
     });
 
     setIsAddModalOpen(false);
     setFormData(initialForm);
+    setCustomImageFile(null);
+    setAiPrediction(null);
+    setClassifyError(null);
   };
 
   const handleEditClick = (item) => {
@@ -285,17 +332,32 @@ export const Wardrobe = () => {
                 />
               </div>
               <div className="flex-1 space-y-2 text-center sm:text-left">
-                <label className="inline-flex cursor-pointer">
-                  <span className="px-3 py-1.5 text-xs font-semibold bg-white border border-taupe-300 rounded-md hover:bg-taupe-100 text-charcoal-800">
-                    Upload Local File
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </label>
+                <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                  <label className="inline-flex cursor-pointer">
+                    <span className="px-3 py-1.5 text-xs font-semibold bg-white border border-taupe-300 rounded-md hover:bg-taupe-100 text-charcoal-800">
+                      Upload Local File
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => runClassification()}
+                    disabled={isClassifying}
+                    className="px-3 py-1.5 text-xs font-semibold bg-taupe-100 border border-taupe-300 rounded-md hover:bg-taupe-200 text-charcoal-900 inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  >
+                    {isClassifying ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    {isClassifying ? "Analyzing..." : "AI Auto-Detect"}
+                  </button>
+                </div>
                 <p className="text-[11px] text-charcoal-500">
                   Or pick from curated sample garment presets below:
                 </p>
@@ -304,7 +366,12 @@ export const Wardrobe = () => {
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => setFormData({ ...formData, image: preset.url })}
+                      onClick={() => {
+                        setFormData({ ...formData, image: preset.url });
+                        setCustomImageFile(null);
+                        setAiPrediction(null);
+                        setClassifyError(null);
+                      }}
                       className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
                         formData.image === preset.url
                           ? 'bg-charcoal-900 text-white border-charcoal-900'
@@ -317,6 +384,68 @@ export const Wardrobe = () => {
                 </div>
               </div>
             </div>
+
+            {/* AI Loading State */}
+            {isClassifying && (
+              <div className="mt-3 flex items-center gap-2.5 p-3 bg-taupe-100 border border-taupe-300 rounded-xl text-xs text-charcoal-800 animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin text-charcoal-900 shrink-0" />
+                <div>
+                  <p className="font-semibold">AI Analyzing Garment...</p>
+                  <p className="text-[11px] text-charcoal-600">Running deep clothing classifier to detect category and features.</p>
+                </div>
+              </div>
+            )}
+
+            {/* AI Prediction Result Card */}
+            {aiPrediction && !isClassifying && (
+              <div className="mt-3 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-950">
+                    <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>AI Detected: {aiPrediction.predicted_category}</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    {aiPrediction.confidence_pct}% confidence
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-800">
+                  Auto-mapped to <strong className="font-bold underline">{aiPrediction.mapped_category}</strong> in the category dropdown below. You can change it manually if desired.
+                </p>
+                {aiPrediction.top_candidates && aiPrediction.top_candidates.length > 1 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-emerald-200/60">
+                    <span className="text-[10px] font-semibold text-emerald-900">Alternative candidates:</span>
+                    {aiPrediction.top_candidates.slice(1, 3).map((cand, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            category: cand.mapped_category || prev.category,
+                            name: prev.name === aiPrediction.predicted_category ? cand.category : prev.name
+                          }));
+                          showToast(`Category updated to ${cand.mapped_category}`, 'info');
+                        }}
+                        className="text-[10px] bg-white border border-emerald-200 px-2 py-0.5 rounded-md text-emerald-900 hover:bg-emerald-100 transition-colors font-medium shadow-2xs"
+                      >
+                        {cand.category} ({Math.round(cand.probability * 100)}%)
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Error Message */}
+            {classifyError && !isClassifying && (
+              <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <div className="flex-1">
+                  <p className="font-semibold">Classification Warning</p>
+                  <p className="text-[11px] text-rose-700">{classifyError}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Item Name */}

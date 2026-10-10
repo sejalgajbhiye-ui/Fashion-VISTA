@@ -22,3 +22,43 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Datasets and Archives
+datasets/
+*.gz
+*.tar
+*.zip
+*.tgz
+
+# Kaggle & Local Credentials
+.kaggle/
+kaggle.json
+
+# Model Checkpoints and Weights
+checkpoints/
+*.pkl
+*.pth
+*.pt
+*.bin
+*.onnx
+
+# Allow trained models needed by the application
+!models/*.pt
+!models/*.joblib
+!models/*.json
+
+# Backend uploaded files and local database
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/data/*.db
+!backend/data/.gitkeep
+
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/

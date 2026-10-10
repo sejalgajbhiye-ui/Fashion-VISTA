@@ -50,14 +50,14 @@ export const Stylist = () => {
     }
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true);
-    // Simulate AI synthesis
-    setTimeout(() => {
-      generateRecommendation(formState);
+    try {
+      await generateRecommendation(formState);
+    } finally {
       setIsGenerating(false);
       navigate('/recommendations');
-    }, 900);
+    }
   };
 
   const progressPercent = Math.round((currentStep / totalSteps) * 100);

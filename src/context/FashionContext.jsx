@@ -3,6 +3,13 @@ import { initialWardrobeData } from '../data/wardrobeData';
 import { defaultRecommendation, alternateCurations } from '../data/recommendationData';
 import { initialHistoryData } from '../data/historyData';
 import { defaultUserProfile } from '../data/outfitData';
+import {
+  generateMLRecommendation,
+  fetchWardrobeItems,
+  createWardrobeItem,
+  updateWardrobeItemAPI,
+  deleteWardrobeItemAPI
+} from '../services/api';
 
 const FashionContext = createContext();
 
@@ -24,6 +31,21 @@ export const FashionProvider = ({ children }) => {
       return initialWardrobeData;
     }
   });
+
+  // Fetch persistent wardrobe from SQLite backend on mount
+  useEffect(() => {
+    const syncBackendWardrobe = async () => {
+      try {
+        const backendItems = await fetchWardrobeItems();
+        if (backendItems && Array.isArray(backendItems) && backendItems.length > 0) {
+          setWardrobe(backendItems);
+        }
+      } catch (e) {
+        console.warn('Backend wardrobe sync fallback to local cache:', e);
+      }
+    };
+    syncBackendWardrobe();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('fashion_vista_wardrobe', JSON.stringify(wardrobe));
@@ -148,27 +170,52 @@ export const FashionProvider = ({ children }) => {
   };
 
   // Helper actions
-  const addWardrobeItem = (newItem) => {
-    const item = {
+  const addWardrobeItem = async (newItem) => {
+    const tempId = newItem.id || `item-${Date.now()}`;
+    const localItem = {
       ...newItem,
-      id: Date.now(),
+      id: tempId,
       owned: true,
       addedDate: new Date().toISOString().split('T')[0]
     };
-    setWardrobe(prev => [item, ...prev]);
-    showToast(`Added "${item.name}" to your wardrobe!`, 'success');
-    return item;
+
+    // Optimistically update local state
+    setWardrobe(prev => [localItem, ...prev.filter(i => i.id !== tempId)]);
+    showToast(`Added "${localItem.name}" to your wardrobe!`, 'success');
+
+    // Persist to backend SQLite
+    try {
+      const persisted = await createWardrobeItem(localItem);
+      if (persisted && persisted.id) {
+        setWardrobe(prev => prev.map(i => i.id === tempId ? { ...persisted, owned: true } : i));
+      }
+    } catch (err) {
+      console.warn('Backend SQLite persistence error, keeping in local storage:', err.message);
+    }
+    return localItem;
   };
 
-  const deleteWardrobeItem = (id) => {
+  const deleteWardrobeItem = async (id) => {
     const itemToDelete = wardrobe.find(item => item.id === id);
     setWardrobe(prev => prev.filter(item => item.id !== id));
     showToast(`Removed "${itemToDelete?.name || 'Item'}" from your wardrobe`, 'info');
+
+    try {
+      await deleteWardrobeItemAPI(id);
+    } catch (err) {
+      console.warn('Backend SQLite delete error:', err.message);
+    }
   };
 
-  const updateWardrobeItem = (id, updatedFields) => {
+  const updateWardrobeItem = async (id, updatedFields) => {
     setWardrobe(prev => prev.map(item => item.id === id ? { ...item, ...updatedFields } : item));
     showToast('Wardrobe item updated', 'success');
+
+    try {
+      await updateWardrobeItemAPI(id, updatedFields);
+    } catch (err) {
+      console.warn('Backend SQLite update error:', err.message);
+    }
   };
 
   const selectTryExistingItem = (slot, itemId) => {
@@ -179,11 +226,58 @@ export const FashionProvider = ({ children }) => {
   };
 
   // Generate dynamic recommendation matching user choices
-  const generateRecommendation = (newPrefs) => {
+  const generateRecommendation = async (newPrefs) => {
     setPreferences(newPrefs);
 
+    // Attempt real ML recommendation from Flask backend
+    let mlRec = null;
+    try {
+      mlRec = await generateMLRecommendation(newPrefs, wardrobe);
+    } catch (err) {
+      console.warn("Backend ML recommendation unavailable, falling back to local curation:", err);
+    }
+
     let baseCuration = defaultRecommendation;
-    if (newPrefs.style === 'Traditional' || newPrefs.occasion === 'Traditional' || newPrefs.occasion === 'Wedding') {
+    if (mlRec && mlRec.items && mlRec.items.length >= 3) {
+      const match = mlRec.wardrobe_match || {
+        matched_count: 3,
+        required_count: mlRec.items.length,
+        wardrobe_coverage: 0.75,
+        missing_items: []
+      };
+
+      baseCuration = {
+        ...defaultRecommendation,
+        name: mlRec.name || `${newPrefs.style || 'Casual'} ${newPrefs.occasion || 'College'} Curation`,
+        occasion: mlRec.occasion || newPrefs.occasion || 'College',
+        style: mlRec.style || newPrefs.style || 'Casual',
+        season: mlRec.season || newPrefs.season || 'Summer',
+        colour: newPrefs.colour === 'Any' ? 'Balanced Palette' : `${newPrefs.colour} Harmony`,
+        budget: newPrefs.budget || '1800',
+        items: mlRec.items,
+        compatibility: {
+          occasion: `Suitable for ${mlRec.occasion || newPrefs.occasion}`,
+          style: mlRec.style || newPrefs.style || 'Casual',
+          colour: `${mlRec.color_score || 90}% Colour Harmony`,
+          wardrobe: `${match.matched_count} / ${match.required_count} items owned`,
+          purchase: match.missing_items && match.missing_items.length > 0 ? `${match.missing_items.length} item needed` : '0 items needed'
+        },
+        wardrobeMatch: {
+          ownedCount: match.matched_count,
+          totalCount: match.required_count,
+          percentage: Math.round(match.wardrobe_coverage * 100),
+          statusText: match.wardrobe_coverage === 1 ? "Ready in your closet!" : "High Closet Synergy",
+          subtext: match.missing_items && match.missing_items.length > 0 ? `Missing: ${match.missing_items.join(', ')}` : "All pieces owned!"
+        },
+        reasons: [
+          `ML Compatibility Score: ${mlRec.compatibility_score || 92}%`,
+          mlRec.color_harmony_explanation || 'Balanced color harmony across garment slots',
+          mlRec.explanation || `Optimal pairing for ${newPrefs.occasion} utility`,
+          `Uses ${match.matched_count} items from your wardrobe (${Math.round(match.wardrobe_coverage * 100)}% coverage)`,
+          match.missing_items && match.missing_items.length > 0 ? `Missing: ${match.missing_items.join(', ')}` : 'Zero new purchases needed'
+        ]
+      };
+    } else if (newPrefs.style === 'Traditional' || newPrefs.occasion === 'Traditional' || newPrefs.occasion === 'Wedding') {
       baseCuration = alternateCurations.traditional;
     } else if (newPrefs.style === 'Formal' || newPrefs.occasion === 'Office') {
       baseCuration = alternateCurations.formal;

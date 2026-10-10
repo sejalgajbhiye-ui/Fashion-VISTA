@@ -1,0 +1,81 @@
+{
+  "system": "Fashion VISTA ML Model Registry",
+  "version": "1.1.0",
+  "models": {
+    "clothing_classifier_cnn": {
+      "model_id": "fmnist_cnn",
+      "architecture": "FashionCNN (2 Conv2d + BatchNorm + Dropout + 2 Linear)",
+      "task": "Clothing Category Classification",
+      "dataset": "Fashion-MNIST (Official Zalando Research)",
+      "dataset_samples": 70000,
+      "test_accuracy": 0.8979,
+      "test_weighted_f1": 0.8961,
+      "artifact_path": "models/fmnist_cnn.pt",
+      "classes_path": "models/fmnist_classes.json",
+      "status": "ready"
+    },
+    "clothing_classifier_transfer_learning": {
+      "model_id": "mobilenet_v2_fmnist",
+      "architecture": "MobileNetV2 (ImageNet Pretrained Transfer Learning)",
+      "task": "Clothing Category Classification",
+      "dataset": "Fashion-MNIST (3-channel ImageNet normalized)",
+      "dataset_samples": 17000,
+      "test_accuracy": 0.7980,
+      "test_weighted_f1": 0.7981,
+      "artifact_path": "models/mobilenet_v2_fmnist.pt",
+      "classes_path": "models/fmnist_classes.json",
+      "status": "ready"
+    },
+    "clothing_classifier_baseline": {
+      "model_id": "fmnist_baseline",
+      "architecture": "SGD Linear Classifier (Log-Loss)",
+      "task": "Baseline Clothing Classification",
+      "dataset": "Fashion-MNIST",
+      "dataset_samples": 70000,
+      "test_accuracy": 0.8193,
+      "test_weighted_f1": 0.8220,
+      "artifact_path": "models/fmnist_baseline.joblib",
+      "status": "ready"
+    },
+    "product_attribute_model": {
+      "model_id": "product_attribute_model",
+      "architecture": "TF-IDF (6,000 n-grams) + Multi-Target Logistic Regression",
+      "task": "Garment Attribute Understanding",
+      "dataset": "Fashion Product Images (Small)",
+      "dataset_samples": 44446,
+      "accuracy": {
+        "category": 0.9957,
+        "subcategory": 0.9854,
+        "usage": 0.9397,
+        "season": 0.8180
+      },
+      "artifact_path": "models/product_attribute_model.joblib",
+      "status": "ready"
+    },
+    "outfit_recommender": {
+      "model_id": "outfit_recommender",
+      "architecture": "Content-Based Filtering + Fashion Color Theory Matrix",
+      "task": "Personalized Outfit Recommendation",
+      "dataset": "Fashion Product Images (27,799 indexed items)",
+      "slot_completeness_rate": 1.0,
+      "mean_compatibility_score": 92.73,
+      "status": "ready"
+    },
+    "wardrobe_matcher": {
+      "model_id": "wardrobe_matcher",
+      "architecture": "Cross-Category Silhouette & Color Compatibility Matching",
+      "task": "Wardrobe Matching & Missing Item Detection",
+      "status": "ready"
+    },
+    "virtual_try_on": {
+      "model_id": "viton_hd_vto",
+      "architecture": "ALIAS Generator / High-Resolution VTON",
+      "task": "Virtual Try-On",
+      "dataset": "VITON-HD (2,032 test pairs in manifest)",
+      "status": "model_not_configured",
+      "hardware_requirement": "Dedicated NVIDIA GPU with >= 12GB VRAM",
+      "storage_requirement": ">= 25GB uncompressed checkpoints & data",
+      "note": "Documented interface ready. Hardware prerequisites required for live GPU synthesis."
+    }
+  }
+}
