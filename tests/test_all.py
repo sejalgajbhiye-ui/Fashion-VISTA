@@ -500,3 +500,87 @@ def test_api_recommendations_partial_preferences(client):
     assert data2["primary_recommendation"]["occasion"] == "Party"
 
 
+def test_recommender_formal_style_calibration():
+    engine = OutfitRecommender()
+    prefs = {
+        "occasion": "College",
+        "outfitType": "Full Outfit",
+        "colour": "Black",
+        "style": "Formal",
+        "season": "Summer"
+    }
+    result = engine.recommend_outfits(preferences=prefs, limit=2)
+    assert result["status"] == "success"
+    primary = result["primary_recommendation"]
+
+    # Verify Hero image matches formal + black
+    assert "photo-1594938298603" in primary["heroImage"]
+
+    # Verify garment slots
+    slots = {item["slot"]: item for item in primary["items"]}
+    assert "Top" in slots
+    assert "Bottom" in slots
+    assert "Shoes" in slots
+
+    top = slots["Top"]
+    bottom = slots["Bottom"]
+    shoes = slots["Shoes"]
+
+    # Formal top must be a Shirt (not T-shirt)
+    assert top["article_type"].lower() == "shirts"
+    assert "black" in top["colour"].lower()
+
+    # Formal bottom must be Trousers
+    assert "trouser" in bottom["article_type"].lower()
+
+    # Formal shoes must be Formal Shoes
+    assert "formal" in shoes["article_type"].lower() or "shoe" in shoes["article_type"].lower()
+
+
+def test_recommender_outfit_type_and_colour():
+    engine = OutfitRecommender()
+    prefs = {
+        "occasion": "Casual",
+        "outfitType": "Jeans",
+        "colour": "Blue",
+        "style": "Casual",
+        "season": "Summer"
+    }
+    result = engine.recommend_outfits(preferences=prefs, limit=2)
+    primary = result["primary_recommendation"]
+    slots = {item["slot"]: item for item in primary["items"]}
+
+    # Bottom must be Jeans
+    assert "jeans" in slots["Bottom"]["article_type"].lower()
+    # Top must be Blue
+    assert "blue" in slots["Top"]["colour"].lower()
+
+
+def test_look_generator_canvas_creation():
+    from backend.services.look_generator import generate_composed_outfit_canvas
+    test_outfit = {
+        "id": "rec_test_canvas",
+        "name": "Formal Test Ensemble",
+        "occasion": "College",
+        "style": "Formal",
+        "season": "Summer",
+        "compatibility_score": 95,
+        "items": [
+            {"slot": "Top", "name": "Black Formal Shirt", "colour": "Black", "article_type": "Shirts", "owned": True, "image": None},
+            {"slot": "Bottom", "name": "Dark Grey Trousers", "colour": "Grey", "article_type": "Trousers", "owned": True, "image": None},
+            {"slot": "Shoes", "name": "Black Oxford Shoes", "colour": "Black", "article_type": "Formal Shoes", "owned": False, "image": None},
+            {"slot": "Layer", "name": "Tailored Blazer", "colour": "Charcoal", "article_type": "Blazers", "owned": True, "image": None}
+        ]
+    }
+    url = generate_composed_outfit_canvas(test_outfit)
+    assert url is not None
+    assert url.startswith("/api/wardrobe/uploads/looks/")
+    
+    # Check that file exists on disk
+    filename = url.split("/")[-1]
+    disk_path = BASE_DIR / "backend" / "uploads" / "looks" / filename
+    assert disk_path.exists()
+    assert disk_path.stat().st_size > 1000
+
+
+

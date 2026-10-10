@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFashion } from '../context/FashionContext';
 import { ClothingCard } from '../components/ClothingCard';
@@ -7,16 +7,19 @@ import { RecommendationReason } from '../components/RecommendationReason';
 import { OutfitCard } from '../components/OutfitCard';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
-import { Sparkles, Shirt, ShoppingBag, ArrowRight, RefreshCw, Layers } from 'lucide-react';
+import { Sparkles, Shirt, ShoppingBag, ArrowRight, RefreshCw, Layers, Eye, LayoutGrid } from 'lucide-react';
 
 export const Recommendations = () => {
   const navigate = useNavigate();
   const { currentRecommendation, applyAlternative, preferences } = useFashion();
 
+  const [activeVisualMode, setActiveVisualMode] = useState('model'); // 'model' | 'canvas'
+
   const {
     name,
     subtitle,
     heroImage,
+    composed_look_image,
     items = [],
     wardrobeMatch,
     reasons = [],
@@ -68,29 +71,64 @@ export const Recommendations = () => {
       {/* MAIN RECOMMENDATION SHOWCASE */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Left: Large Editorial Fashion Hero Image */}
-        <div className="lg:col-span-5 relative">
+        {/* Left: Large Editorial Fashion Hero Image with Mode Switcher */}
+        <div className="lg:col-span-5 relative space-y-3">
           <div className="relative aspect-[3/4] sm:aspect-[4/5] rounded-3xl overflow-hidden shadow-card border border-taupe-200 bg-taupe-100">
+            {/* Visual Mode Segmented Switcher */}
+            {composed_look_image && (
+              <div className="absolute top-4 right-4 z-20 flex items-center bg-white/95 backdrop-blur-md rounded-xl p-1 border border-taupe-300 shadow-md text-[11px] font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setActiveVisualMode('model')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    activeVisualMode === 'model'
+                      ? 'bg-charcoal-900 text-cream-50 shadow-sm'
+                      : 'text-charcoal-600 hover:text-black'
+                  }`}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Model Look</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveVisualMode('canvas')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    activeVisualMode === 'canvas'
+                      ? 'bg-charcoal-900 text-cream-50 shadow-sm'
+                      : 'text-charcoal-600 hover:text-black'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Flat-Lay Canvas</span>
+                </button>
+              </div>
+            )}
+
             <img
-              src={heroImage}
+              src={activeVisualMode === 'canvas' && composed_look_image ? composed_look_image : heroImage}
               alt={name}
-              className="w-full h-full object-cover object-top"
+              className={`w-full h-full ${activeVisualMode === 'canvas' ? 'object-contain bg-[#FCFAF6]' : 'object-cover object-top'} transition-all duration-300`}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-charcoal-900/80 via-transparent to-transparent" />
-            
-            <div className="absolute bottom-6 left-6 right-6 text-white space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest bg-white/20 backdrop-blur-md px-2.5 py-1 rounded">
-                AI Blueprint
-              </span>
-              <h2 className="editorial-heading text-2xl sm:text-3xl font-bold">
-                {name}
-              </h2>
-              {subtitle && (
-                <p className="text-xs sm:text-sm text-taupe-200 font-light line-clamp-2">
-                  {subtitle}
-                </p>
-              )}
-            </div>
+
+            {activeVisualMode === 'model' && (
+              <div className="absolute inset-0 bg-gradient-to-t from-charcoal-900/80 via-transparent to-transparent pointer-events-none" />
+            )}
+
+            {activeVisualMode === 'model' && (
+              <div className="absolute bottom-6 left-6 right-6 text-white space-y-1 pointer-events-none">
+                <span className="text-[10px] font-bold uppercase tracking-widest bg-white/20 backdrop-blur-md px-2.5 py-1 rounded">
+                  AI Blueprint
+                </span>
+                <h2 className="editorial-heading text-2xl sm:text-3xl font-bold">
+                  {name}
+                </h2>
+                {subtitle && (
+                  <p className="text-xs sm:text-sm text-taupe-200 font-light line-clamp-2">
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

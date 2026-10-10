@@ -41,8 +41,8 @@ SHOE_ARTICLES = {
 # Curated high-resolution fashion photography matching specific slot, article, and color
 CURATED_PALETTE_IMAGES = {
     ("Top", "white"): "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=700&q=80",
-    ("Top", "black"): "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80",
-    ("Top", "blue"): "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=700&q=80",
+    ("Top", "black"): "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=700&q=80",
+    ("Top", "blue"): "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=700&q=80",
     ("Top", "navy"): "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=700&q=80",
     ("Top", "grey"): "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=700&q=80",
     ("Top", "red"): "https://images.unsplash.com/photo-1564584217132-2271feaeb3c5?auto=format&fit=crop&w=700&q=80",
@@ -52,10 +52,10 @@ CURATED_PALETTE_IMAGES = {
     ("Top", "yellow"): "https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=700&q=80",
 
     ("Bottom", "blue"): "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=80",
-    ("Bottom", "black"): "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=700&q=80",
+    ("Bottom", "black"): "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "beige"): "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "khaki"): "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=700&q=80",
-    ("Bottom", "grey"): "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=700&q=80",
+    ("Bottom", "grey"): "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "white"): "https://images.unsplash.com/photo-1594633313593-beb382595b78?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "navy"): "https://images.unsplash.com/photo-1517445312882-bc9910d016b7?auto=format&fit=crop&w=700&q=80",
 
@@ -67,21 +67,82 @@ CURATED_PALETTE_IMAGES = {
     ("Shoes", "blue"): "https://images.unsplash.com/photo-1515955656352-a1fa3ffcd111?auto=format&fit=crop&w=700&q=80",
 
     ("Layer", "blue"): "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=700&q=80",
-    ("Layer", "black"): "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=700&q=80",
+    ("Layer", "black"): "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=700&q=80",
     ("Layer", "beige"): "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=700&q=80",
     ("Layer", "grey"): "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=700&q=80",
     ("Layer", "brown"): "https://images.unsplash.com/photo-1521223890158-f9f7c3d5d504?auto=format&fit=crop&w=700&q=80",
 }
 
+# Fine-grained item images keyed by (slot, color, article_type)
+CURATED_ITEM_IMAGES = {
+    ("Top", "black", "shirts"): "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=700&q=80",
+    ("Top", "white", "shirts"): "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=700&q=80",
+    ("Top", "blue", "shirts"): "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=700&q=80",
+    ("Top", "black", "tshirts"): "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80",
+    ("Top", "white", "tshirts"): "https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=700&q=80",
+    ("Top", "blue", "tshirts"): "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=700&q=80",
+    ("Top", "black", "kurtas"): "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=700&q=80",
+    ("Top", "red", "kurtas"): "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80",
+
+    ("Bottom", "black", "trousers"): "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=700&q=80",
+    ("Bottom", "grey", "trousers"): "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=700&q=80",
+    ("Bottom", "brown", "trousers"): "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=700&q=80",
+    ("Bottom", "blue", "jeans"): "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=80",
+    ("Bottom", "black", "jeans"): "https://images.unsplash.com/photo-1584370848010-d7fe6bc767ec?auto=format&fit=crop&w=700&q=80",
+
+    ("Shoes", "black", "formal shoes"): "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?auto=format&fit=crop&w=700&q=80",
+    ("Shoes", "brown", "formal shoes"): "https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=700&q=80",
+    ("Shoes", "white", "casual shoes"): "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=80",
+
+    ("Layer", "black", "blazers"): "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=700&q=80",
+    ("Layer", "blue", "jackets"): "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=700&q=80",
+}
+
 DEFAULT_SLOT_IMAGES = {
-    "Top": "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80",
+    "Top": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=700&q=80",
     "Bottom": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=80",
     "Shoes": "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=80",
-    "Layer": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=700&q=80"
+    "Layer": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=700&q=80"
+}
+
+# Editorial photography matrix accurately matching user's selected style and colour
+EDITORIAL_LOOK_MATRIX = {
+    ("formal", "black"): "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "white"): "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "blue"): "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "grey"): "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "charcoal"): "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "beige"): "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "brown"): "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "any"): "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=80",
+
+    ("casual", "black"): "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=80",
+    ("casual", "blue"): "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1000&q=80",
+    ("casual", "white"): "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1000&q=80",
+    ("casual", "beige"): "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1000&q=80",
+    ("casual", "any"): "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=80",
+
+    ("traditional", "red"): "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
+    ("traditional", "green"): "https://images.unsplash.com/photo-1583391733975-207a9e5c3e7f?auto=format&fit=crop&w=1000&q=80",
+    ("traditional", "black"): "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1000&q=80",
+    ("traditional", "pink"): "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
+    ("traditional", "any"): "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
+
+    ("streetwear", "black"): "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=1000&q=80",
+    ("streetwear", "any"): "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=1000&q=80",
+
+    ("minimal", "black"): "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=1000&q=80",
+    ("minimal", "white"): "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=80",
+    ("minimal", "beige"): "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=80",
+    ("minimal", "any"): "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=1000&q=80",
+
+    ("western", "blue"): "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=1000&q=80",
+    ("western", "black"): "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=1000&q=80",
+    ("western", "any"): "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=1000&q=80"
 }
 
 EDITORIAL_HERO_IMAGES = {
-    "college": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1000&q=80",
+    "college": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=80",
     "office": "https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?auto=format&fit=crop&w=1000&q=80",
     "formal": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=80",
     "party": "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=1000&q=80",
@@ -92,17 +153,47 @@ EDITORIAL_HERO_IMAGES = {
 }
 
 
-def get_curated_item_image(slot, colour, article_type=""):
+def get_curated_item_image(slot, colour, article_type="", style="Casual"):
     """Returns valid, aesthetic image reference matching item slot, color tone, and type."""
     norm_c = normalize_color(colour)
+    art_clean = article_type.strip().lower()
+
+    # 1. Exact match (slot, color, article_type)
+    if (slot, norm_c, art_clean) in CURATED_ITEM_IMAGES:
+        return CURATED_ITEM_IMAGES[(slot, norm_c, art_clean)]
+
+    # 2. Match (slot, color)
     key = (slot, norm_c)
     if key in CURATED_PALETTE_IMAGES:
         return CURATED_PALETTE_IMAGES[key]
-    # Check general neutrals
+
+    # 3. Check general neutrals
     for neutral in ["black", "white", "blue", "beige"]:
         if (slot, neutral) in CURATED_PALETTE_IMAGES:
             return CURATED_PALETTE_IMAGES[(slot, neutral)]
+
     return DEFAULT_SLOT_IMAGES.get(slot, DEFAULT_SLOT_IMAGES["Top"])
+
+
+def get_editorial_look_image(occasion="College", style="Casual", colour="Black", outfit_type="Full Outfit"):
+    """Returns aesthetic editorial look image strictly respecting style, colour, and occasion."""
+    sty_key = style.lower().strip()
+    col_key = normalize_color(colour)
+    occ_key = occasion.lower().strip()
+
+    # 1. Exact match by (style, colour)
+    if (sty_key, col_key) in EDITORIAL_LOOK_MATRIX:
+        return EDITORIAL_LOOK_MATRIX[(sty_key, col_key)]
+
+    # 2. Match by (style, "any")
+    if (sty_key, "any") in EDITORIAL_LOOK_MATRIX:
+        return EDITORIAL_LOOK_MATRIX[(sty_key, "any")]
+
+    # 3. Match by occasion
+    if occ_key in EDITORIAL_HERO_IMAGES:
+        return EDITORIAL_HERO_IMAGES[occ_key]
+
+    return EDITORIAL_LOOK_MATRIX.get(("casual", "black"), "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=80")
 
 
 class OutfitRecommender:
@@ -170,87 +261,164 @@ class OutfitRecommender:
             return self._fallback_recommendations(preferences, limit=limit)
 
         prefs = preferences or {}
-        req_occasion = str(prefs.get("occasion", "Casual")).strip()
+        req_occasion = str(prefs.get("occasion", "College")).strip()
         req_style = str(prefs.get("style", "Casual")).strip()
-        req_colour = str(prefs.get("colour", "Any")).strip()
-        req_season = str(prefs.get("season", "All Season")).strip()
+        req_colour = str(prefs.get("colour", "Black")).strip()
+        req_season = str(prefs.get("season", "Summer")).strip()
         req_budget = str(prefs.get("budget", "1800")).strip()
+        req_outfit_type = str(prefs.get("outfitType", "Full Outfit")).strip()
 
         occ_lower = req_occasion.lower()
+        sty_lower = req_style.lower()
         col_lower = req_colour.lower()
         sea_lower = req_season.lower()
+        typ_lower = req_outfit_type.lower()
 
-        usage_map = {
-            "college": ["casual", "smart casual"],
-            "office": ["formal", "smart casual"],
-            "formal": ["formal", "smart casual"],
-            "party": ["party", "casual", "formal"],
-            "casual": ["casual"],
-            "sports": ["sports", "casual"],
-            "ethnic": ["ethnic", "casual"],
-            "traditional": ["ethnic"],
-            "wedding": ["ethnic", "party", "formal"]
-        }
-        target_usages = usage_map.get(occ_lower, ["casual", "smart casual"])
+        # Guide usages and preferred article types by Style & Occasion
+        if sty_lower == "formal" or occ_lower in ("office", "formal"):
+            target_usages = ["formal", "smart casual"]
+            pref_top_arts = ["shirts"]
+            pref_bottom_arts = ["trousers", "skirts"]
+            pref_shoe_arts = ["formal shoes", "heels", "flats"]
+            pref_layer_arts = ["blazers", "waistcoat", "coats"]
+        elif sty_lower == "traditional" or occ_lower in ("traditional", "wedding"):
+            target_usages = ["ethnic"]
+            pref_top_arts = ["kurtas", "kurtis", "sarees", "tunics", "kurta sets"]
+            pref_bottom_arts = ["churidar", "salwar", "patiala", "leggings", "trousers"]
+            pref_shoe_arts = ["sandals", "flats", "casual shoes"]
+            pref_layer_arts = ["dupatta", "stoles", "nehru jackets"]
+        elif sty_lower == "streetwear":
+            target_usages = ["casual", "sports"]
+            pref_top_arts = ["tshirts", "sweatshirts"]
+            pref_bottom_arts = ["jeans", "track pants"]
+            pref_shoe_arts = ["casual shoes", "sports shoes"]
+            pref_layer_arts = ["jackets", "sweatshirts"]
+        elif sty_lower == "minimal":
+            target_usages = ["casual", "smart casual", "formal"]
+            pref_top_arts = ["shirts", "tshirts", "tops"]
+            pref_bottom_arts = ["trousers", "jeans"]
+            pref_shoe_arts = ["casual shoes", "formal shoes", "flats"]
+            pref_layer_arts = ["blazers", "jackets"]
+        elif sty_lower == "western":
+            target_usages = ["casual", "smart casual"]
+            pref_top_arts = ["shirts", "tops", "tshirts"]
+            pref_bottom_arts = ["jeans", "trousers", "skirts"]
+            pref_shoe_arts = ["casual shoes", "heels", "flats"]
+            pref_layer_arts = ["jackets", "shrug"]
+        else:
+            target_usages = ["casual", "smart casual"]
+            pref_top_arts = ["tshirts", "shirts", "tops"]
+            pref_bottom_arts = ["jeans", "trousers", "shorts", "skirts"]
+            pref_shoe_arts = ["casual shoes", "sandals", "flats"]
+            pref_layer_arts = ["jackets", "sweatshirts"]
+
+        # Enforce explicit Outfit Type from Questionnaire Step 2
+        if typ_lower == "shirt":
+            pref_top_arts = ["shirts"]
+        elif typ_lower == "t-shirt":
+            pref_top_arts = ["tshirts"]
+        elif typ_lower == "top":
+            pref_top_arts = ["tops", "tunics"]
+        elif typ_lower == "kurti":
+            pref_top_arts = ["kurtas", "kurtis"]
+        elif typ_lower == "saree":
+            pref_top_arts = ["sarees"]
+        elif typ_lower == "dress":
+            pref_top_arts = ["dresses", "sarees"]
+        elif typ_lower == "jeans":
+            pref_bottom_arts = ["jeans"]
+        elif typ_lower == "trousers":
+            pref_bottom_arts = ["trousers"]
 
         # Filter items for slot
-        def filter_slot_candidates(slot_name, preferred_color=None):
+        def filter_slot_candidates(slot_name, preferred_color=None, preferred_articles=None):
             items = self.products_by_slot.get(slot_name, [])
             matched = []
             for item in items:
+                art = item["article_type"].lower()
                 usg = item["usage"].lower()
                 item_sea = item["season"].lower()
 
-                usg_ok = any(u in usg for u in target_usages) or usg == "casual"
-                sea_ok = (sea_lower == "all season") or (sea_lower in item_sea) or ("all" in item_sea) or ("summer" in item_sea)
+                art_ok = True
+                if preferred_articles:
+                    art_ok = any(p in art for p in preferred_articles)
 
-                if preferred_color and preferred_color != "any":
+                usg_ok = any(u in usg for u in target_usages)
+                if not usg_ok and "formal" not in target_usages and "ethnic" not in target_usages:
+                    usg_ok = (usg == "casual")
+
+                sea_ok = (sea_lower == "all season") or (sea_lower in item_sea) or ("all" in item_sea) or ("summer" in item_sea)
+                if "summer" in sea_lower and slot_name in ("Top", "Layer"):
+                    if art in ("sweaters", "coats", "rain jacket"):
+                        sea_ok = False
+
+                if preferred_color and preferred_color.lower() != "any":
                     col_ok = normalize_color(preferred_color) in normalize_color(item["colour"])
                 else:
                     col_ok = True
 
-                if usg_ok and sea_ok and col_ok:
+                if art_ok and usg_ok and sea_ok and col_ok:
                     matched.append(item)
 
-            if not matched and preferred_color and preferred_color != "any":
-                # Relax color constraint if too narrow
-                return filter_slot_candidates(slot_name, preferred_color=None)
+            # Progressive relaxation if too narrow
+            if not matched and preferred_articles:
+                for item in items:
+                    art = item["article_type"].lower()
+                    if any(p in art for p in preferred_articles):
+                        if preferred_color and preferred_color.lower() != "any":
+                            if normalize_color(preferred_color) in normalize_color(item["colour"]):
+                                matched.append(item)
+                        else:
+                            matched.append(item)
+
+            if not matched and preferred_color and preferred_color.lower() != "any":
+                for item in items:
+                    if normalize_color(preferred_color) in normalize_color(item["colour"]):
+                        matched.append(item)
 
             return matched if matched else items
 
-        cand_tops = filter_slot_candidates("Top", preferred_color=req_colour if col_lower != "any" else None)
-        cand_bottoms = filter_slot_candidates("Bottom")
-        cand_shoes = filter_slot_candidates("Shoes")
-        cand_layers = filter_slot_candidates("Layer")
+        cand_tops = filter_slot_candidates("Top", preferred_color=req_colour if col_lower != "any" else None, preferred_articles=pref_top_arts)
+        cand_bottoms = filter_slot_candidates("Bottom", preferred_articles=pref_bottom_arts)
+        cand_shoes = filter_slot_candidates("Shoes", preferred_articles=pref_shoe_arts)
+        cand_layers = filter_slot_candidates("Layer", preferred_articles=pref_layer_arts)
 
-        # Pick diverse candidate tops (by color and article type)
+        # Pick diverse candidate tops (by brand, article type, and style)
         seen_top_keys = set()
         diverse_tops = []
         for t in cand_tops:
-            key = (t["article_type"], normalize_color(t["colour"]))
+            brand = t["name"].split()[0] if t["name"] else t["id"]
+            key = (brand, t["article_type"], normalize_color(t["colour"]))
             if key not in seen_top_keys:
                 seen_top_keys.add(key)
                 diverse_tops.append(t)
             if len(diverse_tops) >= 12:
                 break
 
+        if len(diverse_tops) < 4:
+            for t in cand_tops:
+                if t not in diverse_tops:
+                    diverse_tops.append(t)
+                if len(diverse_tops) >= 8:
+                    break
+
         if not diverse_tops:
             diverse_tops = cand_tops[:8]
 
         # Generate candidate outfits
         candidate_outfits = []
-        for top_item in diverse_tops:
-            # 1. Match Bottom maximizing color harmony
+        for top_idx, top_item in enumerate(diverse_tops):
+            # 1. Match Bottom maximizing color harmony (offsetting by top_idx for diversity)
             scored_bottoms = []
             for b in cand_bottoms[:40]:
                 pair_score = calculate_color_pair_score(top_item["colour"], b["colour"])
-                # Occasion penalty if mismatch
                 b_usg = b["usage"].lower()
                 occ_bonus = 0.05 if any(u in b_usg for u in target_usages) else 0.0
                 scored_bottoms.append((pair_score + occ_bonus, b))
 
             scored_bottoms.sort(key=lambda x: x[0], reverse=True)
-            chosen_bottom = scored_bottoms[0][1] if scored_bottoms else cand_bottoms[0]
+            bottom_pick_idx = min(top_idx % max(1, len(scored_bottoms)), len(scored_bottoms) - 1)
+            chosen_bottom = scored_bottoms[bottom_pick_idx][1] if scored_bottoms else cand_bottoms[0]
 
             # 2. Match Shoes compatible with both Top and Bottom
             scored_shoes = []
@@ -263,7 +431,8 @@ class OutfitRecommender:
                 scored_shoes.append((avg_pair + occ_bonus, s))
 
             scored_shoes.sort(key=lambda x: x[0], reverse=True)
-            chosen_shoes = scored_shoes[0][1] if scored_shoes else cand_shoes[0]
+            shoe_pick_idx = min(top_idx % max(1, len(scored_shoes)), len(scored_shoes) - 1)
+            chosen_shoes = scored_shoes[shoe_pick_idx][1] if scored_shoes else cand_shoes[0]
 
             outfit_pieces = [top_item, chosen_bottom, chosen_shoes]
 
@@ -334,7 +503,6 @@ class OutfitRecommender:
             return self._fallback_recommendations(preferences, limit=limit)
 
         curated_outfits = []
-        hero_img = EDITORIAL_HERO_IMAGES.get(occ_lower, EDITORIAL_HERO_IMAGES["casual"])
 
         for idx, entry in enumerate(selected_raw_outfits):
             pieces = entry["pieces"]
@@ -366,14 +534,17 @@ class OutfitRecommender:
                     "brand": brand_name,
                     "owned": p["name"] not in entry["missing_items"] if entry["missing_items"] else True,
                     "description": f"{p['colour']} {p['subcategory']} tailored for {req_occasion} styling",
-                    "image": get_curated_item_image(p["slot"], p["colour"], p["article_type"])
+                    "image": get_curated_item_image(p["slot"], p["colour"], p["article_type"], style=req_style)
                 })
 
             total_count = len(items_list)
             owned_count = entry["matched_count"]
             coverage_pct = round((owned_count / max(1, total_count)) * 100)
 
-            curated_outfits.append({
+            # Hero image strictly matching style, colour, occasion, and outfit type
+            hero_img = get_editorial_look_image(req_occasion, req_style, req_colour, req_outfit_type)
+
+            outfit_obj = {
                 "id": rec_id,
                 "name": outfit_name,
                 "subtitle": f"{req_style} coordination calibrated for {req_occasion} mobility",
@@ -404,7 +575,16 @@ class OutfitRecommender:
                     "missing_items": entry["missing_items"]
                 },
                 "explanation": f"Algorithmically coordinated ensemble: {entry['color_explanation']} Calibrated for {req_occasion} utility with slot completeness."
-            })
+            }
+
+            # Generate dynamic composed flat-lay moodboard canvas image
+            try:
+                from backend.services.look_generator import generate_composed_outfit_canvas
+                outfit_obj["composed_look_image"] = generate_composed_outfit_canvas(outfit_obj)
+            except Exception as e:
+                outfit_obj["composed_look_image"] = None
+
+            curated_outfits.append(outfit_obj)
 
         primary = curated_outfits[0]
         alternatives = curated_outfits[1:limit]

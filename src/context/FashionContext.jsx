@@ -257,6 +257,7 @@ export const FashionProvider = ({ children }) => {
         percentage: alt.wardrobe_match?.percentage ?? 75,
         image: alt.heroImage || (alt.items && alt.items[0]?.image) || defaultRecommendation.heroImage,
         heroImage: alt.heroImage || (alt.items && alt.items[0]?.image) || defaultRecommendation.heroImage,
+        composed_look_image: alt.composed_look_image || null,
         items: alt.items,
         reasons: alt.reasons,
         wardrobe_match: alt.wardrobe_match,
@@ -272,6 +273,7 @@ export const FashionProvider = ({ children }) => {
         name: mlRec.name || `${newPrefs.style || 'Casual'} ${newPrefs.occasion || 'College'} Curation`,
         subtitle: mlRec.subtitle || defaultRecommendation.subtitle,
         heroImage: mlRec.heroImage || defaultRecommendation.heroImage,
+        composed_look_image: mlRec.composed_look_image || null,
         occasion: mlRec.occasion || newPrefs.occasion || 'College',
         style: mlRec.style || newPrefs.style || 'Casual',
         season: mlRec.season || newPrefs.season || 'Summer',
@@ -382,6 +384,7 @@ export const FashionProvider = ({ children }) => {
       name: alt.name || prev.name,
       subtitle: alt.description || alt.subtitle || prev.subtitle,
       heroImage: alt.heroImage || alt.image || prev.heroImage,
+      composed_look_image: alt.composed_look_image || prev.composed_look_image,
       items: alt.items && alt.items.length > 0 ? alt.items : prev.items,
       reasons: alt.reasons && alt.reasons.length > 0 ? alt.reasons : prev.reasons,
       missingItem: missing ? {

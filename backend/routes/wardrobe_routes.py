@@ -251,6 +251,6 @@ def remove_item(item_id):
 
 @wardrobe_bp.route("/uploads/<path:filename>", methods=["GET"])
 def serve_upload(filename):
-    """Statically serves uploaded garment images."""
-    safe_name = secure_filename(filename)
-    return send_from_directory(str(UPLOADS_DIR), safe_name)
+    """Statically serves uploaded garment images and generated looks."""
+    return send_from_directory(str(UPLOADS_DIR), filename)
+
