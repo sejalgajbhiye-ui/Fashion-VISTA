@@ -98,7 +98,7 @@ def seed_initial_items(conn):
             "season": "Fall",
             "brand": "Zara",
             "description": "Structured slim-fit single-breasted blazer.",
-            "image": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=700&q=80",
+            "image": "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?auto=format&fit=crop&w=700&q=80",
             "predicted_category": "Coat",
             "confidence": 0.91,
             "model_used": "FashionCNN (PyTorch)"

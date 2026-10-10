@@ -21,6 +21,85 @@ export const useFashion = () => {
   return context;
 };
 
+export const normalizeOutfitObject = (raw, idx = 0, defaultPrefs = {}) => {
+  if (!raw) return null;
+  const items = (raw.items || []).filter(Boolean).map(item => {
+    const isOwned = Boolean(item.inWardrobe ?? item.owned ?? false);
+    return {
+      ...item,
+      inWardrobe: isOwned,
+      owned: isOwned,
+      needed_to_buy: Boolean(item.needed_to_buy ?? !isOwned)
+    };
+  });
+
+  const ownedCount = items.filter(i => i.inWardrobe).length;
+  const totalCount = items.length;
+  const coveragePct = totalCount > 0 ? Math.round((ownedCount / totalCount) * 100) : 100;
+  const missingItems = items.filter(i => !i.inWardrobe);
+  const missing = missingItems[0] || null;
+  const missingNames = missingItems.map(i => i.name);
+
+  const wm = raw.wardrobe_match || raw.wardrobeMatch || {};
+  const wardrobeMatch = {
+    ownedCount: wm.matched_count ?? wm.ownedCount ?? ownedCount,
+    totalCount: wm.required_count ?? wm.totalCount ?? totalCount,
+    percentage: wm.percentage ?? coveragePct,
+    statusText: wm.statusText || (coveragePct === 100 ? "Ready in your closet!" : "High Closet Synergy"),
+    subtext: wm.subtext || (missingNames.length > 0 ? `Missing: ${missingNames.join(', ')}` : "All pieces in closet!")
+  };
+
+  const name = raw.name || `Look 0${idx + 1}: Curated Ensemble`;
+  const subtitle = raw.subtitle || raw.description || `Coordinated ensemble tailored for ${raw.occasion || defaultPrefs.occasion || 'your event'}`;
+  const heroImg = raw.heroImage || raw.image || defaultRecommendation.heroImage;
+
+  return {
+    id: raw.id || `rec-${idx + 1}-${Date.now()}`,
+    number: String(idx + 1).padStart(2, '0'),
+    name,
+    subtitle,
+    description: subtitle,
+    occasion: raw.occasion || defaultPrefs.occasion || 'Wedding',
+    style: raw.style || defaultPrefs.style || 'Traditional',
+    season: raw.season || defaultPrefs.season || 'All Season',
+    colour: raw.colour || (defaultPrefs.colour === 'Any' ? 'Balanced Palette' : `${defaultPrefs.colour || 'Red'} Harmony`),
+    budget: raw.budget || defaultPrefs.budget || '2500',
+    heroImage: heroImg,
+    image: heroImg,
+    composed_look_image: raw.composed_look_image || null,
+    items,
+    itemsSummary: items.length > 0 ? items.map(i => i.name).join(' + ') : 'Coordinated garment pieces',
+    ownedCount: wardrobeMatch.ownedCount,
+    totalCount: wardrobeMatch.totalCount,
+    percentage: wardrobeMatch.percentage,
+    wardrobeMatch,
+    wardrobe_match: {
+      matched_count: wardrobeMatch.ownedCount,
+      required_count: wardrobeMatch.totalCount,
+      percentage: wardrobeMatch.percentage,
+      statusText: wardrobeMatch.statusText,
+      subtext: wardrobeMatch.subtext
+    },
+    missingItem: missing ? {
+      id: missing.id,
+      name: missing.name,
+      category: missing.slot || missing.category,
+      colour: missing.colour,
+      reason: `Completes the silhouette for ${raw.occasion || defaultPrefs.occasion || 'styling'}.`,
+      image: missing.image
+    } : null,
+    reasons: raw.reasons && raw.reasons.length > 0 ? raw.reasons : [
+      `Compatibility Score: ${raw.compatibility_score || 92}% based on color harmony & silhouette`,
+      raw.color_harmony_explanation || 'Harmonious color balance across garment slots',
+      `Uses ${wardrobeMatch.ownedCount} items from your wardrobe (${wardrobeMatch.percentage}% coverage)`,
+      missingNames.length > 0 ? `Missing: ${missingNames.join(', ')}` : 'Zero new purchases needed'
+    ],
+    compatibility_score: raw.compatibility_score || 92,
+    color_score: raw.color_score || 90,
+    selectedOutfitIndex: idx
+  };
+};
+
 export const FashionProvider = ({ children }) => {
   // 1. Wardrobe State
   const [wardrobe, setWardrobe] = useState(() => {
@@ -53,44 +132,79 @@ export const FashionProvider = ({ children }) => {
 
   // 2. User Preferences for AI Stylist
   const [preferences, setPreferences] = useState(() => {
+    const defaultPrefs = {
+      occasion: 'Wedding',
+      colour: 'Red',
+      style: 'Traditional',
+      outfitType: 'Full Outfit',
+      season: 'All Season'
+    };
     try {
       const saved = localStorage.getItem('fashion_vista_preferences');
-      return saved ? JSON.parse(saved) : {
-        occasion: 'College',
-        outfitType: 'Full Outfit',
-        colour: 'Black',
-        style: 'Casual',
-        season: 'Summer',
-        budget: '1800'
-      };
+      const parsed = saved ? JSON.parse(saved) : null;
+      return (parsed && typeof parsed === 'object') ? { ...defaultPrefs, ...parsed } : defaultPrefs;
     } catch {
-      return {
-        occasion: 'College',
-        outfitType: 'Full Outfit',
-        colour: 'Black',
-        style: 'Casual',
-        season: 'Summer',
-        budget: '1800'
-      };
+      return defaultPrefs;
     }
   });
 
   useEffect(() => {
-    localStorage.setItem('fashion_vista_preferences', JSON.stringify(preferences));
+    try {
+      localStorage.setItem('fashion_vista_preferences', JSON.stringify(preferences));
+    } catch (e) {
+      console.warn('LocalStorage error caching preferences:', e);
+    }
   }, [preferences]);
 
-  // 3. Current AI Recommendation
+  // 3. All Outfits & Current AI Recommendation
+  const [allOutfits, setAllOutfits] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fashion_vista_all_outfits');
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((o, i) => normalizeOutfitObject(o, i)).filter(Boolean);
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached all_outfits:', e);
+    }
+    return [normalizeOutfitObject(defaultRecommendation, 0)];
+  });
+
+  useEffect(() => {
+    try {
+      if (allOutfits && allOutfits.length > 0) {
+        localStorage.setItem('fashion_vista_all_outfits', JSON.stringify(allOutfits));
+      }
+    } catch (e) {
+      console.warn('LocalStorage error caching all_outfits:', e);
+    }
+  }, [allOutfits]);
+
   const [currentRecommendation, setCurrentRecommendation] = useState(() => {
     try {
       const saved = localStorage.getItem('fashion_vista_recommendation');
-      return saved ? JSON.parse(saved) : defaultRecommendation;
-    } catch {
-      return defaultRecommendation;
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (parsed && typeof parsed === 'object' && Array.isArray(parsed.items) && parsed.items.length > 0) {
+        return normalizeOutfitObject(parsed, parsed.selectedOutfitIndex || 0);
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached recommendation:', e);
     }
+    return normalizeOutfitObject(defaultRecommendation, 0);
   });
 
   useEffect(() => {
-    localStorage.setItem('fashion_vista_recommendation', JSON.stringify(currentRecommendation));
+    try {
+      if (currentRecommendation) {
+        const cleanToStore = {
+          ...currentRecommendation,
+          allOutfits: undefined
+        };
+        localStorage.setItem('fashion_vista_recommendation', JSON.stringify(cleanToStore));
+      }
+    } catch (e) {
+      console.warn('LocalStorage error caching recommendation:', e);
+    }
   }, [currentRecommendation]);
 
   // 4. Try Existing selections (by slot: top, bottom, shoes, layer)
@@ -237,204 +351,94 @@ export const FashionProvider = ({ children }) => {
       console.warn("Backend ML recommendation unavailable, falling back to local curation:", err);
     }
 
-    let baseCuration = defaultRecommendation;
-    if (mlRec && mlRec.items && mlRec.items.length >= 3) {
-      const normalizedItems = (mlRec.items || []).map(item => {
-        const isOwned = item.inWardrobe ?? item.owned ?? false;
-        return {
-          ...item,
-          inWardrobe: isOwned,
-          owned: isOwned,
-          needed_to_buy: item.needed_to_buy ?? !isOwned
-        };
-      });
-
-      const ownedCount = normalizedItems.filter(i => i.inWardrobe).length;
-      const totalCount = normalizedItems.length;
-      const coveragePct = Math.round((ownedCount / Math.max(1, totalCount)) * 100);
-      const missing = normalizedItems.find(i => !i.inWardrobe) || null;
-      const missingList = normalizedItems.filter(i => !i.inWardrobe).map(i => i.name);
-
-      const formattedAlternatives = (mlRec.alternatives || []).map((alt, idx) => {
-        const altItems = (alt.items || []).map(i => {
-          const isOwned = i.inWardrobe ?? i.owned ?? false;
-          return {
-            ...i,
-            inWardrobe: isOwned,
-            owned: isOwned,
-            needed_to_buy: i.needed_to_buy ?? !isOwned
-          };
-        });
-        const altOwned = altItems.filter(i => i.inWardrobe).length;
-        const altTotal = altItems.length || 3;
-        const altPct = Math.round((altOwned / Math.max(1, altTotal)) * 100);
-
-        return {
-          id: alt.id || `alt-${idx + 1}`,
-          number: String(idx + 1).padStart(2, '0'),
-          name: alt.name,
-          description: alt.subtitle || alt.explanation || 'Curated alternative coordination',
-          itemsSummary: altItems.length > 0 ? altItems.map(i => i.name).join(' + ') : 'Coordinated garment pieces',
-          ownedCount: altOwned,
-          totalCount: altTotal,
-          percentage: altPct,
-          image: alt.heroImage || (altItems[0]?.image) || defaultRecommendation.heroImage,
-          heroImage: alt.heroImage || (altItems[0]?.image) || defaultRecommendation.heroImage,
-          composed_look_image: alt.composed_look_image || null,
-          items: altItems,
-          reasons: alt.reasons,
-          wardrobe_match: {
-            matched_count: altOwned,
-            required_count: altTotal,
-            percentage: altPct
-          },
-          compatibility_score: alt.compatibility_score,
-          color_score: alt.color_score
-        };
-      });
-
-      baseCuration = {
-        ...defaultRecommendation,
-        id: mlRec.id || defaultRecommendation.id,
-        name: mlRec.name || `${newPrefs.style || 'Casual'} ${newPrefs.occasion || 'College'} Curation`,
-        subtitle: mlRec.subtitle || defaultRecommendation.subtitle,
-        heroImage: mlRec.heroImage || defaultRecommendation.heroImage,
-        composed_look_image: mlRec.composed_look_image || null,
-        occasion: mlRec.occasion || newPrefs.occasion || 'College',
-        style: mlRec.style || newPrefs.style || 'Casual',
-        season: mlRec.season || newPrefs.season || 'Summer',
-        colour: newPrefs.colour === 'Any' ? 'Balanced Palette' : `${newPrefs.colour} Harmony`,
-        budget: newPrefs.budget || '1800',
-        items: normalizedItems,
-        missingItem: missing ? {
-          id: missing.id,
-          name: missing.name,
-          category: missing.slot || missing.category,
-          colour: missing.colour,
-          reason: `Completes the silhouette for ${mlRec.occasion || newPrefs.occasion} styling without redundancy.`,
-          image: missing.image
-        } : null,
-        compatibility: {
-          occasion: `Suitable for ${mlRec.occasion || newPrefs.occasion}`,
-          style: mlRec.style || newPrefs.style || 'Casual',
-          colour: `${mlRec.color_score || 90}% Colour Harmony`,
-          wardrobe: `${ownedCount} / ${totalCount} items in closet`,
-          purchase: missingList.length > 0 ? `${missingList.length} item(s) needed` : '0 items needed'
-        },
-        wardrobeMatch: {
-          ownedCount: ownedCount,
-          totalCount: totalCount,
-          percentage: coveragePct,
-          statusText: coveragePct === 100 ? "Ready in your closet!" : "High Closet Synergy",
-          subtext: missingList.length > 0 ? `Missing: ${missingList.join(', ')}` : "All pieces in closet!"
-        },
-        reasons: mlRec.reasons && mlRec.reasons.length > 0 ? mlRec.reasons : [
-          `ML Compatibility Score: ${mlRec.compatibility_score || 92}%`,
-          mlRec.color_harmony_explanation || 'Balanced color harmony across garment slots',
-          mlRec.explanation || `Optimal pairing for ${newPrefs.occasion} utility`,
-          `Uses ${ownedCount} items from your wardrobe (${coveragePct}% coverage)`,
-          missingList.length > 0 ? `Missing: ${missingList.join(', ')}` : 'Zero new purchases needed'
-        ],
-        alternatives: formattedAlternatives.length > 0 ? formattedAlternatives : defaultRecommendation.alternatives
-      };
+    let rawOutfits = [];
+    if (mlRec && Array.isArray(mlRec.recommendations) && mlRec.recommendations.length > 0) {
+      rawOutfits = mlRec.recommendations;
+    } else if (mlRec && mlRec.items && mlRec.items.length >= 3) {
+      rawOutfits = [mlRec, ...(mlRec.alternatives || [])];
     } else if (newPrefs.style === 'Traditional' || newPrefs.occasion === 'Traditional' || newPrefs.occasion === 'Wedding') {
-      baseCuration = alternateCurations.traditional;
+      rawOutfits = [alternateCurations.traditional, ...(alternateCurations.traditional.alternatives || [])];
     } else if (newPrefs.style === 'Formal' || newPrefs.occasion === 'Office') {
-      baseCuration = alternateCurations.formal;
+      rawOutfits = [alternateCurations.formal, ...(alternateCurations.formal.alternatives || [])];
     } else {
-      // Dynamic Urban Casual with selected preferences
-      baseCuration = {
-        ...defaultRecommendation,
-        occasion: newPrefs.occasion || 'College',
-        outfitType: newPrefs.outfitType || 'Full Outfit',
-        style: newPrefs.style || 'Casual',
-        colour: newPrefs.colour === 'Any' ? 'Black + Blue' : `${newPrefs.colour} + Neutral`,
-        season: newPrefs.season || 'Summer',
-        budget: newPrefs.budget || '1800',
-        compatibility: {
-          occasion: `Suitable for ${newPrefs.occasion || 'College'}`,
-          style: newPrefs.style || 'Casual',
-          colour: `${newPrefs.colour || 'Black'} Harmony`,
-          wardrobe: '3 / 4 items owned',
-          purchase: '1 item needed'
-        },
-        reasons: [
-          `Matches your ${newPrefs.occasion || 'college'} occasion with functional elegance`,
-          `Matches your ${newPrefs.style || 'casual'} aesthetic without compromise`,
-          `Works harmoniously with ${newPrefs.colour || 'black'} accents`,
-          'Uses 3 items already in your wardrobe (75% match rate)',
-          'Minimizes unnecessary purchases — only 1 layer needed'
-        ]
-      };
+      rawOutfits = [defaultRecommendation, ...(defaultRecommendation.alternatives || [])];
     }
 
-    setCurrentRecommendation(baseCuration);
+    const cleanOutfits = rawOutfits
+      .map((o, idx) => normalizeOutfitObject(o, idx, newPrefs))
+      .filter(Boolean);
 
-    // Also record in history
-    const historyEntry = {
-      id: `hist-${Date.now()}`,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      fullDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      outfitName: baseCuration.name,
-      occasion: baseCuration.occasion,
-      style: baseCuration.style,
-      wardrobeMatch: `${baseCuration.wardrobeMatch.ownedCount} / ${baseCuration.wardrobeMatch.totalCount} owned`,
-      ownedCount: baseCuration.wardrobeMatch.ownedCount,
-      totalCount: baseCuration.wardrobeMatch.totalCount,
-      percentage: baseCuration.wardrobeMatch.percentage,
-      missingItems: baseCuration.missingItem ? [baseCuration.missingItem.name] : [],
-      image: baseCuration.heroImage,
-      outfitSummary: baseCuration.items.map(i => i.name).join(' + '),
-      decision: 'AI Recommendation generated from personal stylist questionnaire'
+    const finalOutfits = cleanOutfits.length > 0
+      ? cleanOutfits
+      : [normalizeOutfitObject(defaultRecommendation, 0, newPrefs)];
+
+    const primaryOutfit = {
+      ...finalOutfits[0],
+      selectedOutfitIndex: 0,
+      alternatives: finalOutfits.slice(1)
     };
 
-    setHistory(prev => [historyEntry, ...prev.slice(0, 9)]);
+    setAllOutfits(finalOutfits);
+    setCurrentRecommendation(primaryOutfit);
+
+    // Also record in history safely
+    try {
+      const historyEntry = {
+        id: `hist-${Date.now()}`,
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        fullDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        outfitName: primaryOutfit.name,
+        occasion: primaryOutfit.occasion,
+        style: primaryOutfit.style,
+        wardrobeMatch: `${primaryOutfit.wardrobeMatch.ownedCount} / ${primaryOutfit.wardrobeMatch.totalCount} owned`,
+        ownedCount: primaryOutfit.wardrobeMatch.ownedCount,
+        totalCount: primaryOutfit.wardrobeMatch.totalCount,
+        percentage: primaryOutfit.wardrobeMatch.percentage,
+        missingItems: primaryOutfit.missingItem ? [primaryOutfit.missingItem.name] : [],
+        image: primaryOutfit.heroImage,
+        outfitSummary: (primaryOutfit.items || []).map(i => i.name).join(' + '),
+        decision: 'AI Recommendation generated from personal stylist questionnaire'
+      };
+
+      setHistory(prev => [historyEntry, ...prev.slice(0, 9)]);
+    } catch (hErr) {
+      console.warn('History recording note:', hErr);
+    }
+
     showToast('AI Curated your outfit!', 'success');
   };
 
-  const applyAlternative = (alt) => {
-    // If user clicks "View Outfit →" on an alternative
-    const match = alt.wardrobe_match || {
-      matched_count: alt.ownedCount ?? 3,
-      required_count: alt.totalCount ?? 3,
-      percentage: alt.percentage ?? 100,
-      statusText: alt.percentage === 100 ? "Ready in your closet!" : "High Closet Synergy",
-      subtext: alt.percentage === 100 ? "Zero new purchases needed!" : `Only ${alt.totalCount - alt.ownedCount} item needed.`
-    };
+  const applyAlternative = (alt, altIndex = null) => {
+    if (!alt) return;
+    const targetIdx = altIndex !== null
+      ? altIndex
+      : (allOutfits ? allOutfits.findIndex(o => o.id === alt.id) : 0);
+    const resolvedIdx = targetIdx >= 0 ? targetIdx : 0;
+    const alternativesList = (allOutfits || []).filter((_, i) => i !== resolvedIdx);
 
-    const missing = alt.items?.find(i => !i.owned) || null;
+    const activeObj = (allOutfits && allOutfits[resolvedIdx])
+      ? allOutfits[resolvedIdx]
+      : normalizeOutfitObject(alt, resolvedIdx, preferences);
 
-    setCurrentRecommendation(prev => ({
-      ...prev,
-      id: alt.id || prev.id,
-      name: alt.name || prev.name,
-      subtitle: alt.description || alt.subtitle || prev.subtitle,
-      heroImage: alt.heroImage || alt.image || prev.heroImage,
-      composed_look_image: alt.composed_look_image || prev.composed_look_image,
-      items: alt.items && alt.items.length > 0 ? alt.items : prev.items,
-      reasons: alt.reasons && alt.reasons.length > 0 ? alt.reasons : prev.reasons,
-      missingItem: missing ? {
-        id: missing.id,
-        name: missing.name,
-        category: missing.slot || missing.category,
-        colour: missing.colour,
-        reason: `Completes the silhouette for ${prev.occasion} styling.`,
-        image: missing.image
-      } : null,
-      wardrobeMatch: {
-        ownedCount: match.matched_count ?? alt.ownedCount,
-        totalCount: match.required_count ?? alt.totalCount,
-        percentage: match.percentage ?? alt.percentage,
-        statusText: match.statusText || (alt.percentage === 100 ? "Ready in your closet!" : "High Closet Synergy"),
-        subtext: match.subtext || (alt.percentage === 100 ? "Zero new purchases needed!" : `Only ${alt.totalCount - alt.ownedCount} item needed.`)
-      },
-      compatibility: {
-        ...prev.compatibility,
-        colour: alt.color_score ? `${alt.color_score}% Colour Harmony` : prev.compatibility.colour,
-        wardrobe: `${match.matched_count ?? alt.ownedCount} / ${match.required_count ?? alt.totalCount} items owned`
-      }
-    }));
-    showToast(`Loaded "${alt.name}" as primary outfit`, 'info');
+    setCurrentRecommendation({
+      ...activeObj,
+      selectedOutfitIndex: resolvedIdx,
+      alternatives: alternativesList
+    });
+    showToast(`Loaded "${activeObj.name}" as active outfit`, 'info');
+  };
+
+  const selectOutfitByIndex = (index) => {
+    if (allOutfits && allOutfits[index]) {
+      const selected = allOutfits[index];
+      const alternativesList = allOutfits.filter((_, i) => i !== index);
+      setCurrentRecommendation({
+        ...selected,
+        selectedOutfitIndex: index,
+        alternatives: alternativesList
+      });
+      showToast(`Switched to "${selected.name}"`, 'info');
+    }
   };
 
   // Computed stats
@@ -459,6 +463,8 @@ export const FashionProvider = ({ children }) => {
         preferences,
         setPreferences,
         currentRecommendation,
+        allOutfits: (allOutfits && allOutfits.length > 0) ? allOutfits : [currentRecommendation || normalizeOutfitObject(defaultRecommendation, 0)],
+        selectOutfitByIndex,
         generateRecommendation,
         applyAlternative,
         tryExistingSelection,

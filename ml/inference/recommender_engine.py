@@ -52,30 +52,30 @@ CURATED_PALETTE_IMAGES = {
     ("Top", "yellow"): "https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=700&q=80",
 
     ("Bottom", "blue"): "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=80",
-    ("Bottom", "black"): "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=700&q=80",
+    ("Bottom", "black"): "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "beige"): "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=700&q=80",
-    ("Bottom", "khaki"): "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=700&q=80",
+    ("Bottom", "khaki"): "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "grey"): "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "white"): "https://images.unsplash.com/photo-1594633313593-beb382595b78?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "navy"): "https://images.unsplash.com/photo-1517445312882-bc9910d016b7?auto=format&fit=crop&w=700&q=80",
 
     ("Shoes", "white"): "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=80",
-    ("Shoes", "black"): "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?auto=format&fit=crop&w=700&q=80",
-    ("Shoes", "brown"): "https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=700&q=80",
+    ("Shoes", "black"): "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=700&q=80",
+    ("Shoes", "brown"): "https://images.unsplash.com/photo-1535043934128-cf0b28d52f95?auto=format&fit=crop&w=700&q=80",
     ("Shoes", "tan"): "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=700&q=80",
     ("Shoes", "grey"): "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80",
     ("Shoes", "blue"): "https://images.unsplash.com/photo-1515955656352-a1fa3ffcd111?auto=format&fit=crop&w=700&q=80",
 
     ("Layer", "blue"): "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=700&q=80",
-    ("Layer", "black"): "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=700&q=80",
+    ("Layer", "black"): "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?auto=format&fit=crop&w=700&q=80",
     ("Layer", "beige"): "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=700&q=80",
     ("Layer", "grey"): "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=700&q=80",
     ("Layer", "brown"): "https://images.unsplash.com/photo-1521223890158-f9f7c3d5d504?auto=format&fit=crop&w=700&q=80",
 }
 
-# Fine-grained item images keyed by (slot, color, article_type)
+# Fine-grained item images keyed by (slot, color, article_type) - Women & Girls only
 CURATED_ITEM_IMAGES = {
-    ("Top", "black", "shirts"): "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=700&q=80",
+    ("Top", "black", "shirts"): "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80",
     ("Top", "white", "shirts"): "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=700&q=80",
     ("Top", "blue", "shirts"): "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=700&q=80",
     ("Top", "black", "tshirts"): "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80",
@@ -84,34 +84,36 @@ CURATED_ITEM_IMAGES = {
     ("Top", "black", "kurtas"): "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=700&q=80",
     ("Top", "red", "kurtas"): "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80",
 
-    ("Bottom", "black", "trousers"): "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=700&q=80",
+    ("Bottom", "black", "trousers"): "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "grey", "trousers"): "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "brown", "trousers"): "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "blue", "jeans"): "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=80",
     ("Bottom", "black", "jeans"): "https://images.unsplash.com/photo-1584370848010-d7fe6bc767ec?auto=format&fit=crop&w=700&q=80",
 
-    ("Shoes", "black", "formal shoes"): "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?auto=format&fit=crop&w=700&q=80",
-    ("Shoes", "brown", "formal shoes"): "https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=700&q=80",
+    ("Shoes", "black", "formal shoes"): "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=700&q=80",
+    ("Shoes", "brown", "formal shoes"): "https://images.unsplash.com/photo-1535043934128-cf0b28d52f95?auto=format&fit=crop&w=700&q=80",
     ("Shoes", "white", "casual shoes"): "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=80",
+    ("Shoes", "black", "heels"): "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=700&q=80",
+    ("Shoes", "gold", "flats"): "https://images.unsplash.com/photo-1562273138-f46be4ebdf33?auto=format&fit=crop&w=700&q=80",
 
-    ("Layer", "black", "blazers"): "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=700&q=80",
+    ("Layer", "black", "blazers"): "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?auto=format&fit=crop&w=700&q=80",
     ("Layer", "blue", "jackets"): "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=700&q=80",
 }
 
 DEFAULT_SLOT_IMAGES = {
-    "Top": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=700&q=80",
+    "Top": "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80",
     "Bottom": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=80",
     "Shoes": "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=80",
-    "Layer": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=700&q=80"
+    "Layer": "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?auto=format&fit=crop&w=700&q=80"
 }
 
-# Editorial photography matrix accurately matching user's selected style and colour
+# Editorial photography matrix accurately matching user's selected style and colour - Women & Girls Only
 EDITORIAL_LOOK_MATRIX = {
-    ("formal", "black"): "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=1000&q=80",
-    ("formal", "white"): "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?auto=format&fit=crop&w=1000&q=80",
-    ("formal", "blue"): "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=1000&q=80",
-    ("formal", "grey"): "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1000&q=80",
-    ("formal", "charcoal"): "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "black"): "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "white"): "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "blue"): "https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "grey"): "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=80",
+    ("formal", "charcoal"): "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=80",
     ("formal", "beige"): "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=80",
     ("formal", "brown"): "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=80",
     ("formal", "any"): "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=80",
@@ -123,13 +125,14 @@ EDITORIAL_LOOK_MATRIX = {
     ("casual", "any"): "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=80",
 
     ("traditional", "red"): "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
-    ("traditional", "green"): "https://images.unsplash.com/photo-1583391733975-207a9e5c3e7f?auto=format&fit=crop&w=1000&q=80",
+    ("traditional", "green"): "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1000&q=80",
     ("traditional", "black"): "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1000&q=80",
     ("traditional", "pink"): "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
+    ("traditional", "brown"): "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
     ("traditional", "any"): "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
 
-    ("streetwear", "black"): "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=1000&q=80",
-    ("streetwear", "any"): "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=1000&q=80",
+    ("streetwear", "black"): "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1000&q=80",
+    ("streetwear", "any"): "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1000&q=80",
 
     ("minimal", "black"): "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=1000&q=80",
     ("minimal", "white"): "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=80",
@@ -137,7 +140,7 @@ EDITORIAL_LOOK_MATRIX = {
     ("minimal", "any"): "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=1000&q=80",
 
     ("western", "blue"): "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=1000&q=80",
-    ("western", "black"): "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=1000&q=80",
+    ("western", "black"): "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=80",
     ("western", "any"): "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=1000&q=80"
 }
 
@@ -149,7 +152,8 @@ EDITORIAL_HERO_IMAGES = {
     "casual": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=80",
     "sports": "https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1000&q=80",
     "ethnic": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
-    "wedding": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80"
+    "wedding": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
+    "traditional": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80"
 }
 
 
@@ -215,15 +219,27 @@ class OutfitRecommender:
                 art = r.get("article_type", "").strip().lower()
                 sub = r.get("subcategory", "").strip().lower()
                 gen = r.get("gender", "").strip()
+                name = r.get("product_name", "").strip()
+                name_lower = name.lower()
 
-                # Filter out children's apparel for adult personal stylist
-                if gen in ("Boys", "Girls"):
+                # STRICT WOMEN AND GIRLS ONLY POLICY:
+                # 1. Strictly restrict gender to Women and Girls
+                if gen not in ("Women", "Girls"):
+                    continue
+
+                # 2. Exclude any product with male identifiers in name
+                words = set(name_lower.replace("-", " ").replace("'", "").split())
+                if words.intersection({"men", "mens", "man", "male", "boy", "boys"}):
+                    continue
+
+                # 3. Exclude intimate apparel, undergarments, and accessories that are not wearable outfit pieces
+                if art in ("bra", "briefs", "panties", "swimwear", "socks", "lingerie", "boxers"):
                     continue
 
                 slot = None
                 if art in LAYER_ARTICLES:
                     slot = "Layer"
-                elif art in TOP_ARTICLES or sub == "topwear":
+                elif art in TOP_ARTICLES or sub in ("topwear", "dress", "saree"):
                     slot = "Top"
                 elif art in BOTTOM_ARTICLES or sub == "bottomwear":
                     slot = "Bottom"
@@ -233,7 +249,7 @@ class OutfitRecommender:
                 if slot and slot in self.products_by_slot:
                     item = {
                         "id": str(r.get("product_id")),
-                        "name": r.get("product_name"),
+                        "name": name,
                         "slot": slot,
                         "category": r.get("category"),
                         "subcategory": r.get("subcategory"),
@@ -241,15 +257,15 @@ class OutfitRecommender:
                         "colour": r.get("colour"),
                         "season": r.get("season"),
                         "usage": r.get("usage"),
-                        "gender": r.get("gender")
+                        "gender": gen
                     }
                     self.products.append(item)
                     self.products_by_slot[slot].append(item)
 
         self.is_loaded = True
-        print(f"Loaded {len(self.products):,} adult products into Recommender (Tops: {len(self.products_by_slot['Top'])}, Bottoms: {len(self.products_by_slot['Bottom'])}, Shoes: {len(self.products_by_slot['Shoes'])}, Layers: {len(self.products_by_slot['Layer'])})")
+        print(f"Loaded {len(self.products):,} Women & Girls products into Recommender (Tops: {len(self.products_by_slot['Top'])}, Bottoms: {len(self.products_by_slot['Bottom'])}, Shoes: {len(self.products_by_slot['Shoes'])}, Layers: {len(self.products_by_slot['Layer'])})")
 
-    def recommend_outfits(self, preferences=None, wardrobe=None, limit=4):
+    def recommend_outfits(self, preferences=None, wardrobe=None, limit=8):
         """
         Generates and ranks multiple complete, slot-complete outfit combinations.
         Returns:
@@ -274,43 +290,67 @@ class OutfitRecommender:
         sea_lower = req_season.lower()
         typ_lower = req_outfit_type.lower()
 
-        # Guide usages and preferred article types by Style & Occasion
-        if sty_lower == "formal" or occ_lower in ("office", "formal"):
-            target_usages = ["formal", "smart casual"]
-            pref_top_arts = ["shirts"]
+        # Target usages, preferred articles, and strictly forbidden articles by Style & Occasion for Women
+        forbidden_shoe_arts = []
+        forbidden_top_arts = []
+        forbidden_bottom_arts = []
+
+        if sty_lower == "traditional" or occ_lower in ("traditional", "wedding"):
+            target_usages = ["ethnic", "party", "casual"]
+            pref_top_arts = ["kurtas", "kurtis", "sarees", "dresses", "tunics"]
+            pref_bottom_arts = ["churidar", "salwar", "patiala", "leggings", "skirts", "palazzos", "trousers"]
+            pref_shoe_arts = ["heels", "flats", "sandals"]
+            pref_layer_arts = ["dupatta", "stoles", "shrug"]
+            # Strictly forbidden for Wedding / Traditional: NO casual shirts, NO sneakers/sports shoes!
+            forbidden_shoe_arts = ["sports shoes", "casual shoes", "sneakers", "flip flops"]
+            forbidden_top_arts = ["tshirts", "shirts"]
+            forbidden_bottom_arts = ["shorts", "jeans", "track pants"]
+
+        elif sty_lower == "formal" or occ_lower in ("office", "formal"):
+            target_usages = ["formal", "smart casual", "casual"]
+            pref_top_arts = ["shirts", "tops", "tunics"]
             pref_bottom_arts = ["trousers", "skirts"]
-            pref_shoe_arts = ["formal shoes", "heels", "flats"]
-            pref_layer_arts = ["blazers", "waistcoat", "coats"]
-        elif sty_lower == "traditional" or occ_lower in ("traditional", "wedding"):
-            target_usages = ["ethnic"]
-            pref_top_arts = ["kurtas", "kurtis", "sarees", "tunics", "kurta sets"]
-            pref_bottom_arts = ["churidar", "salwar", "patiala", "leggings", "trousers"]
-            pref_shoe_arts = ["sandals", "flats", "casual shoes"]
-            pref_layer_arts = ["dupatta", "stoles", "nehru jackets"]
+            pref_shoe_arts = ["formal shoes", "flats", "heels"]
+            pref_layer_arts = ["blazers", "coats"]
+            forbidden_shoe_arts = ["flip flops", "sports shoes"]
+            forbidden_top_arts = ["tshirts"]
+            forbidden_bottom_arts = ["shorts", "track pants"]
+
+        elif sty_lower == "party" or occ_lower == "party":
+            target_usages = ["party", "casual", "ethnic"]
+            pref_top_arts = ["dresses", "tops", "sarees", "tunics"]
+            pref_bottom_arts = ["skirts", "trousers", "jeans"]
+            pref_shoe_arts = ["heels", "flats", "sandals", "boots"]
+            pref_layer_arts = ["blazers", "jackets", "shrug"]
+            forbidden_shoe_arts = ["flip flops", "sports shoes"]
+
         elif sty_lower == "streetwear":
             target_usages = ["casual", "sports"]
-            pref_top_arts = ["tshirts", "sweatshirts"]
-            pref_bottom_arts = ["jeans", "track pants"]
-            pref_shoe_arts = ["casual shoes", "sports shoes"]
+            pref_top_arts = ["tshirts", "tops", "sweatshirts"]
+            pref_bottom_arts = ["jeans", "track pants", "trousers"]
+            pref_shoe_arts = ["casual shoes", "sports shoes", "flats"]
             pref_layer_arts = ["jackets", "sweatshirts"]
+
         elif sty_lower == "minimal":
             target_usages = ["casual", "smart casual", "formal"]
-            pref_top_arts = ["shirts", "tshirts", "tops"]
-            pref_bottom_arts = ["trousers", "jeans"]
-            pref_shoe_arts = ["casual shoes", "formal shoes", "flats"]
+            pref_top_arts = ["tops", "shirts", "tshirts", "tunics"]
+            pref_bottom_arts = ["trousers", "jeans", "skirts"]
+            pref_shoe_arts = ["flats", "casual shoes", "heels"]
             pref_layer_arts = ["blazers", "jackets"]
+
         elif sty_lower == "western":
-            target_usages = ["casual", "smart casual"]
-            pref_top_arts = ["shirts", "tops", "tshirts"]
+            target_usages = ["casual", "smart casual", "party"]
+            pref_top_arts = ["tops", "shirts", "dresses", "tshirts"]
             pref_bottom_arts = ["jeans", "trousers", "skirts"]
-            pref_shoe_arts = ["casual shoes", "heels", "flats"]
+            pref_shoe_arts = ["heels", "flats", "casual shoes"]
             pref_layer_arts = ["jackets", "shrug"]
-        else:
+
+        else: # College / Casual
             target_usages = ["casual", "smart casual"]
-            pref_top_arts = ["tshirts", "shirts", "tops"]
-            pref_bottom_arts = ["jeans", "trousers", "shorts", "skirts"]
-            pref_shoe_arts = ["casual shoes", "sandals", "flats"]
-            pref_layer_arts = ["jackets", "sweatshirts"]
+            pref_top_arts = ["tops", "tshirts", "kurtis", "shirts"]
+            pref_bottom_arts = ["jeans", "trousers", "skirts", "leggings"]
+            pref_shoe_arts = ["casual shoes", "flats", "sandals", "sports shoes"]
+            pref_layer_arts = ["jackets", "sweatshirts", "shrug"]
 
         # Enforce explicit Outfit Type from Questionnaire Step 2
         if typ_lower == "shirt":
@@ -324,17 +364,24 @@ class OutfitRecommender:
         elif typ_lower == "saree":
             pref_top_arts = ["sarees"]
         elif typ_lower == "dress":
-            pref_top_arts = ["dresses", "sarees"]
+            pref_top_arts = ["dresses"]
         elif typ_lower == "jeans":
             pref_bottom_arts = ["jeans"]
         elif typ_lower == "trousers":
             pref_bottom_arts = ["trousers"]
 
-        # Filter items for slot
-        def filter_slot_candidates(slot_name, preferred_color=None, preferred_articles=None):
+        # Filter items for slot respecting preferred and strictly forbidden articles
+        def filter_slot_candidates(slot_name, preferred_color=None, preferred_articles=None, forbidden_articles=None):
             items = self.products_by_slot.get(slot_name, [])
+            forbidden = set(forbidden_articles or [])
+
+            # Strictly exclude forbidden articles
+            valid_items = [it for it in items if not any(fb in it["article_type"].lower() for fb in forbidden)]
+            if not valid_items:
+                valid_items = items
+
             matched = []
-            for item in items:
+            for item in valid_items:
                 art = item["article_type"].lower()
                 usg = item["usage"].lower()
                 item_sea = item["season"].lower()
@@ -344,7 +391,7 @@ class OutfitRecommender:
                     art_ok = any(p in art for p in preferred_articles)
 
                 usg_ok = any(u in usg for u in target_usages)
-                if not usg_ok and "formal" not in target_usages and "ethnic" not in target_usages:
+                if not usg_ok and occ_lower not in ("wedding", "formal"):
                     usg_ok = (usg == "casual")
 
                 sea_ok = (sea_lower == "all season") or (sea_lower in item_sea) or ("all" in item_sea) or ("summer" in item_sea)
@@ -360,9 +407,12 @@ class OutfitRecommender:
                 if art_ok and usg_ok and sea_ok and col_ok:
                     matched.append(item)
 
-            # Progressive relaxation if too narrow
-            if not matched and preferred_articles:
-                for item in items:
+            if matched:
+                return matched
+
+            # Progressive relaxation Level 2: Preferred articles + Preferred color (ignoring strict usage tag)
+            if preferred_articles:
+                for item in valid_items:
                     art = item["article_type"].lower()
                     if any(p in art for p in preferred_articles):
                         if preferred_color and preferred_color.lower() != "any":
@@ -370,17 +420,24 @@ class OutfitRecommender:
                                 matched.append(item)
                         else:
                             matched.append(item)
+            if matched:
+                return matched
 
-            if not matched and preferred_color and preferred_color.lower() != "any":
-                for item in items:
-                    if normalize_color(preferred_color) in normalize_color(item["colour"]):
+            # Progressive relaxation Level 3: Preferred articles with any color
+            if preferred_articles:
+                for item in valid_items:
+                    art = item["article_type"].lower()
+                    if any(p in art for p in preferred_articles):
                         matched.append(item)
+            if matched:
+                return matched
 
-            return matched if matched else items
+            # Safe fallback: valid items respecting forbidden
+            return valid_items
 
-        cand_tops = filter_slot_candidates("Top", preferred_color=req_colour if col_lower != "any" else None, preferred_articles=pref_top_arts)
-        cand_bottoms = filter_slot_candidates("Bottom", preferred_articles=pref_bottom_arts)
-        cand_shoes = filter_slot_candidates("Shoes", preferred_articles=pref_shoe_arts)
+        cand_tops = filter_slot_candidates("Top", preferred_color=req_colour if col_lower != "any" else None, preferred_articles=pref_top_arts, forbidden_articles=forbidden_top_arts)
+        cand_bottoms = filter_slot_candidates("Bottom", preferred_articles=pref_bottom_arts, forbidden_articles=forbidden_bottom_arts)
+        cand_shoes = filter_slot_candidates("Shoes", preferred_articles=pref_shoe_arts, forbidden_articles=forbidden_shoe_arts)
         cand_layers = filter_slot_candidates("Layer", preferred_articles=pref_layer_arts)
 
         # Pick diverse candidate tops (by brand, article type, and style)
@@ -392,18 +449,18 @@ class OutfitRecommender:
             if key not in seen_top_keys:
                 seen_top_keys.add(key)
                 diverse_tops.append(t)
-            if len(diverse_tops) >= 12:
+            if len(diverse_tops) >= 16:
                 break
 
-        if len(diverse_tops) < 4:
+        if len(diverse_tops) < 8:
             for t in cand_tops:
                 if t not in diverse_tops:
                     diverse_tops.append(t)
-                if len(diverse_tops) >= 8:
+                if len(diverse_tops) >= 12:
                     break
 
         if not diverse_tops:
-            diverse_tops = cand_tops[:8]
+            diverse_tops = cand_tops[:12]
 
         # Generate candidate outfits
         candidate_outfits = []
@@ -436,8 +493,8 @@ class OutfitRecommender:
 
             outfit_pieces = [top_item, chosen_bottom, chosen_shoes]
 
-            # 3. Optional Layer for Winter or Formal occasions
-            should_add_layer = ("winter" in sea_lower) or ("formal" in target_usages) or ("blazer" in req_style.lower())
+            # 3. Optional Layer for Wedding, Traditional, Winter or Formal occasions
+            should_add_layer = (occ_lower in ("wedding", "traditional")) or ("winter" in sea_lower) or ("formal" in target_usages) or ("blazer" in req_style.lower())
             if should_add_layer and cand_layers:
                 scored_layers = []
                 for lyr in cand_layers[:25]:
@@ -446,7 +503,8 @@ class OutfitRecommender:
                     scored_layers.append(((l1 + l2) / 2.0, lyr))
                 scored_layers.sort(key=lambda x: x[0], reverse=True)
                 if scored_layers:
-                    outfit_pieces.append(scored_layers[0][1])
+                    layer_pick_idx = min(top_idx % max(1, len(scored_layers)), len(scored_layers) - 1)
+                    outfit_pieces.append(scored_layers[layer_pick_idx][1])
 
             # 4. Multi-factor Scoring
             colors = [p["colour"] for p in outfit_pieces]
@@ -519,8 +577,9 @@ class OutfitRecommender:
         # Rank outfits by composite score descending
         candidate_outfits.sort(key=lambda x: x["composite_score"], reverse=True)
 
-        # Select top diverse outfits
-        selected_raw_outfits = candidate_outfits[:max(limit, 4)]
+        # Select all generated candidate outfits up to limit
+        target_limit = max(limit, 8) if limit else 8
+        selected_raw_outfits = candidate_outfits[:min(len(candidate_outfits), target_limit)]
         if not selected_raw_outfits:
             return self._fallback_recommendations(preferences, limit=limit)
 
@@ -531,13 +590,26 @@ class OutfitRecommender:
             rec_id = f"rec_{occ_lower}_{idx + 1}"
             style_name = req_style if req_style and req_style != "Casual" else "Curated"
 
-            outfit_name_titles = [
-                f"{req_style} {req_occasion} Ensemble",
-                f"Minimalist {req_occasion} Blueprint",
-                f"Tonal Harmony {req_occasion} Look",
-                f"Elevated {req_style} Curation"
-            ]
-            outfit_name = outfit_name_titles[idx % len(outfit_name_titles)]
+            top_item = pieces[0] if pieces else None
+            chosen_bottom = pieces[1] if len(pieces) > 1 else None
+            chosen_shoes = pieces[2] if len(pieces) > 2 else None
+
+            top_art = top_item["article_type"].title() if top_item else "Garment"
+            top_col = top_item["colour"].title() if top_item else req_colour
+            bot_art = chosen_bottom["article_type"].title() if chosen_bottom else "Bottom"
+
+            if occ_lower in ("wedding", "traditional"):
+                outfit_name = f"Look {idx + 1}: {top_col} {top_art} & {bot_art} Festive Ensemble"
+            elif occ_lower in ("office", "formal"):
+                outfit_name = f"Look {idx + 1}: {top_col} {top_art} & Tailored {bot_art} Ensemble"
+            elif occ_lower == "party":
+                outfit_name = f"Look {idx + 1}: {top_col} {top_art} Evening Celebration Look"
+            else:
+                outfit_name = f"Look {idx + 1}: {top_col} {top_art} & {bot_art} {req_occasion} Coordination"
+
+            subtitle = f"Coordinated {top_item['name'] if top_item else 'Top'} with {chosen_bottom['name'] if chosen_bottom else 'Bottom'} and {chosen_shoes['name'] if chosen_shoes else 'Footwear'}"
+            if len(pieces) > 3 and pieces[3]:
+                subtitle += f" + {pieces[3]['name']}"
 
             items_list = []
             for p in pieces:

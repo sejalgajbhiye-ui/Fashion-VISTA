@@ -3,12 +3,13 @@ import { ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Badge } from './Badge';
 
 export const OutfitCard = ({
-  outfit,
+  outfit = {},
   onView,
   actionText = "View Outfit →",
   isHistory = false,
   textOnly = false
 }) => {
+  outfit = outfit || {};
   const ownedCount = outfit.ownedCount ?? outfit.wardrobe_match?.matched_count ?? 2;
   const totalCount = outfit.totalCount ?? outfit.wardrobe_match?.required_count ?? (outfit.items?.length || 3);
   const missingCount = Math.max(0, totalCount - ownedCount);

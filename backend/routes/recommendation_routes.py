@@ -22,12 +22,12 @@ def get_recommendations():
 
         preferences = data.get('preferences') if isinstance(data.get('preferences'), dict) else data
         wardrobe = data.get('wardrobe', [])
-        limit = data.get('limit', 4)
+        limit = data.get('limit', 8)
 
         try:
-            limit = max(1, min(10, int(limit)))
+            limit = max(1, min(15, int(limit)))
         except (ValueError, TypeError):
-            limit = 4
+            limit = 8
 
         result = recommender.recommend_outfits(preferences=preferences, wardrobe=wardrobe, limit=limit)
         return jsonify(result), 200

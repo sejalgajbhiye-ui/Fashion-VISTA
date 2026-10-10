@@ -205,7 +205,7 @@ export async function predictProductAttributes(text) {
  * @param {Array} wardrobe
  * @param {number} limit
  */
-export async function fetchRecommendations(preferences, wardrobe = [], limit = 4) {
+export async function fetchRecommendations(preferences, wardrobe = [], limit = 8) {
   try {
     const res = await fetch(`${API_BASE_URL}/recommendations`, {
       method: 'POST',
@@ -227,12 +227,13 @@ export async function fetchRecommendations(preferences, wardrobe = [], limit = 4
  */
 export async function generateMLRecommendation(preferences, wardrobe = []) {
   try {
-    // Try primary recommendations endpoint first
-    const multiRes = await fetchRecommendations(preferences, wardrobe, 4);
+    // Try primary recommendations endpoint first with full limit of 8 outfits
+    const multiRes = await fetchRecommendations(preferences, wardrobe, 8);
     if (multiRes && multiRes.primary_recommendation) {
       return {
         ...multiRes.primary_recommendation,
-        alternatives: multiRes.alternatives || []
+        alternatives: multiRes.alternatives || [],
+        recommendations: multiRes.recommendations || []
       };
     }
 

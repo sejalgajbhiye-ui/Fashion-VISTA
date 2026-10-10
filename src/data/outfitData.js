@@ -1,33 +1,30 @@
 export const stylistStepOptions = {
   occasions: [
-    { id: "college", label: "College", description: "Everyday campus, classes, labs & library" },
-    { id: "casual", label: "Casual", description: "Cafes, meetups, errands & weekend downtime" },
-    { id: "office", label: "Office", description: "Corporate poise, client meetings & smart workdays" },
-    { id: "party", label: "Party", description: "Evening socials, cocktails & weekend nightlife" },
-    { id: "wedding", label: "Wedding", description: "Celebrations, receptions & festive galas" },
-    { id: "travel", label: "Travel", description: "Airports, road trips & holiday explorations" },
-    { id: "traditional", label: "Traditional", description: "Cultural functions, pujas & family celebrations" }
+    { id: "wedding", label: "Wedding", description: "Grand weddings, sangeet, receptions & ethnic festivities" },
+    { id: "traditional", label: "Traditional", description: "Festivals, pujas, family functions & cultural celebrations" },
+    { id: "party", label: "Party", description: "Evening socials, cocktails & festive dinner celebrations" },
+    { id: "office", label: "Office", description: "Corporate poise, client meetings & smart professional wear" },
+    { id: "college", label: "College", description: "Everyday campus, classes, labs & library comfort" },
+    { id: "casual", label: "Casual", description: "Cafes, meetups, city strolls & weekend downtime" },
+    { id: "travel", label: "Travel", description: "Airport style, road trips & holiday explorations" }
   ],
   outfitTypes: [
-    { id: "top", label: "Top" },
-    { id: "shirt", label: "Shirt" },
-    { id: "t-shirt", label: "T-Shirt" },
-    { id: "dress", label: "Dress" },
-    { id: "kurti", label: "Kurti" },
-    { id: "saree", label: "Saree" },
-    { id: "jeans", label: "Jeans" },
-    { id: "trousers", label: "Trousers" },
     { id: "full-outfit", label: "Full Outfit" }
   ],
   colours: [
+    { id: "red", label: "Red", hex: "#9E2A2B" },
     { id: "black", label: "Black", hex: "#1F1F1F" },
     { id: "white", label: "White", hex: "#FFFFFF", border: true },
     { id: "blue", label: "Blue", hex: "#2B4C7E" },
-    { id: "red", label: "Red", hex: "#9E2A2B" },
     { id: "pink", label: "Pink", hex: "#E09898" },
     { id: "green", label: "Green", hex: "#386641" },
+    { id: "yellow", label: "Yellow", hex: "#E0A928" },
+    { id: "maroon", label: "Maroon", hex: "#631726" },
+    { id: "navy", label: "Navy", hex: "#1A2E40" },
     { id: "beige", label: "Beige", hex: "#D6CCC2" },
     { id: "brown", label: "Brown", hex: "#6F4E37" },
+    { id: "purple", label: "Purple", hex: "#6E4582" },
+    { id: "gold", label: "Gold", hex: "#D4AF37" },
     { id: "any", label: "Any", hex: "linear-gradient(135deg, #eee 0%, #aaa 100%)" }
   ],
   styles: [

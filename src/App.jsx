@@ -21,6 +21,8 @@ import { History } from './pages/History';
 import { Profile } from './pages/Profile';
 import { NotFound } from './pages/NotFound';
 
+import { ErrorBoundary } from './components/ErrorBoundary';
+
 export default function App() {
   return (
     <FashionProvider>
@@ -30,20 +32,22 @@ export default function App() {
           <Navbar />
           <JourneyProgress />
           <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/stylist" element={<Stylist />} />
-              <Route path="/wardrobe" element={<Wardrobe />} />
-              <Route path="/recommendations" element={<Recommendations />} />
-              <Route path="/try-existing" element={<TryExisting />} />
-              <Route path="/shop-new" element={<ShopNew />} />
-              <Route path="/try-on/upload" element={<UploadUserPhoto />} />
-              <Route path="/try-on" element={<VirtualTryOn />} />
-              <Route path="/analysis" element={<OutfitAnalysis />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/stylist" element={<Stylist />} />
+                <Route path="/wardrobe" element={<Wardrobe />} />
+                <Route path="/recommendations" element={<Recommendations />} />
+                <Route path="/try-existing" element={<TryExisting />} />
+                <Route path="/shop-new" element={<ShopNew />} />
+                <Route path="/try-on/upload" element={<UploadUserPhoto />} />
+                <Route path="/try-on" element={<VirtualTryOn />} />
+                <Route path="/analysis" element={<OutfitAnalysis />} />
+                <Route path="/history" element={<History />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundary>
           </main>
           <Footer />
           <Toast />

@@ -102,6 +102,34 @@ def test_recommender_rules():
     assert "explanation" in outfit
 
 
+def test_recommender_women_only_no_men():
+    rec_engine = OutfitRecommender()
+    for p in rec_engine.products:
+        assert p["gender"] in ("Women", "Girls")
+        words = set(p["name"].lower().replace("-", " ").split())
+        assert not words.intersection({"men", "mens", "boy", "boys"}), f"Found male item in catalog: {p['name']}"
+
+
+def test_wedding_traditional_recommendation():
+    rec_engine = OutfitRecommender()
+    prefs = {"occasion": "Wedding", "colour": "Brown", "style": "Traditional", "season": "Summer"}
+    outfit = rec_engine.recommend_outfit(prefs)
+
+    items = outfit["items"]
+    top = next(i for i in items if i["slot"] == "Top")
+    bottom = next(i for i in items if i["slot"] == "Bottom")
+    shoes = next(i for i in items if i["slot"] == "Shoes")
+
+    # Wedding top must be ethnic (kurta, kurti, saree, dress, tunic), NEVER a men's shirt or t-shirt
+    assert top["article_type"].lower() in {"kurtas", "kurtis", "sarees", "dresses", "tunics"}
+    assert "shirt" not in top["article_type"].lower()
+
+    # Wedding shoes must be heels, flats, or sandals, NEVER sneakers or sports shoes
+    assert shoes["article_type"].lower() in {"heels", "flats", "sandals"}
+    assert shoes["article_type"].lower() not in {"sports shoes", "casual shoes", "sneakers"}
+    assert "sneaker" not in shoes["name"].lower()
+
+
 def test_wardrobe_matching():
     outfit_items = [
         {"name": "Black T-shirt", "slot": "Top", "colour": "Black"},
@@ -178,7 +206,7 @@ def test_api_classify_missing_input(client):
 
 
 def test_api_attributes(client):
-    payload = {"product_name": "Puma Men Grey Casual T-shirt"}
+    payload = {"product_name": "Puma Women Grey Casual T-shirt"}
     response = client.post("/api/ml/attributes", json=payload)
     assert response.status_code == 200
     data = response.get_json()
@@ -513,8 +541,8 @@ def test_recommender_formal_style_calibration():
     assert result["status"] == "success"
     primary = result["primary_recommendation"]
 
-    # Verify Hero image matches formal + black
-    assert "photo-1594938298603" in primary["heroImage"]
+    # Verify Hero image matches formal + black (women's blazer)
+    assert "photo-1584273143981" in primary["heroImage"]
 
     # Verify garment slots
     slots = {item["slot"]: item for item in primary["items"]}
@@ -526,15 +554,16 @@ def test_recommender_formal_style_calibration():
     bottom = slots["Bottom"]
     shoes = slots["Shoes"]
 
-    # Formal top must be a Shirt (not T-shirt)
-    assert top["article_type"].lower() == "shirts"
+    # Formal top must be a Shirt or Formal Top (not T-shirt)
+    assert top["article_type"].lower() in ("shirts", "tops")
+    assert "tshirt" not in top["article_type"].lower()
     assert "black" in top["colour"].lower()
 
     # Formal bottom must be Trousers
     assert "trouser" in bottom["article_type"].lower()
 
-    # Formal shoes must be Formal Shoes
-    assert "formal" in shoes["article_type"].lower() or "shoe" in shoes["article_type"].lower()
+    # Formal shoes must be Formal Shoes, Flats, or Heels
+    assert any(term in shoes["article_type"].lower() for term in ("formal", "shoe", "flats", "heels"))
 
 
 def test_recommender_outfit_type_and_colour():
@@ -581,6 +610,46 @@ def test_look_generator_canvas_creation():
     disk_path = BASE_DIR / "backend" / "uploads" / "looks" / filename
     assert disk_path.exists()
     assert disk_path.stat().st_size > 1000
+
+
+def test_recommender_occasion_and_color_all_outfits():
+    """Verify that specifying only occasion and color returns all possible coordinated outfits for women."""
+    engine = OutfitRecommender()
+    prefs = {
+        "occasion": "Wedding",
+        "colour": "Red"
+    }
+    result = engine.recommend_outfits(preferences=prefs, limit=8)
+    assert result["status"] == "success"
+    
+    # Must return multiple outfits (all possible outfits)
+    all_recs = result["recommendations"]
+    assert len(all_recs) >= 4, f"Expected at least 4 outfits, got {len(all_recs)}"
+    
+    for outfit in all_recs:
+        slots = {item["slot"]: item for item in outfit["items"]}
+        assert "Top" in slots
+        assert "Bottom" in slots
+        assert "Shoes" in slots
+        
+        top = slots["Top"]
+        shoes = slots["Shoes"]
+        
+        # Ethnic top in Red for Wedding
+        assert any(art in top["article_type"].lower() for art in ("kurtas", "kurtis", "sarees", "dresses", "tunics"))
+        assert top["article_type"].lower() not in ("tshirts", "shirts")
+        
+        # Ethnic footwear strictly without sneakers
+        assert any(art in shoes["article_type"].lower() for art in ("heels", "flats", "sandals"))
+        assert "sneaker" not in shoes["article_type"].lower()
+        
+        # Every item must have clear closet flags
+        for item in outfit["items"]:
+            assert "owned" in item
+            assert "inWardrobe" in item
+            assert "needed_to_buy" in item
+            assert item["needed_to_buy"] == (not item["inWardrobe"])
+
 
 
 

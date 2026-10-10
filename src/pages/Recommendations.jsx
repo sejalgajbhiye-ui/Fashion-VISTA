@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFashion } from '../context/FashionContext';
 import { WardrobeMatch } from '../components/WardrobeMatch';
@@ -16,29 +16,60 @@ import {
   CheckCircle2,
   AlertCircle,
   Check,
-  Compass
+  Compass,
+  LayoutGrid,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 export const Recommendations = () => {
   const navigate = useNavigate();
-  const { currentRecommendation, applyAlternative, preferences } = useFashion();
+  const {
+    currentRecommendation,
+    applyAlternative,
+    preferences = {},
+    allOutfits = [],
+    selectOutfitByIndex
+  } = useFashion();
+  const [viewMode, setViewMode] = useState('detail'); // 'detail' | 'all'
+
+  // Safe fallback preferences
+  const safePrefs = preferences || { occasion: 'Wedding', colour: 'Red', style: 'Traditional' };
+
+  // Safe fallback outfits list
+  const rawList = (Array.isArray(allOutfits) && allOutfits.length > 0)
+    ? allOutfits.filter(Boolean)
+    : (currentRecommendation ? [currentRecommendation] : []);
+
+  const outfitsList = rawList.length > 0 ? rawList : [defaultRecommendation];
+  const safeRec = currentRecommendation || outfitsList[0] || defaultRecommendation || {};
+
+  const activeIndex = Math.max(
+    0,
+    Math.min(
+      outfitsList.length - 1,
+      safeRec.selectedOutfitIndex ?? (outfitsList.findIndex(o => o && o.id === safeRec.id) >= 0 ? outfitsList.findIndex(o => o && o.id === safeRec.id) : 0)
+    )
+  );
+
+  const activeOutfit = outfitsList[activeIndex] || safeRec;
 
   const {
-    name,
-    subtitle,
+    name = "Curated Ensemble",
+    subtitle = "Personalized Fashion Blueprint",
     items = [],
     reasons = [],
     alternatives = []
-  } = currentRecommendation;
+  } = activeOutfit;
 
   // Normalize items to ensure consistent ownership flags
-  const normalizedItems = items.map(item => {
-    const isOwned = item.inWardrobe ?? item.owned ?? false;
+  const normalizedItems = (items || []).filter(Boolean).map(item => {
+    const isOwned = Boolean(item.inWardrobe ?? item.owned ?? false);
     return {
       ...item,
       inWardrobe: isOwned,
       owned: isOwned,
-      needed_to_buy: item.needed_to_buy ?? !isOwned
+      needed_to_buy: Boolean(item.needed_to_buy ?? !isOwned)
     };
   });
 
@@ -46,18 +77,19 @@ export const Recommendations = () => {
   const missingItems = normalizedItems.filter(i => !i.inWardrobe);
   const totalCount = normalizedItems.length;
   const ownedCount = ownedItems.length;
-  const coveragePercentage = Math.round((ownedCount / Math.max(1, totalCount)) * 100);
+  const coveragePercentage = totalCount > 0 ? Math.round((ownedCount / totalCount) * 100) : 100;
 
   // Slot helper for display order and badges
   const slotOrder = ['Top', 'Bottom', 'Shoes', 'Layer'];
   const sortedItems = [...normalizedItems].sort((a, b) => {
-    const aSlot = a.slot || a.category || '';
-    const bSlot = b.slot || b.category || '';
+    const aSlot = a?.slot || a?.category || '';
+    const bSlot = b?.slot || b?.category || '';
     return slotOrder.indexOf(aSlot) - slotOrder.indexOf(bSlot);
   });
 
   const getSlotDisplayLabel = (item) => {
-    const slot = (item.slot || item.category || 'Garment').toUpperCase();
+    if (!item) return 'GARMENT';
+    const slot = String(item.slot || item.category || 'Garment').toUpperCase();
     if (slot === 'TOP') return 'TOPWEAR';
     if (slot === 'BOTTOM') return 'BOTTOMWEAR';
     if (slot === 'SHOES') return 'FOOTWEAR';
@@ -73,30 +105,27 @@ export const Recommendations = () => {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-taupe-300 text-[11px] font-bold uppercase tracking-widest text-charcoal-700 mb-3 shadow-subtle">
             <Sparkles className="w-3.5 h-3.5 text-charcoal-900" />
-            AI STYLING BLUEPRINT
+            AI OUTFIT CURATIONS
           </div>
           <h1 className="editorial-heading text-3xl sm:text-4xl md:text-5xl font-semibold text-charcoal-900">
             WHAT YOU SHOULD WEAR
           </h1>
           <p className="text-sm sm:text-base text-charcoal-600 mt-2 font-medium">
-            Text-only styling directives harmonized for your selected preferences and wardrobe inventory.
+            Showing all possible coordinated outfits for <strong className="text-charcoal-900">{safePrefs.occasion || 'Wedding'}</strong> in <strong className="text-charcoal-900">{safePrefs.colour || 'Red'}</strong>.
           </p>
         </div>
 
         {/* Preference Tags Summary */}
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="tag" size="md">
-            Occasion: {preferences.occasion || "College"}
+            Occasion: {safePrefs.occasion || "Wedding"}
           </Badge>
           <Badge variant="tag" size="md">
-            Style: {preferences.style || "Casual"}
+            Colour: {safePrefs.colour || "Red"}
           </Badge>
-          <Badge variant="tag" size="md">
-            Colour: {preferences.colour || "Black"}
-          </Badge>
-          <Badge variant="tag" size="md">
-            Season: {preferences.season || "Summer"}
-          </Badge>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300">
+            {outfitsList.length} Outfits Found
+          </span>
           <button
             onClick={() => navigate('/stylist')}
             className="text-xs font-semibold text-charcoal-800 hover:text-black underline ml-2 flex items-center gap-1.5 transition-colors"
@@ -106,8 +135,249 @@ export const Recommendations = () => {
         </div>
       </div>
 
-      {/* 2. Primary Styling Directive & Closet Status Summary */}
-      <section className="bg-[#FCFAF7] rounded-3xl p-6 sm:p-10 border border-taupe-300 shadow-sm space-y-8">
+      {/* Outfit Selector & View Mode Switcher */}
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-taupe-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Left: Outfit Carousel Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <span className="text-xs font-bold uppercase tracking-wider text-charcoal-500 whitespace-nowrap mr-1">
+            All Outfits:
+          </span>
+          {outfitsList.map((outfit, idx) => {
+            const isActive = activeIndex === idx;
+            const match = outfit.wardrobe_match?.percentage || outfit.percentage || 100;
+            return (
+              <button
+                key={outfit.id || idx}
+                onClick={() => {
+                  if (selectOutfitByIndex) {
+                    selectOutfitByIndex(idx);
+                  } else {
+                    applyAlternative(outfit, idx);
+                  }
+                  setViewMode('detail');
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+                  isActive
+                    ? 'bg-charcoal-900 text-cream-50 shadow-md ring-2 ring-charcoal-900'
+                    : 'bg-[#FAF8F5] text-charcoal-700 border border-taupe-200 hover:border-charcoal-700 hover:bg-white'
+                }`}
+              >
+                <span>Look 0{idx + 1}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                  isActive ? 'bg-white/20 text-cream-50' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {match}% Closet
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right: Quick Arrows & View Mode Switcher */}
+        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-taupe-100">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                const prevIdx = Math.max(0, activeIndex - 1);
+                if (selectOutfitByIndex) selectOutfitByIndex(prevIdx);
+                else applyAlternative(outfitsList[prevIdx], prevIdx);
+                setViewMode('detail');
+              }}
+              disabled={activeIndex === 0}
+              className="p-1.5 rounded-lg border border-taupe-200 text-charcoal-700 hover:bg-taupe-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              title="Previous Outfit"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-xs font-semibold text-charcoal-600 px-1">
+              Look {activeIndex + 1} of {outfitsList.length}
+            </span>
+            <button
+              onClick={() => {
+                const nextIdx = Math.min(outfitsList.length - 1, activeIndex + 1);
+                if (selectOutfitByIndex) selectOutfitByIndex(nextIdx);
+                else applyAlternative(outfitsList[nextIdx], nextIdx);
+                setViewMode('detail');
+              }}
+              disabled={activeIndex >= outfitsList.length - 1}
+              className="p-1.5 rounded-lg border border-taupe-200 text-charcoal-700 hover:bg-taupe-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              title="Next Outfit"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="h-4 w-px bg-taupe-200 hidden sm:block" />
+
+          {/* View Toggle */}
+          <div className="inline-flex p-1 rounded-xl bg-taupe-100 border border-taupe-200">
+            <button
+              onClick={() => setViewMode('detail')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                viewMode === 'detail'
+                  ? 'bg-white text-charcoal-900 shadow-sm'
+                  : 'text-charcoal-600 hover:text-charcoal-900'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              Detail View
+            </button>
+            <button
+              onClick={() => setViewMode('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                viewMode === 'all'
+                  ? 'bg-white text-charcoal-900 shadow-sm'
+                  : 'text-charcoal-600 hover:text-charcoal-900'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Compare All ({outfitsList.length})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {viewMode === 'all' ? (
+        /* ALL OUTFITS COMPARISON GRID */
+        <section className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-taupe-200">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-charcoal-500">
+                All Outfits Catalog
+              </span>
+              <h2 className="editorial-heading text-2xl sm:text-3xl font-bold text-charcoal-900 mt-0.5">
+                All Coordinated Outfits for {safePrefs.occasion || 'Wedding'} in {safePrefs.colour || 'Red'}
+              </h2>
+            </div>
+            <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300">
+              {outfitsList.length} Complete Blueprints
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {outfitsList.map((outfit, oIdx) => {
+              if (!outfit) return null;
+              const outfitItems = (outfit.items || []).filter(Boolean).map(i => {
+                const isOwned = Boolean(i.inWardrobe ?? i.owned ?? false);
+                return { ...i, inWardrobe: isOwned, owned: isOwned };
+              });
+              const oOwned = outfitItems.filter(i => i.inWardrobe).length;
+              const oTotal = outfitItems.length;
+              const oCoverage = oTotal > 0 ? Math.round((oOwned / oTotal) * 100) : 100;
+              const isSelected = activeIndex === oIdx;
+
+              return (
+                <div
+                  key={outfit.id || oIdx}
+                  className={`bg-white rounded-3xl p-6 sm:p-7 border transition-all duration-200 shadow-sm flex flex-col justify-between space-y-6 ${
+                    isSelected
+                      ? 'border-charcoal-900 ring-2 ring-charcoal-900 shadow-md'
+                      : 'border-taupe-200 hover:border-taupe-400 hover:shadow-md'
+                  }`}
+                >
+                  {/* Card Header */}
+                  <div className="space-y-2 pb-4 border-b border-taupe-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-charcoal-900 text-cream-50 px-2.5 py-1 rounded text-xs font-bold tracking-wider">
+                          LOOK 0{oIdx + 1}
+                        </span>
+                        {isSelected && (
+                          <span className="bg-charcoal-100 text-charcoal-900 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                            Active Selection
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                        {outfit.compatibility_score || 94}% Compatibility
+                      </span>
+                    </div>
+
+                    <h3 className="editorial-heading text-xl sm:text-2xl font-bold text-charcoal-900">
+                      {outfit.name}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-charcoal-600 line-clamp-2">
+                      {outfit.subtitle || outfit.description}
+                    </p>
+                  </div>
+
+                  {/* Garment Pieces List */}
+                  <div className="space-y-2.5">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-charcoal-500 block">
+                      Garments To Wear:
+                    </span>
+                    {outfitItems.map((piece, pIdx) => {
+                      const slotLabel = (piece.slot || piece.category || 'Piece').toUpperCase();
+                      const isPieceOwned = piece.inWardrobe;
+                      return (
+                        <div
+                          key={piece.id || pIdx}
+                          className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
+                            isPieceOwned
+                              ? 'bg-emerald-50/60 border-emerald-200/80 text-emerald-950'
+                              : 'bg-amber-50/60 border-amber-200/80 text-amber-950'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <span className="font-bold text-[10px] uppercase tracking-wider text-charcoal-600 block">
+                              {slotLabel === 'TOP' ? 'TOPWEAR' : slotLabel === 'BOTTOM' ? 'BOTTOMWEAR' : slotLabel === 'SHOES' ? 'FOOTWEAR' : slotLabel === 'LAYER' ? 'OUTERWEAR / LAYER' : slotLabel}
+                            </span>
+                            <span className="font-semibold text-charcoal-900 truncate block">
+                              {piece.name}
+                            </span>
+                            <span className="text-[11px] text-charcoal-500">
+                              {piece.colour} • {piece.article_type}
+                            </span>
+                          </div>
+
+                          <div className="shrink-0">
+                            {isPieceOwned ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                                IN CLOSET
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                                <AlertCircle className="w-3 h-3 stroke-[2.5]" />
+                                NEEDED TO BUY
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Card Footer: Summary & Inspect Button */}
+                  <div className="pt-4 border-t border-taupe-100 flex items-center justify-between gap-3">
+                    <div className="text-xs">
+                      <span className="font-bold text-charcoal-900">{oOwned} of {oTotal}</span>
+                      <span className="text-charcoal-500 ml-1">in closet ({oCoverage}%)</span>
+                    </div>
+
+                    <Button
+                      variant={isSelected ? "primary" : "secondary"}
+                      size="sm"
+                      onClick={() => {
+                        if (selectOutfitByIndex) selectOutfitByIndex(oIdx);
+                        else applyAlternative(outfit, oIdx);
+                        setViewMode('detail');
+                        window.scrollTo({ top: 120, behavior: 'smooth' });
+                      }}
+                      iconRight={<ArrowRight className="w-3.5 h-3.5" />}
+                    >
+                      {isSelected ? "View Active Blueprint" : "Inspect This Blueprint"}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : (
+        <>
+          {/* 2. Primary Styling Directive & Closet Status Summary */}
+          <section className="bg-[#FCFAF7] rounded-3xl p-6 sm:p-10 border border-taupe-300 shadow-sm space-y-8">
         
         {/* Look Name and Concept Prescription */}
         <div className="space-y-3 pb-6 border-b border-taupe-200">
@@ -134,7 +404,7 @@ export const Recommendations = () => {
               Styling Directive
             </div>
             <p className="text-xs sm:text-sm text-charcoal-600 leading-relaxed">
-              Wear the coordinated pieces below to achieve an intentional <strong className="text-charcoal-900">{preferences.style || 'Casual'}</strong> silhouette for <strong className="text-charcoal-900">{preferences.occasion || 'College'}</strong>. Pieces already in your closet are highlighted in green, while missing items required to complete the ensemble are marked in amber.
+              Wear the coordinated pieces below to achieve an intentional <strong className="text-charcoal-900">{safePrefs.style || 'Traditional'}</strong> silhouette for <strong className="text-charcoal-900">{safePrefs.occasion || 'Wedding'}</strong>. Pieces already in your closet are highlighted in green, while missing items required to complete the ensemble are marked in amber.
             </p>
           </div>
         </div>
@@ -272,7 +542,7 @@ export const Recommendations = () => {
                       Role: {item.slot || item.category}
                     </span>
                     <span className="px-2.5 py-1 rounded-lg bg-taupe-100 text-charcoal-800 text-[11px] font-semibold">
-                      Usage: {item.usage || preferences.occasion || 'Casual'}
+                      Usage: {item.usage || safePrefs.occasion || 'Traditional'}
                     </span>
                   </div>
 
@@ -495,13 +765,13 @@ export const Recommendations = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {alternatives.map((alt) => (
+            {(alternatives || []).filter(Boolean).map((alt, altIdx) => (
               <OutfitCard
-                key={alt.id}
+                key={alt.id || altIdx}
                 outfit={alt}
                 textOnly={true}
                 onView={(selectedAlt) => {
-                  applyAlternative(selectedAlt);
+                  applyAlternative(selectedAlt, altIdx + 1);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 actionText="Select This Blueprint →"
@@ -509,6 +779,9 @@ export const Recommendations = () => {
             ))}
           </div>
         </section>
+      )}
+
+        </>
       )}
 
     </div>
