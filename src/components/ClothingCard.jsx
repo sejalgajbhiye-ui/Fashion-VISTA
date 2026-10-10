@@ -40,13 +40,13 @@ export const ClothingCard = ({
         {/* Wardrobe status badge */}
         {showStatus && !selectable && (
           <div className="absolute top-3 left-3">
-            {item.inWardrobe ? (
+            {(item.inWardrobe ?? item.owned ?? false) ? (
               <Badge variant="inWardrobe" size="sm">
-                <Check className="w-3 h-3 stroke-[2.5]" /> IN YOUR WARDROBE
+                <Check className="w-3 h-3 stroke-[2.5]" /> ALREADY IN CLOSET
               </Badge>
             ) : (
               <Badge variant="missing" size="sm">
-                <AlertCircle className="w-3 h-3 stroke-[2.5]" /> MISSING
+                <AlertCircle className="w-3 h-3 stroke-[2.5]" /> NEEDED TO BUY
               </Badge>
             )}
           </div>

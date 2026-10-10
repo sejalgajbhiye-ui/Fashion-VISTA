@@ -239,33 +239,59 @@ export const FashionProvider = ({ children }) => {
 
     let baseCuration = defaultRecommendation;
     if (mlRec && mlRec.items && mlRec.items.length >= 3) {
-      const match = mlRec.wardrobe_match || {
-        matched_count: 3,
-        required_count: mlRec.items.length,
-        wardrobe_coverage: 0.75,
-        missing_items: []
-      };
+      const normalizedItems = (mlRec.items || []).map(item => {
+        const isOwned = item.inWardrobe ?? item.owned ?? false;
+        return {
+          ...item,
+          inWardrobe: isOwned,
+          owned: isOwned,
+          needed_to_buy: item.needed_to_buy ?? !isOwned
+        };
+      });
 
-      const formattedAlternatives = (mlRec.alternatives || []).map((alt, idx) => ({
-        id: alt.id || `alt-${idx + 1}`,
-        number: String(idx + 1).padStart(2, '0'),
-        name: alt.name,
-        description: alt.subtitle || alt.explanation || 'Curated alternative coordination',
-        itemsSummary: alt.items ? alt.items.map(i => i.name).join(' + ') : 'Coordinated garment pieces',
-        ownedCount: alt.wardrobe_match?.matched_count ?? 3,
-        totalCount: alt.wardrobe_match?.required_count ?? (alt.items?.length || 3),
-        percentage: alt.wardrobe_match?.percentage ?? 75,
-        image: alt.heroImage || (alt.items && alt.items[0]?.image) || defaultRecommendation.heroImage,
-        heroImage: alt.heroImage || (alt.items && alt.items[0]?.image) || defaultRecommendation.heroImage,
-        composed_look_image: alt.composed_look_image || null,
-        items: alt.items,
-        reasons: alt.reasons,
-        wardrobe_match: alt.wardrobe_match,
-        compatibility_score: alt.compatibility_score,
-        color_score: alt.color_score
-      }));
+      const ownedCount = normalizedItems.filter(i => i.inWardrobe).length;
+      const totalCount = normalizedItems.length;
+      const coveragePct = Math.round((ownedCount / Math.max(1, totalCount)) * 100);
+      const missing = normalizedItems.find(i => !i.inWardrobe) || null;
+      const missingList = normalizedItems.filter(i => !i.inWardrobe).map(i => i.name);
 
-      const missing = mlRec.items.find(i => !i.owned) || null;
+      const formattedAlternatives = (mlRec.alternatives || []).map((alt, idx) => {
+        const altItems = (alt.items || []).map(i => {
+          const isOwned = i.inWardrobe ?? i.owned ?? false;
+          return {
+            ...i,
+            inWardrobe: isOwned,
+            owned: isOwned,
+            needed_to_buy: i.needed_to_buy ?? !isOwned
+          };
+        });
+        const altOwned = altItems.filter(i => i.inWardrobe).length;
+        const altTotal = altItems.length || 3;
+        const altPct = Math.round((altOwned / Math.max(1, altTotal)) * 100);
+
+        return {
+          id: alt.id || `alt-${idx + 1}`,
+          number: String(idx + 1).padStart(2, '0'),
+          name: alt.name,
+          description: alt.subtitle || alt.explanation || 'Curated alternative coordination',
+          itemsSummary: altItems.length > 0 ? altItems.map(i => i.name).join(' + ') : 'Coordinated garment pieces',
+          ownedCount: altOwned,
+          totalCount: altTotal,
+          percentage: altPct,
+          image: alt.heroImage || (altItems[0]?.image) || defaultRecommendation.heroImage,
+          heroImage: alt.heroImage || (altItems[0]?.image) || defaultRecommendation.heroImage,
+          composed_look_image: alt.composed_look_image || null,
+          items: altItems,
+          reasons: alt.reasons,
+          wardrobe_match: {
+            matched_count: altOwned,
+            required_count: altTotal,
+            percentage: altPct
+          },
+          compatibility_score: alt.compatibility_score,
+          color_score: alt.color_score
+        };
+      });
 
       baseCuration = {
         ...defaultRecommendation,
@@ -279,7 +305,7 @@ export const FashionProvider = ({ children }) => {
         season: mlRec.season || newPrefs.season || 'Summer',
         colour: newPrefs.colour === 'Any' ? 'Balanced Palette' : `${newPrefs.colour} Harmony`,
         budget: newPrefs.budget || '1800',
-        items: mlRec.items,
+        items: normalizedItems,
         missingItem: missing ? {
           id: missing.id,
           name: missing.name,
@@ -292,22 +318,22 @@ export const FashionProvider = ({ children }) => {
           occasion: `Suitable for ${mlRec.occasion || newPrefs.occasion}`,
           style: mlRec.style || newPrefs.style || 'Casual',
           colour: `${mlRec.color_score || 90}% Colour Harmony`,
-          wardrobe: `${match.matched_count} / ${match.required_count} items owned`,
-          purchase: match.missing_items && match.missing_items.length > 0 ? `${match.missing_items.length} item needed` : '0 items needed'
+          wardrobe: `${ownedCount} / ${totalCount} items in closet`,
+          purchase: missingList.length > 0 ? `${missingList.length} item(s) needed` : '0 items needed'
         },
         wardrobeMatch: {
-          ownedCount: match.matched_count,
-          totalCount: match.required_count,
-          percentage: Math.round(match.wardrobe_coverage * 100),
-          statusText: match.wardrobe_coverage === 1 ? "Ready in your closet!" : "High Closet Synergy",
-          subtext: match.missing_items && match.missing_items.length > 0 ? `Missing: ${match.missing_items.join(', ')}` : "All pieces owned!"
+          ownedCount: ownedCount,
+          totalCount: totalCount,
+          percentage: coveragePct,
+          statusText: coveragePct === 100 ? "Ready in your closet!" : "High Closet Synergy",
+          subtext: missingList.length > 0 ? `Missing: ${missingList.join(', ')}` : "All pieces in closet!"
         },
         reasons: mlRec.reasons && mlRec.reasons.length > 0 ? mlRec.reasons : [
           `ML Compatibility Score: ${mlRec.compatibility_score || 92}%`,
           mlRec.color_harmony_explanation || 'Balanced color harmony across garment slots',
           mlRec.explanation || `Optimal pairing for ${newPrefs.occasion} utility`,
-          `Uses ${match.matched_count} items from your wardrobe (${Math.round(match.wardrobe_coverage * 100)}% coverage)`,
-          match.missing_items && match.missing_items.length > 0 ? `Missing: ${match.missing_items.join(', ')}` : 'Zero new purchases needed'
+          `Uses ${ownedCount} items from your wardrobe (${coveragePct}% coverage)`,
+          missingList.length > 0 ? `Missing: ${missingList.join(', ')}` : 'Zero new purchases needed'
         ],
         alternatives: formattedAlternatives.length > 0 ? formattedAlternatives : defaultRecommendation.alternatives
       };

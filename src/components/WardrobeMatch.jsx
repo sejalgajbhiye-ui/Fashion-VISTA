@@ -57,34 +57,37 @@ export const WardrobeMatch = ({
       {/* Item Checklist */}
       {items && items.length > 0 && (
         <div className="mt-6 pt-5 border-t border-taupe-300/60 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {items.map((item, idx) => (
-            <div
-              key={item.id || idx}
-              className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium border ${
-                item.inWardrobe
-                  ? 'bg-white/80 border-emerald-200/80 text-charcoal-800'
-                  : 'bg-roseAccent-50/70 border-roseAccent-200 text-charcoal-800'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {item.inWardrobe ? (
-                  <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                    <Check className="w-2.5 h-2.5 stroke-[3]" />
-                  </div>
-                ) : (
-                  <div className="w-4 h-4 rounded-full border border-roseAccent-400 bg-white text-roseAccent-500 flex items-center justify-center shrink-0">
-                    <Circle className="w-2 h-2 fill-roseAccent-400" />
-                  </div>
-                )}
-                <span className="truncate max-w-[170px] sm:max-w-[190px]">{item.name}</span>
+          {items.map((item, idx) => {
+            const isOwned = item.inWardrobe ?? item.owned ?? false;
+            return (
+              <div
+                key={item.id || idx}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium border ${
+                  isOwned
+                    ? 'bg-white/80 border-emerald-200/80 text-charcoal-800'
+                    : 'bg-amber-50/70 border-amber-200 text-charcoal-800'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {isOwned ? (
+                    <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    </div>
+                  ) : (
+                    <div className="w-4 h-4 rounded-full border border-amber-400 bg-white text-amber-600 flex items-center justify-center shrink-0">
+                      <Circle className="w-2 h-2 fill-amber-400" />
+                    </div>
+                  )}
+                  <span className="truncate max-w-[170px] sm:max-w-[190px]">{item.name}</span>
+                </div>
+                <span className={`text-[11px] font-semibold shrink-0 uppercase tracking-wider ${
+                  isOwned ? 'text-emerald-700' : 'text-amber-700'
+                }`}>
+                  {isOwned ? 'In Closet' : 'Needed to Buy'}
+                </span>
               </div>
-              <span className={`text-[11px] font-semibold shrink-0 uppercase tracking-wider ${
-                item.inWardrobe ? 'text-emerald-700' : 'text-roseAccent-600'
-              }`}>
-                {item.inWardrobe ? 'Available' : 'Missing'}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -463,19 +463,41 @@ class OutfitRecommender:
             wardrobe_synergy = 0.85
             matched_items_count = 0
             missing_items_list = []
-            if wardrobe and isinstance(wardrobe, list):
-                w_names = [w.get("name", "").lower() for w in wardrobe]
-                w_subcats = [w.get("subcategory", w.get("category", "")).lower() for w in wardrobe]
+            if wardrobe and isinstance(wardrobe, list) and len(wardrobe) > 0:
                 for p in outfit_pieces:
                     p_name = p["name"].lower()
                     p_sub = p["subcategory"].lower()
-                    if any(w in p_name for w in w_names) or any(s in p_sub for s in w_subcats):
+                    p_slot = p.get("slot", "").lower()
+                    p_col = normalize_color(p.get("colour", ""))
+                    is_match = False
+                    for w in wardrobe:
+                        w_name = w.get("name", "").lower()
+                        w_sub = w.get("subcategory", w.get("category", "")).lower()
+                        w_slot = w.get("slot", "").lower()
+                        w_col = normalize_color(w.get("colour", w.get("color", "")))
+                        if w_name and (w_name in p_name or p_name in w_name):
+                            is_match = True
+                            break
+                        slot_matches = (
+                            (p_slot == "top" and any(k in w_sub or k in w_slot for k in ["top", "shirt", "t-shirt", "kurti"])) or
+                            (p_slot == "bottom" and any(k in w_sub or k in w_slot for k in ["bottom", "jean", "trouser", "pant", "skirt"])) or
+                            (p_slot == "shoes" and any(k in w_sub or k in w_slot for k in ["shoe", "sneaker", "sandal", "footwear", "boot"])) or
+                            (p_slot == "layer" and any(k in w_sub or k in w_slot for k in ["jacket", "blazer", "coat", "layer"]))
+                        )
+                        if slot_matches and (w_col == p_col or not w_col or not p_col):
+                            is_match = True
+                            break
+                    if is_match:
                         matched_items_count += 1
                     else:
                         missing_items_list.append(p["name"])
                 wardrobe_synergy = round(matched_items_count / len(outfit_pieces), 2)
             else:
-                matched_items_count = min(len(outfit_pieces), 3)
+                matched_items_count = max(1, min(len(outfit_pieces) - 1, 2))
+                for idx, p in enumerate(outfit_pieces):
+                    if idx >= matched_items_count:
+                        missing_items_list.append(p["name"])
+                wardrobe_synergy = round(matched_items_count / len(outfit_pieces), 2)
 
             # Composite compatibility score (0-100)
             composite_score = round(
@@ -520,6 +542,7 @@ class OutfitRecommender:
             items_list = []
             for p in pieces:
                 brand_name = p["name"].split()[0] if p["name"] else "Fashion VISTA"
+                is_owned = p["name"] not in entry["missing_items"]
                 items_list.append({
                     "id": p["id"],
                     "name": p["name"],
@@ -532,7 +555,9 @@ class OutfitRecommender:
                     "usage": p["usage"],
                     "gender": p["gender"],
                     "brand": brand_name,
-                    "owned": p["name"] not in entry["missing_items"] if entry["missing_items"] else True,
+                    "owned": is_owned,
+                    "inWardrobe": is_owned,
+                    "needed_to_buy": not is_owned,
                     "description": f"{p['colour']} {p['subcategory']} tailored for {req_occasion} styling",
                     "image": get_curated_item_image(p["slot"], p["colour"], p["article_type"], style=req_style)
                 })
@@ -636,6 +661,8 @@ class OutfitRecommender:
                         "season": "Summer",
                         "usage": "Casual",
                         "owned": True,
+                        "inWardrobe": True,
+                        "needed_to_buy": False,
                         "brand": "Zara",
                         "description": "Relaxed drop-shoulder organic cotton tee",
                         "image": DEFAULT_SLOT_IMAGES["Top"]
@@ -650,6 +677,8 @@ class OutfitRecommender:
                         "season": "All Season",
                         "usage": "Casual",
                         "owned": True,
+                        "inWardrobe": True,
+                        "needed_to_buy": False,
                         "brand": "Levi's",
                         "description": "Mid-rise vintage wash denim with clean straight leg",
                         "image": DEFAULT_SLOT_IMAGES["Bottom"]
@@ -663,7 +692,9 @@ class OutfitRecommender:
                         "colour": "White",
                         "season": "All Season",
                         "usage": "Casual",
-                        "owned": True,
+                        "owned": False,
+                        "inWardrobe": False,
+                        "needed_to_buy": True,
                         "brand": "Veja",
                         "description": "Low-profile sneakers with off-white rubber cupsole",
                         "image": DEFAULT_SLOT_IMAGES["Shoes"]
@@ -672,16 +703,16 @@ class OutfitRecommender:
                 "reasons": [
                     "High baseline compatibility with neutral tonal anchor",
                     "Slot complete: 1 Top + 1 Bottom + 1 Footwear",
-                    "Uses items available in digital wardrobe"
+                    "2 pieces already in your wardrobe; 1 piece needed to buy"
                 ],
                 "wardrobe_match": {
-                    "matched_count": 3,
+                    "matched_count": 2,
                     "required_count": 3,
-                    "wardrobe_coverage": 1.0,
-                    "percentage": 100,
-                    "statusText": "All pieces in closet!",
-                    "subtext": "Zero new purchases required.",
-                    "missing_items": []
+                    "wardrobe_coverage": 0.67,
+                    "percentage": 67,
+                    "statusText": "2 items available in your closet!",
+                    "subtext": "Only 1 item needed to buy to complete ensemble.",
+                    "missing_items": ["White Minimalist Sneakers"]
                 },
                 "explanation": "Essential baseline ensemble offering balanced silhouette and comfort."
             }
