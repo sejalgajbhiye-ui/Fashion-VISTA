@@ -199,12 +199,44 @@ export async function predictProductAttributes(text) {
 }
 
 /**
+ * Functionality 2: AI-Powered Outfit Recommendations Endpoint
+ * Generates ranked primary outfit curation plus diverse alternative combinations
+ * @param {Object} preferences
+ * @param {Array} wardrobe
+ * @param {number} limit
+ */
+export async function fetchRecommendations(preferences, wardrobe = [], limit = 4) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/recommendations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preferences, wardrobe, limit })
+    });
+    if (!res.ok) throw new Error(`Recommendation error (${res.status})`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Backend recommendations endpoint unavailable, falling back:', err.message);
+    return null;
+  }
+}
+
+/**
  * Generate outfit recommendation
  * @param {Object} preferences
  * @param {Array} wardrobe
  */
 export async function generateMLRecommendation(preferences, wardrobe = []) {
   try {
+    // Try primary recommendations endpoint first
+    const multiRes = await fetchRecommendations(preferences, wardrobe, 4);
+    if (multiRes && multiRes.primary_recommendation) {
+      return {
+        ...multiRes.primary_recommendation,
+        alternatives: multiRes.alternatives || []
+      };
+    }
+
+    // Fallback to /ml/recommend endpoint
     const res = await fetch(`${API_BASE_URL}/ml/recommend`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

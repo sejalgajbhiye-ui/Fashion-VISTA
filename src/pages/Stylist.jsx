@@ -322,7 +322,7 @@ export const Stylist = () => {
             variant="ghost"
             size="md"
             onClick={handleBack}
-            disabled={currentStep === 1}
+            disabled={currentStep === 1 || isGenerating}
             iconLeft={<ArrowLeft className="w-4 h-4" />}
           >
             Back
@@ -351,6 +351,30 @@ export const Stylist = () => {
         </div>
 
       </div>
+
+      {/* GENERATION LOADING OVERLAY */}
+      {isGenerating && (
+        <div className="fixed inset-0 z-50 bg-charcoal-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl border border-taupe-200">
+            <div className="w-14 h-14 mx-auto rounded-full bg-cream-100 flex items-center justify-center animate-spin">
+              <Sparkles className="w-7 h-7 text-charcoal-900" />
+            </div>
+            <h3 className="editorial-heading text-2xl font-semibold text-charcoal-900">
+              Curating Your AI Ensemble
+            </h3>
+            <p className="text-sm text-charcoal-500 leading-relaxed">
+              Evaluating color harmonies, silhouette balance, and matching 25,000+ fashion catalog pieces against your digital wardrobe...
+            </p>
+            <div className="flex items-center justify-center gap-2 pt-2 text-[11px] font-semibold uppercase tracking-wider text-charcoal-400 border-t border-taupe-100">
+              <span>Slot Completeness</span>
+              <span>•</span>
+              <span>Color Harmony</span>
+              <span>•</span>
+              <span>Closet Synergy</span>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

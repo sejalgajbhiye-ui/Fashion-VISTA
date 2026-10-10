@@ -382,3 +382,121 @@ def test_transfer_learning_model_artifacts_exist():
     assert data["test_accuracy"] > 0.70
     assert "MobileNetV2" in data["model_architecture"]
 
+
+# ============================================================================
+# 6. FUNCTIONALITY 2: RECOMMENDATION PIPELINE & API TESTS
+# ============================================================================
+def test_recommender_preference_filtering():
+    engine = OutfitRecommender()
+    prefs = {
+        "occasion": "Office",
+        "style": "Formal",
+        "colour": "Blue",
+        "season": "Summer",
+        "budget": "2500"
+    }
+    result = engine.recommend_outfits(preferences=prefs, limit=3)
+    assert result["status"] == "success"
+    assert "primary_recommendation" in result
+    primary = result["primary_recommendation"]
+    assert primary["occasion"] == "Office"
+    assert primary["style"] == "Formal"
+    assert primary["season"] == "Summer"
+    assert 0 <= primary["compatibility_score"] <= 100
+    assert len(primary["items"]) >= 3
+
+
+def test_recommender_slot_completeness():
+    engine = OutfitRecommender()
+    result = engine.recommend_outfits(preferences={"occasion": "College"}, limit=2)
+    curated = result["recommendations"]
+    assert len(curated) >= 1
+
+    for outfit in curated:
+        slots = [item["slot"] for item in outfit["items"]]
+        assert "Top" in slots, "Top slot must be present"
+        assert "Bottom" in slots, "Bottom slot must be present"
+        assert "Shoes" in slots, "Shoes slot must be present"
+        # Verify no duplicate Top, Bottom, or Shoes
+        assert slots.count("Top") == 1
+        assert slots.count("Bottom") == 1
+        assert slots.count("Shoes") == 1
+        for item in outfit["items"]:
+            assert item["image"].startswith("http")
+            assert len(item["name"]) > 0
+
+
+def test_recommender_color_harmony():
+    engine = OutfitRecommender()
+    res = engine.recommend_outfits(preferences={"colour": "Black", "occasion": "Party"}, limit=2)
+    primary = res["primary_recommendation"]
+    assert "color_score" in primary
+    assert 0 <= primary["color_score"] <= 100
+    assert "color_harmony_explanation" in primary
+    assert len(primary["color_harmony_explanation"]) > 5
+    assert len(primary["reasons"]) >= 3
+
+
+def test_recommender_multiple_curations():
+    engine = OutfitRecommender()
+    res = engine.recommend_outfits(preferences={"occasion": "Casual"}, limit=4)
+    assert res["status"] == "success"
+    assert res["primary_recommendation"] is not None
+    assert len(res["alternatives"]) >= 1
+    assert len(res["recommendations"]) <= 4
+
+    # Verify that alternatives have appropriate structure
+    for alt in res["alternatives"]:
+        assert "id" in alt
+        assert "name" in alt
+        assert "items" in alt
+        assert "heroImage" in alt
+        assert "wardrobe_match" in alt
+
+
+def test_api_recommendations_endpoint(client):
+    payload = {
+        "preferences": {
+            "occasion": "College",
+            "style": "Casual",
+            "colour": "Black",
+            "season": "Summer",
+            "budget": "1800"
+        },
+        "wardrobe": [
+            {"id": "w1", "name": "Black Tee", "category": "Tops", "colour": "Black"},
+            {"id": "w2", "name": "Blue Jeans", "category": "Bottoms", "colour": "Blue"}
+        ],
+        "limit": 4
+    }
+    response = client.post("/api/recommendations", json=payload)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["status"] == "success"
+    assert "primary_recommendation" in data
+    assert "alternatives" in data
+    assert "recommendations" in data
+
+    primary = data["primary_recommendation"]
+    assert primary["occasion"] == "College"
+    assert len(primary["items"]) >= 3
+    assert primary["wardrobe_match"]["matched_count"] >= 0
+    assert primary["wardrobe_match"]["percentage"] >= 0
+
+
+def test_api_recommendations_partial_preferences(client):
+    # Empty payload
+    res1 = client.post("/api/recommendations", json={})
+    assert res1.status_code == 200
+    data1 = res1.get_json()
+    assert data1["status"] == "success"
+    assert "primary_recommendation" in data1
+    assert len(data1["primary_recommendation"]["items"]) >= 3
+
+    # Partial preferences
+    res2 = client.post("/api/recommendations", json={"preferences": {"occasion": "Party"}})
+    assert res2.status_code == 200
+    data2 = res2.get_json()
+    assert data2["primary_recommendation"]["occasion"] == "Party"
+
+

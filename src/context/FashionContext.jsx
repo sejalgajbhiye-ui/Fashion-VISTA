@@ -246,15 +246,46 @@ export const FashionProvider = ({ children }) => {
         missing_items: []
       };
 
+      const formattedAlternatives = (mlRec.alternatives || []).map((alt, idx) => ({
+        id: alt.id || `alt-${idx + 1}`,
+        number: String(idx + 1).padStart(2, '0'),
+        name: alt.name,
+        description: alt.subtitle || alt.explanation || 'Curated alternative coordination',
+        itemsSummary: alt.items ? alt.items.map(i => i.name).join(' + ') : 'Coordinated garment pieces',
+        ownedCount: alt.wardrobe_match?.matched_count ?? 3,
+        totalCount: alt.wardrobe_match?.required_count ?? (alt.items?.length || 3),
+        percentage: alt.wardrobe_match?.percentage ?? 75,
+        image: alt.heroImage || (alt.items && alt.items[0]?.image) || defaultRecommendation.heroImage,
+        heroImage: alt.heroImage || (alt.items && alt.items[0]?.image) || defaultRecommendation.heroImage,
+        items: alt.items,
+        reasons: alt.reasons,
+        wardrobe_match: alt.wardrobe_match,
+        compatibility_score: alt.compatibility_score,
+        color_score: alt.color_score
+      }));
+
+      const missing = mlRec.items.find(i => !i.owned) || null;
+
       baseCuration = {
         ...defaultRecommendation,
+        id: mlRec.id || defaultRecommendation.id,
         name: mlRec.name || `${newPrefs.style || 'Casual'} ${newPrefs.occasion || 'College'} Curation`,
+        subtitle: mlRec.subtitle || defaultRecommendation.subtitle,
+        heroImage: mlRec.heroImage || defaultRecommendation.heroImage,
         occasion: mlRec.occasion || newPrefs.occasion || 'College',
         style: mlRec.style || newPrefs.style || 'Casual',
         season: mlRec.season || newPrefs.season || 'Summer',
         colour: newPrefs.colour === 'Any' ? 'Balanced Palette' : `${newPrefs.colour} Harmony`,
         budget: newPrefs.budget || '1800',
         items: mlRec.items,
+        missingItem: missing ? {
+          id: missing.id,
+          name: missing.name,
+          category: missing.slot || missing.category,
+          colour: missing.colour,
+          reason: `Completes the silhouette for ${mlRec.occasion || newPrefs.occasion} styling without redundancy.`,
+          image: missing.image
+        } : null,
         compatibility: {
           occasion: `Suitable for ${mlRec.occasion || newPrefs.occasion}`,
           style: mlRec.style || newPrefs.style || 'Casual',
@@ -269,13 +300,14 @@ export const FashionProvider = ({ children }) => {
           statusText: match.wardrobe_coverage === 1 ? "Ready in your closet!" : "High Closet Synergy",
           subtext: match.missing_items && match.missing_items.length > 0 ? `Missing: ${match.missing_items.join(', ')}` : "All pieces owned!"
         },
-        reasons: [
+        reasons: mlRec.reasons && mlRec.reasons.length > 0 ? mlRec.reasons : [
           `ML Compatibility Score: ${mlRec.compatibility_score || 92}%`,
           mlRec.color_harmony_explanation || 'Balanced color harmony across garment slots',
           mlRec.explanation || `Optimal pairing for ${newPrefs.occasion} utility`,
           `Uses ${match.matched_count} items from your wardrobe (${Math.round(match.wardrobe_coverage * 100)}% coverage)`,
           match.missing_items && match.missing_items.length > 0 ? `Missing: ${match.missing_items.join(', ')}` : 'Zero new purchases needed'
-        ]
+        ],
+        alternatives: formattedAlternatives.length > 0 ? formattedAlternatives : defaultRecommendation.alternatives
       };
     } else if (newPrefs.style === 'Traditional' || newPrefs.occasion === 'Traditional' || newPrefs.occasion === 'Wedding') {
       baseCuration = alternateCurations.traditional;
@@ -334,18 +366,44 @@ export const FashionProvider = ({ children }) => {
 
   const applyAlternative = (alt) => {
     // If user clicks "View Outfit →" on an alternative
+    const match = alt.wardrobe_match || {
+      matched_count: alt.ownedCount ?? 3,
+      required_count: alt.totalCount ?? 3,
+      percentage: alt.percentage ?? 100,
+      statusText: alt.percentage === 100 ? "Ready in your closet!" : "High Closet Synergy",
+      subtext: alt.percentage === 100 ? "Zero new purchases needed!" : `Only ${alt.totalCount - alt.ownedCount} item needed.`
+    };
+
+    const missing = alt.items?.find(i => !i.owned) || null;
+
     setCurrentRecommendation(prev => ({
       ...prev,
-      name: alt.name,
-      subtitle: alt.description,
+      id: alt.id || prev.id,
+      name: alt.name || prev.name,
+      subtitle: alt.description || alt.subtitle || prev.subtitle,
+      heroImage: alt.heroImage || alt.image || prev.heroImage,
+      items: alt.items && alt.items.length > 0 ? alt.items : prev.items,
+      reasons: alt.reasons && alt.reasons.length > 0 ? alt.reasons : prev.reasons,
+      missingItem: missing ? {
+        id: missing.id,
+        name: missing.name,
+        category: missing.slot || missing.category,
+        colour: missing.colour,
+        reason: `Completes the silhouette for ${prev.occasion} styling.`,
+        image: missing.image
+      } : null,
       wardrobeMatch: {
-        ownedCount: alt.ownedCount,
-        totalCount: alt.totalCount,
-        percentage: alt.percentage,
-        statusText: alt.percentage === 100 ? "Ready in your closet!" : "Almost ready.",
-        subtext: alt.percentage === 100 ? "Zero new purchases needed!" : `Only ${alt.totalCount - alt.ownedCount} item needed.`
+        ownedCount: match.matched_count ?? alt.ownedCount,
+        totalCount: match.required_count ?? alt.totalCount,
+        percentage: match.percentage ?? alt.percentage,
+        statusText: match.statusText || (alt.percentage === 100 ? "Ready in your closet!" : "High Closet Synergy"),
+        subtext: match.subtext || (alt.percentage === 100 ? "Zero new purchases needed!" : `Only ${alt.totalCount - alt.ownedCount} item needed.`)
       },
-      heroImage: alt.image
+      compatibility: {
+        ...prev.compatibility,
+        colour: alt.color_score ? `${alt.color_score}% Colour Harmony` : prev.compatibility.colour,
+        wardrobe: `${match.matched_count ?? alt.ownedCount} / ${match.required_count ?? alt.totalCount} items owned`
+      }
     }));
     showToast(`Loaded "${alt.name}" as primary outfit`, 'info');
   };
