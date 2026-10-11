@@ -26,6 +26,7 @@ from backend.routes.health_routes import health_bp
 from backend.routes.ml_routes import ml_bp
 from backend.routes.wardrobe_routes import wardrobe_bp
 from backend.routes.recommendation_routes import recommendation_bp
+from backend.routes.tryon_routes import tryon_bp
 from backend.database import init_db
 
 
@@ -41,6 +42,7 @@ def create_app():
     app.register_blueprint(ml_bp, url_prefix="/api/ml")
     app.register_blueprint(wardrobe_bp, url_prefix="/api/wardrobe")
     app.register_blueprint(recommendation_bp, url_prefix="/api")
+    app.register_blueprint(tryon_bp, url_prefix="/api")
 
     @app.errorhandler(404)
     def not_found(e):

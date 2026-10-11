@@ -274,22 +274,44 @@ export async function checkWardrobeMatch(outfitItems, wardrobe = []) {
 }
 
 /**
- * Virtual Try-On endpoint
+ * Functionality 4: AI Virtual Try-On System Status
+ * Checks neural engine readiness, cached models, and hardware capabilities
+ */
+export async function getVTOStatus() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/try-on/status`, { method: 'GET' });
+    if (!res.ok) throw new Error(`Status check failed (${res.status})`);
+    return await res.json();
+  } catch (err) {
+    console.warn('VTO status check unavailable:', err.message);
+    return { status: 'offline', error: err.message };
+  }
+}
+
+/**
+ * Functionality 4: AI Virtual Try-On Execution Endpoint
+ * Synthesizes neural geometric cloth warping and silhouette blending
+ * @param {Object} payload - { person_image, garment_image, category, blend_mode }
  */
 export async function requestVirtualTryOn(payload = {}) {
   try {
-    const res = await fetch(`${API_BASE_URL}/ml/try-on`, {
+    const res = await fetch(`${API_BASE_URL}/try-on`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error(`Try-on error ${res.status}`);
-    return await res.json();
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || `Virtual Try-On error (${res.status})`);
+    }
+    return data;
   } catch (err) {
+    console.warn('Virtual Try-On request failed:', err.message);
     return {
-      success: false,
-      status: 'offline',
-      message: 'Backend server not responding.'
+      status: 'error',
+      error: err.message || 'Virtual Try-On service unavailable'
     };
   }
 }
+

@@ -50,8 +50,14 @@ checkpoints/
 # Backend uploaded files and local database
 backend/uploads/*
 !backend/uploads/.gitkeep
+*.db
 backend/data/*.db
 !backend/data/.gitkeep
+
+# Temporary test outputs
+scratch_test/
+tests/*.jpg
+tests/*.png
 
 # Python & Virtual Environments
 __pycache__/

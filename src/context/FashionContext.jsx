@@ -256,6 +256,58 @@ export const FashionProvider = ({ children }) => {
     }
   };
 
+  // 6.5 AI Virtual Try-On State & Results
+  const [tryOnResult, setTryOnResultState] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('fashion_vista_try_on_result');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const setTryOnResult = (res) => {
+    setTryOnResultState(res);
+    try {
+      if (res) {
+        sessionStorage.setItem('fashion_vista_try_on_result', JSON.stringify(res));
+      } else {
+        sessionStorage.removeItem('fashion_vista_try_on_result');
+      }
+    } catch (e) {
+      console.warn('SessionStorage note for tryOnResult:', e);
+    }
+  };
+
+  const [selectedGarmentForTryOn, setSelectedGarmentForTryOn] = useState(null);
+
+  // 6.6 User Uploaded Custom Garment for Virtual Try-On
+  const [customGarmentPhoto, setCustomGarmentPhotoState] = useState(() => {
+    return localStorage.getItem('fashion_vista_custom_garment_photo') || null;
+  });
+
+  const setCustomGarmentPhoto = (photo) => {
+    setCustomGarmentPhotoState(photo);
+    if (photo) {
+      localStorage.setItem('fashion_vista_custom_garment_photo', photo);
+    } else {
+      localStorage.removeItem('fashion_vista_custom_garment_photo');
+    }
+  };
+
+  const [customGarmentName, setCustomGarmentNameState] = useState(() => {
+    return localStorage.getItem('fashion_vista_custom_garment_name') || "";
+  });
+
+  const setCustomGarmentName = (name) => {
+    setCustomGarmentNameState(name);
+    if (name) {
+      localStorage.setItem('fashion_vista_custom_garment_name', name);
+    } else {
+      localStorage.removeItem('fashion_vista_custom_garment_name');
+    }
+  };
+
   // 7. History
   const [history, setHistory] = useState(() => {
     try {
@@ -441,6 +493,30 @@ export const FashionProvider = ({ children }) => {
     }
   };
 
+  const saveTryOnToHistory = (resultData) => {
+    if (!resultData || !resultData.result_image) return;
+    const garmentName = resultData.garment_name || 'Selected Garment';
+    const historyEntry = {
+      id: `tryon-${Date.now()}`,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      fullDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      outfitName: `Virtual Try-On: ${garmentName}`,
+      occasion: currentRecommendation?.occasion || 'Casual Fitting',
+      style: currentRecommendation?.style || 'Personal Fit',
+      wardrobeMatch: 'AI Try-On Synthesized',
+      ownedCount: 1,
+      totalCount: 1,
+      percentage: 100,
+      missingItems: [],
+      image: resultData.result_image,
+      outfitSummary: `Neural geometric try-on with ${garmentName}`,
+      decision: `AI Virtual Try-On (${resultData.metrics?.inference_time_sec ? resultData.metrics.inference_time_sec + 's' : 'Synthesized'})`
+    };
+
+    setHistory(prev => [historyEntry, ...prev.slice(0, 19)]);
+    showToast(`Saved "${garmentName}" Virtual Try-On to your history!`, 'success');
+  };
+
   // Computed stats
   const wardrobeStats = {
     total: wardrobe.length,
@@ -473,6 +549,15 @@ export const FashionProvider = ({ children }) => {
         setUserPhoto,
         missingItemPhoto,
         setMissingItemPhoto,
+        tryOnResult,
+        setTryOnResult,
+        selectedGarmentForTryOn,
+        setSelectedGarmentForTryOn,
+        customGarmentPhoto,
+        setCustomGarmentPhoto,
+        customGarmentName,
+        setCustomGarmentName,
+        saveTryOnToHistory,
         history,
         userProfile,
         setUserProfile,
@@ -484,3 +569,4 @@ export const FashionProvider = ({ children }) => {
     </FashionContext.Provider>
   );
 };
+
