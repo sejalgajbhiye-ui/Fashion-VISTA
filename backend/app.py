@@ -34,7 +34,14 @@ def create_app():
     init_db()
 
     app = Flask(__name__)
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    
+    # Configure CORS: support ALLOWED_ORIGINS or FRONTEND_URL environment variables, defaulting to '*'
+    raw_origins = os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "*"
+    if raw_origins != "*":
+        origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+    else:
+        origins = "*"
+    CORS(app, resources={r"/api/*": {"origins": origins}})
 
     # Register blueprints
     app.register_blueprint(health_bp, url_prefix="/api")

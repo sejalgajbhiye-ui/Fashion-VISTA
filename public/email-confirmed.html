@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fashion VISTA — Email Verified</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #FAF8F5;
+      color: #1A1A1A;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 16px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .logo-badge {
+      width: 36px;
+      height: 36px;
+      background: #1A1A1A;
+      color: #FAF8F5;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .brand-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .brand-sub {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #7A7265;
+      font-weight: 600;
+    }
+    .card {
+      background: #FFFFFF;
+      border: 1px solid #E5DFD5;
+      border-radius: 24px;
+      padding: 32px 24px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      margin: 24px 0;
+    }
+    .icon-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+    .icon-success {
+      background: #E8F5E9;
+      color: #2E7D32;
+      border: 2px solid #C8E6C9;
+    }
+    .icon-error {
+      background: #FFF3E0;
+      color: #E65100;
+      border: 2px solid #FFE0B2;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+    .badge-success { background: #E8F5E9; color: #1B5E20; border: 1px solid #C8E6C9; }
+    .badge-error { background: #FFF3E0; color: #B71C1C; border: 1px solid #FFCCBC; }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      line-height: 1.25;
+    }
+    p {
+      font-size: 13px;
+      color: #555047;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .instruction-box {
+      background: #FAF8F5;
+      border: 1px solid #EBE5DB;
+      border-radius: 16px;
+      padding: 16px;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    .instruction-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #1A1A1A;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .instruction-text {
+      font-size: 12px;
+      color: #665F52;
+      margin-bottom: 0;
+      line-height: 1.5;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px 20px;
+      background: #1A1A1A;
+      color: #FFFFFF;
+      text-decoration: none;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      transition: background 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+    .btn:hover { background: #000000; }
+    .footer {
+      font-size: 11px;
+      color: #999182;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Brand Header -->
+  <header class="header">
+    <div class="logo-badge">✦</div>
+    <div>
+      <div class="brand-title">Fashion VISTA</div>
+      <div class="brand-sub">AI Wardrobe & Virtual Try-On</div>
+    </div>
+  </header>
+
+  <!-- Dynamic Content Card -->
+  <main class="card" id="mainCard">
+    <div class="icon-circle icon-success">✓</div>
+    <div class="badge badge-success">Account Activated</div>
+    <h1>Email Verified Successfully!</h1>
+    <p>Your email has been verified successfully! You can now return to Fashion VISTA and log in.</p>
+
+    <div class="instruction-box">
+      <div class="instruction-title">💻 Return to Your Computer</div>
+      <div class="instruction-text">
+        Since your application is running locally on your computer, please switch back to the browser on your computer to log in and access your personal digital wardrobe.
+      </div>
+    </div>
+
+    <button class="btn" onclick="window.close()">You May Close This Window</button>
+  </main>
+
+  <footer class="footer">
+    Fashion VISTA © 2026 — AI Digital Wardrobe & Try-On Studio
+  </footer>
+
+  <script>
+    // Inspect hash & search query for errors
+    const searchParams = new URLSearchParams(window.location.search);
+    const hash = window.location.hash.startsWith('#') ? window.location.hash.substring(1) : window.location.hash;
+    const hashParams = new URLSearchParams(hash);
+
+    const error = searchParams.get('error') || hashParams.get('error');
+    const errorCode = searchParams.get('error_code') || hashParams.get('error_code');
+    const errorDescription = searchParams.get('error_description') || hashParams.get('error_description');
+
+    if (error || errorCode) {
+      const isExpired = errorCode === 'otp_expired' || (errorDescription && errorDescription.includes('expired'));
+      document.getElementById('mainCard').innerHTML = `
+        <div class="icon-circle icon-error">!</div>
+        <div class="badge badge-error">Verification Notice</div>
+        <h1>Link Invalid or Expired</h1>
+        <p>${isExpired
+          ? 'This verification link has expired. Please return to Fashion VISTA on your computer and request a new confirmation email, or try logging in if you already verified.'
+          : (errorDescription || 'The verification link is invalid or has already been used.')}</p>
+        <div class="instruction-box">
+          <div class="instruction-title">What should you do?</div>
+          <div class="instruction-text">
+            If you already confirmed earlier, you can log in directly on your computer. If unconfirmed, return to your computer to request a fresh link.
+          </div>
+        </div>
+        <button class="btn" onclick="window.close()">Close Window</button>
+      `;
+    }
+  </script>
+</body>
+</html>

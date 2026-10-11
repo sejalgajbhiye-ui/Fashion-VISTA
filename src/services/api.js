@@ -6,7 +6,25 @@
  * guaranteeing zero downtime or frontend regressions.
  */
 
+import { supabase } from './supabaseClient';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
+/**
+ * Returns Authorization header with Supabase session JWT if user is signed in
+ */
+export async function getAuthHeaders() {
+  const headers = {};
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session?.access_token) {
+      headers['Authorization'] = `Bearer ${data.session.access_token}`;
+    }
+  } catch (err) {
+    // Graceful fallback if offline or supabase not configured
+  }
+  return headers;
+}
 
 /**
  * Health check
@@ -103,11 +121,15 @@ export async function classifyWardrobeGarment(imageSource) {
 }
 
 /**
- * Fetch all persistent wardrobe items from SQLite backend
+ * Fetch all persistent wardrobe items from backend
  */
 export async function fetchWardrobeItems() {
   try {
-    const res = await fetch(`${API_BASE_URL}/wardrobe/items`, { method: 'GET' });
+    const authHeaders = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/wardrobe/items`, {
+      method: 'GET',
+      headers: { ...authHeaders }
+    });
     if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
     return data.items || [];
@@ -118,14 +140,18 @@ export async function fetchWardrobeItems() {
 }
 
 /**
- * Save new wardrobe item to persistent SQLite backend
+ * Save new wardrobe item to persistent backend
  * @param {Object} itemData
  */
 export async function createWardrobeItem(itemData) {
   try {
+    const authHeaders = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/wardrobe/items`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders
+      },
       body: JSON.stringify(itemData)
     });
     if (!res.ok) {
@@ -141,15 +167,19 @@ export async function createWardrobeItem(itemData) {
 }
 
 /**
- * Update an existing wardrobe item in SQLite
+ * Update an existing wardrobe item
  * @param {string} id
  * @param {Object} updateFields
  */
 export async function updateWardrobeItemAPI(id, updateFields) {
   try {
+    const authHeaders = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/wardrobe/items/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders
+      },
       body: JSON.stringify(updateFields)
     });
     if (!res.ok) throw new Error(`Update failed (${res.status})`);
@@ -162,13 +192,15 @@ export async function updateWardrobeItemAPI(id, updateFields) {
 }
 
 /**
- * Delete a wardrobe item from SQLite
+ * Delete a wardrobe item
  * @param {string} id
  */
 export async function deleteWardrobeItemAPI(id) {
   try {
+    const authHeaders = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/wardrobe/items/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: { ...authHeaders }
     });
     if (!res.ok) throw new Error(`Delete failed (${res.status})`);
     return true;

@@ -1,0 +1,25 @@
+# Fashion VISTA - Production Backend Dependencies (Render / Linux / Cloud)
+# Web & WSGI Server
+Flask>=3.0.0
+flask-cors>=5.0.0
+Werkzeug>=3.0.0
+gunicorn>=21.2.0
+
+# HTTP & Security
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Image Processing & Classical ML
+Pillow>=10.0.0
+scikit-learn>=1.4.0
+scipy>=1.12.0
+numpy>=1.26.0
+joblib>=1.3.0
+
+# Testing & Verification
+pytest>=8.0.0
+
+# NOTE for PyTorch on Render/Cloud:
+# To prevent downloading massive CUDA/GPU binaries (>2GB) and crashing memory limits on Render,
+# install CPU-only PyTorch wheels via Render's buildCommand:
+# pip install -r requirements.txt && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu

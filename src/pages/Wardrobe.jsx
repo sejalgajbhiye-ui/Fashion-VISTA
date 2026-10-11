@@ -299,13 +299,24 @@ export const Wardrobe = () => {
             />
           ))}
         </div>
+      ) : wardrobe.length === 0 ? (
+        <EmptyState
+          icon={Shirt}
+          title="Your wardrobe is currently empty"
+          description="You haven't added any clothes to your personal wardrobe yet. Click '+ Add Clothing' to photograph or catalog garments you own and unlock personalized AI styling."
+          actionLabel="+ Add Your First Clothing Item"
+          onAction={() => setIsAddModalOpen(true)}
+        />
       ) : (
         <EmptyState
           icon={Shirt}
-          title="No garments found"
-          description={`No items match "${searchQuery || selectedCategory}". Add a new piece or clear the current filters.`}
-          actionLabel="+ Add Clothing Item"
-          onAction={() => setIsAddModalOpen(true)}
+          title="No garments match your filter"
+          description={`No items match "${searchQuery || selectedCategory}". Reset your search or category filter to see your cataloged clothes.`}
+          actionLabel="Show All Garments"
+          onAction={() => {
+            setSelectedCategory("All");
+            setSearchQuery("");
+          }}
         />
       )}
 

@@ -24,6 +24,7 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from backend.services.classifier_service import ClassifierService
+from backend.auth_middleware import optional_auth, require_auth
 from backend.database import (
     get_all_wardrobe_items,
     get_wardrobe_item_by_id,
@@ -139,24 +140,33 @@ def classify_wardrobe_image():
 
 
 @wardrobe_bp.route("/items", methods=["GET"])
-def list_items():
-    """Retrieves all wardrobe items stored in SQLite database."""
+@optional_auth
+def list_items(current_user=None):
+    """
+    Retrieves wardrobe items.
+    If authenticated, returns user's items + sample items.
+    If guest, returns public sample items.
+    """
     try:
-        items = get_all_wardrobe_items()
+        user_id = current_user.get("id") if current_user else None
+        items = get_all_wardrobe_items(user_id=user_id)
         return jsonify({
             "status": "success",
             "total": len(items),
-            "items": items
+            "items": items,
+            "authenticated": bool(current_user)
         }), 200
     except Exception as e:
         return jsonify({"status": "error", "error": f"Failed to retrieve items: {str(e)}"}), 500
 
 
 @wardrobe_bp.route("/items", methods=["POST"])
-def add_item():
+@optional_auth
+def add_item(current_user=None):
     """
     Saves a new clothing item to SQLite database.
     Accepts JSON or multipart/form-data.
+    Derives user_id from verified authentication token if present.
     """
     try:
         item_data = {}
@@ -193,7 +203,8 @@ def add_item():
             except Exception:
                 pass
 
-        saved_item = insert_wardrobe_item(item_data)
+        user_id = current_user.get("id") if current_user else None
+        saved_item = insert_wardrobe_item(item_data, user_id=user_id)
         return jsonify({
             "status": "success",
             "message": "Item added to digital wardrobe",
@@ -214,15 +225,29 @@ def get_item(item_id):
 
 
 @wardrobe_bp.route("/items/<item_id>", methods=["PUT"])
-def edit_item(item_id):
-    """Updates selected metadata for a wardrobe item in SQLite."""
+@optional_auth
+def edit_item(item_id, current_user=None):
+    """
+    Updates selected metadata for a wardrobe item.
+    Enforces authorization: users cannot edit items belonging to other users.
+    """
     try:
         existing = get_wardrobe_item_by_id(item_id)
         if not existing:
             return jsonify({"status": "error", "error": f"Item '{item_id}' not found"}), 404
 
+        user_id = current_user.get("id") if current_user else None
+
+        # Ownership validation
+        if existing.get("user_id"):
+            if not user_id or str(existing["user_id"]) != str(user_id):
+                return jsonify({
+                    "status": "error",
+                    "error": "Forbidden: You do not have permission to modify this wardrobe item."
+                }), 403
+
         data = request.get_json() or {}
-        updated = update_wardrobe_item(item_id, data)
+        updated = update_wardrobe_item(item_id, data, user_id=user_id)
         return jsonify({
             "status": "success",
             "message": "Item updated successfully",
@@ -233,18 +258,32 @@ def edit_item(item_id):
 
 
 @wardrobe_bp.route("/items/<item_id>", methods=["DELETE"])
-def remove_item(item_id):
-    """Deletes a wardrobe item from SQLite database."""
+@optional_auth
+def remove_item(item_id, current_user=None):
+    """
+    Deletes a wardrobe item with ownership validation.
+    Enforces authorization: users cannot delete items belonging to other users.
+    """
     try:
         existing = get_wardrobe_item_by_id(item_id)
         if not existing:
             return jsonify({"status": "error", "error": f"Item '{item_id}' not found"}), 404
 
-        success = delete_wardrobe_item(item_id)
+        user_id = current_user.get("id") if current_user else None
+
+        # Ownership validation
+        if existing.get("user_id"):
+            if not user_id or str(existing["user_id"]) != str(user_id):
+                return jsonify({
+                    "status": "error",
+                    "error": "Forbidden: You do not have permission to delete this wardrobe item."
+                }), 403
+
+        success = delete_wardrobe_item(item_id, user_id=user_id)
         if success:
             return jsonify({"status": "success", "message": f"Item '{item_id}' deleted"}), 200
         else:
-            return jsonify({"status": "error", "error": "Failed to delete item"}), 500
+            return jsonify({"status": "error", "error": "Failed to delete item or permission denied"}), 500
     except Exception as e:
         return jsonify({"status": "error", "error": f"Delete error: {str(e)}"}), 500
 

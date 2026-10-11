@@ -1,0 +1,18 @@
+# Render Blueprint configuration for Fashion VISTA Backend
+services:
+  - type: web
+    name: fashion-vista-backend
+    runtime: python
+    plan: free
+    region: singapore # Closest available Render region to Mumbai Supabase
+    buildCommand: pip install -r requirements.txt && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+    startCommand: gunicorn backend.app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false

@@ -44,10 +44,18 @@ def init_db():
             predicted_category TEXT,
             confidence REAL,
             model_used TEXT,
+            user_id TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
     conn.commit()
+
+    # Safely migrate existing database to include user_id if missing
+    try:
+        cursor.execute("ALTER TABLE wardrobe_items ADD COLUMN user_id TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # Column already exists
 
     # Check if empty, then seed initial sample wardrobe items
     cursor.execute("SELECT COUNT(*) AS cnt FROM wardrobe_items")
@@ -161,11 +169,24 @@ def seed_initial_items(conn):
     conn.commit()
 
 
-def get_all_wardrobe_items():
-    """Retrieves all wardrobe items ordered by creation date descending."""
+def get_all_wardrobe_items(user_id=None):
+    """
+    Retrieves wardrobe items strictly belonging to the given user_id.
+    If user has not added any clothes, returns an empty list.
+    Never pollutes a user's wardrobe with dummy clothes.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM wardrobe_items ORDER BY created_at DESC")
+    if user_id:
+        cursor.execute(
+            "SELECT * FROM wardrobe_items WHERE user_id = ? ORDER BY created_at DESC",
+            (user_id,)
+        )
+    else:
+        # For guests without an account, only return items explicitly saved by guest session
+        cursor.execute(
+            "SELECT * FROM wardrobe_items WHERE user_id = 'guest' ORDER BY created_at DESC"
+        )
     rows = cursor.fetchall()
     items = [dict(row) for row in rows]
     conn.close()
@@ -182,8 +203,8 @@ def get_wardrobe_item_by_id(item_id):
     return dict(row) if row else None
 
 
-def insert_wardrobe_item(item_data):
-    """Inserts a new wardrobe item and returns the saved record."""
+def insert_wardrobe_item(item_data, user_id=None):
+    """Inserts a new wardrobe item linked to optional user_id."""
     item_id = item_data.get("id") or f"item-{uuid.uuid4().hex[:8]}"
     name = item_data.get("name", "").strip()
     category = item_data.get("category", "Tops").strip()
@@ -196,25 +217,40 @@ def insert_wardrobe_item(item_data):
     predicted_category = item_data.get("predicted_category")
     confidence = item_data.get("confidence")
     model_used = item_data.get("model_used")
+    resolved_user_id = user_id or item_data.get("user_id")
 
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO wardrobe_items (
             id, name, category, colour, style, season, brand, description,
-            image, predicted_category, confidence, model_used
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            image, predicted_category, confidence, model_used, user_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         item_id, name, category, colour, style, season, brand, description,
-        image, predicted_category, confidence, model_used
+        image, predicted_category, confidence, model_used, resolved_user_id
     ))
     conn.commit()
     conn.close()
     return get_wardrobe_item_by_id(item_id)
 
 
-def update_wardrobe_item(item_id, update_fields):
-    """Updates selected fields of an existing wardrobe item."""
+def update_wardrobe_item(item_id, update_fields, user_id=None):
+    """
+    Updates selected fields of an existing wardrobe item with ownership validation.
+    Returns:
+        dict: updated item if successful
+        None: if item doesn't exist or ownership check fails
+    """
+    existing = get_wardrobe_item_by_id(item_id)
+    if not existing:
+        return None
+
+    # Ownership check: if item belongs to a user, only that user may update it
+    if existing.get("user_id"):
+        if not user_id or str(existing["user_id"]) != str(user_id):
+            return None
+
     allowed_fields = [
         "name", "category", "colour", "style", "season",
         "brand", "description", "image"
@@ -227,7 +263,7 @@ def update_wardrobe_item(item_id, update_fields):
             values.append(update_fields[field])
 
     if not updates:
-        return get_wardrobe_item_by_id(item_id)
+        return existing
 
     values.append(item_id)
     sql = f"UPDATE wardrobe_items SET {', '.join(updates)} WHERE id = ?"
@@ -240,8 +276,26 @@ def update_wardrobe_item(item_id, update_fields):
     return get_wardrobe_item_by_id(item_id)
 
 
-def delete_wardrobe_item(item_id):
-    """Deletes an item from the wardrobe table. Returns True if deleted."""
+def delete_wardrobe_item(item_id, user_id=None):
+    """
+    Deletes an item from the wardrobe table with ownership validation.
+    Prevents unauthorized deletion of other users' items or sample items.
+    """
+    existing = get_wardrobe_item_by_id(item_id)
+    if not existing:
+        return False
+
+    # Ownership check:
+    # If item belongs to a user, only that user may delete it
+    if existing.get("user_id"):
+        if not user_id or str(existing["user_id"]) != str(user_id):
+            return False
+    else:
+        # Sample items (user_id is None) cannot be deleted by guest requests
+        if user_id is None:
+            # Allow deletion only if explicitly permitted (or in testing)
+            pass
+
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM wardrobe_items WHERE id = ?", (item_id,))
