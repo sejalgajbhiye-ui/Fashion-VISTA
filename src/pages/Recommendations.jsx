@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useFashion } from '../context/FashionContext';
+import { useFashion, matchOutfitWithWardrobe } from '../context/FashionContext';
 import { WardrobeMatch } from '../components/WardrobeMatch';
 import { RecommendationReason } from '../components/RecommendationReason';
 import { OutfitCard } from '../components/OutfitCard';
@@ -29,7 +29,8 @@ export const Recommendations = () => {
     applyAlternative,
     preferences = {},
     allOutfits = [],
-    selectOutfitByIndex
+    selectOutfitByIndex,
+    wardrobe = []
   } = useFashion();
   const [viewMode, setViewMode] = useState('detail'); // 'detail' | 'all'
 
@@ -52,7 +53,8 @@ export const Recommendations = () => {
     )
   );
 
-  const activeOutfit = outfitsList[activeIndex] || safeRec;
+  const rawActiveOutfit = outfitsList[activeIndex] || safeRec;
+  const activeOutfit = rawActiveOutfit ? matchOutfitWithWardrobe(rawActiveOutfit, wardrobe) : rawActiveOutfit;
 
   const {
     name = "Curated Ensemble",
@@ -60,24 +62,16 @@ export const Recommendations = () => {
     items = [],
     reasons = [],
     alternatives = []
-  } = activeOutfit;
+  } = activeOutfit || {};
 
   // Normalize items to ensure consistent ownership flags
-  const normalizedItems = (items || []).filter(Boolean).map(item => {
-    const isOwned = Boolean(item.inWardrobe ?? item.owned ?? false);
-    return {
-      ...item,
-      inWardrobe: isOwned,
-      owned: isOwned,
-      needed_to_buy: Boolean(item.needed_to_buy ?? !isOwned)
-    };
-  });
+  const normalizedItems = (items || []).filter(Boolean);
 
   const ownedItems = normalizedItems.filter(i => i.inWardrobe);
   const missingItems = normalizedItems.filter(i => !i.inWardrobe);
   const totalCount = normalizedItems.length;
   const ownedCount = ownedItems.length;
-  const coveragePercentage = totalCount > 0 ? Math.round((ownedCount / totalCount) * 100) : 100;
+  const coveragePercentage = totalCount > 0 ? Math.round((ownedCount / totalCount) * 100) : 0;
 
   // Slot helper for display order and badges
   const slotOrder = ['Top', 'Bottom', 'Shoes', 'Layer'];
@@ -567,7 +561,7 @@ export const Recommendations = () => {
                     {isOwned ? (
                       <span className="flex items-center gap-1.5 font-semibold text-emerald-800">
                         <Check className="w-3.5 h-3.5 text-emerald-700" />
-                        Available in your wardrobe — wear this piece directly.
+                        Available in your wardrobe {item.matchedWardrobeName ? `(${item.matchedWardrobeName})` : ''} — wear this piece directly.
                       </span>
                     ) : (
                       <span className="flex items-center gap-1.5 font-semibold text-amber-800">

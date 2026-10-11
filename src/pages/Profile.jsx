@@ -4,30 +4,64 @@ import { useFashion } from '../context/FashionContext';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
 import {
-  User,
   Shirt,
   Sparkles,
-  Heart,
   Sliders,
   CheckCircle2,
-  Calendar,
-  Layers,
-  ArrowRight,
   TrendingUp,
-  ShieldCheck
+  ShieldCheck,
+  LogIn,
+  LogOut,
+  Cloud
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { AuthModal } from '../components/AuthModal';
 
 export const Profile = () => {
   const navigate = useNavigate();
-  const { userProfile, wardrobeStats, preferences, setPreferences, history, showToast } = useFashion();
+  const { wardrobe, userProfile, wardrobeStats, preferences, setPreferences, history, currentRecommendation, showToast } = useFashion();
+  const { user, profile, signOut, updateProfile, isConfigured } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('overview');
-
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [localPrefs, setLocalPrefs] = useState(preferences);
 
-  const handleSavePreferences = (e) => {
+  const displayName = profile?.name || user?.user_metadata?.full_name || userProfile.name;
+  const userHandle = profile?.handle || (user?.email ? `@${user.email.split('@')[0]}` : userProfile.handle);
+  const userBio = profile?.bio || userProfile.bio;
+  const userAvatar = profile?.avatar_url || userProfile.avatar;
+  const userLocation = profile?.location || userProfile.location;
+
+  // Dynamic capsule tags derived strictly from actual wardrobe pieces + preferred style
+  const wardrobeCategories = Array.from(new Set(wardrobe.map(i => (i.category || '').toUpperCase()).filter(Boolean)));
+  const wardrobeColours = Array.from(new Set(wardrobe.map(i => (i.colour || i.color || '').toUpperCase()).filter(Boolean)));
+  const preferredStyle = preferences?.style ? [preferences.style.toUpperCase()] : ['CASUAL'];
+  const capsuleTags = Array.from(new Set([...preferredStyle, ...wardrobeCategories, ...wardrobeColours]));
+
+  // Dynamic metrics: piece utilization & impulse savings
+  const activelyWornCount = wardrobe.filter(w => {
+    return (currentRecommendation?.items || []).some(
+      i => i.inWardrobe && (i.matchedWardrobeId === w.id || i.name?.toLowerCase().includes(w.name?.toLowerCase()))
+    );
+  }).length;
+
+  const closetUtilization = wardrobe.length > 0
+    ? Math.round((activelyWornCount / wardrobe.length) * 100)
+    : 0;
+
+  const impulseSavings = activelyWornCount * 2200;
+
+  const handleSavePreferences = async (e) => {
     e.preventDefault();
     setPreferences(localPrefs);
+    if (user && isConfigured) {
+      try {
+        await updateProfile({ preferences: localPrefs });
+        showToast("Styling preferences synced with Supabase cloud!", "success");
+        return;
+      } catch (err) {
+        console.warn("Could not sync preferences to Supabase:", err);
+      }
+    }
     showToast("Styling preferences updated!", "success");
   };
 
@@ -40,11 +74,11 @@ export const Profile = () => {
         {/* Avatar */}
         <div className="relative">
           <img
-            src={userProfile.avatar}
-            alt={userProfile.name}
+            src={userAvatar}
+            alt={displayName}
             className="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-[#FAF8F5] shadow-md"
           />
-          <span className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-white" title="Active Capsule">
+          <span className={`absolute bottom-1 right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white ${user ? 'bg-emerald-500' : 'bg-taupe-400'}`} title={user ? "Supabase Cloud Account" : "Local Guest"}>
             <CheckCircle2 className="w-4 h-4" />
           </span>
         </div>
@@ -53,40 +87,69 @@ export const Profile = () => {
         <div className="flex-1 text-center md:text-left space-y-3">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="editorial-heading text-3xl sm:text-4xl font-bold text-charcoal-900">
-                {userProfile.name}
-              </h1>
+              <div className="flex items-center gap-2.5 justify-center md:justify-start">
+                <h1 className="editorial-heading text-3xl sm:text-4xl font-bold text-charcoal-900">
+                  {displayName}
+                </h1>
+                {user ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    <Cloud className="w-3 h-3" /> Supabase
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-taupe-100 text-taupe-700 border border-taupe-200">
+                    Guest Mode
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-charcoal-500 font-medium">
-                {userProfile.handle} • {userProfile.location}
+                {userHandle} • {userLocation}
+                {user?.email && <span className="ml-2 text-charcoal-400">({user.email})</span>}
               </p>
             </div>
 
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate('/wardrobe')}
-              iconLeft={<Shirt className="w-3.5 h-3.5" />}
-            >
-              Manage Wardrobe
-            </Button>
+            <div className="flex items-center justify-center md:justify-end gap-2.5">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate('/wardrobe')}
+                iconLeft={<Shirt className="w-3.5 h-3.5" />}
+              >
+                Manage Wardrobe
+              </Button>
+
+              {user ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => signOut()}
+                  iconLeft={<LogOut className="w-3.5 h-3.5" />}
+                >
+                  Sign Out
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setAuthModalOpen(true)}
+                  iconLeft={<LogIn className="w-3.5 h-3.5" />}
+                >
+                  Connect Supabase
+                </Button>
+              )}
+            </div>
           </div>
 
           <p className="text-xs sm:text-sm text-charcoal-600 max-w-xl leading-relaxed">
-            {userProfile.bio}
+            {userBio}
           </p>
 
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
             <span className="text-[11px] text-charcoal-400 uppercase tracking-wider font-semibold mr-1">
               Capsule Tags:
             </span>
-            {userProfile.preferredStyles.map((style, idx) => (
+            {capsuleTags.map((tag, idx) => (
               <Badge key={idx} variant="tag" size="xs">
-                {style}
-              </Badge>
-            ))}
-            {userProfile.preferredColours.map((colour, idx) => (
-              <Badge key={idx} variant="neutral" size="xs">
-                {colour}
+                {tag}
               </Badge>
             ))}
           </div>
@@ -124,7 +187,7 @@ export const Profile = () => {
             <TrendingUp className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="editorial-heading text-3xl sm:text-4xl font-bold text-emerald-700">
-            84%
+            {closetUtilization}%
           </div>
           <p className="text-xs text-charcoal-500 mt-1">Pieces Actively Worn</p>
         </div>
@@ -135,7 +198,7 @@ export const Profile = () => {
             <ShieldCheck className="w-4 h-4 text-taupe-500" />
           </div>
           <div className="editorial-heading text-3xl sm:text-4xl font-bold text-charcoal-900">
-            ₹14,500
+            {impulseSavings > 0 ? `₹${impulseSavings.toLocaleString('en-IN')}` : '₹0'}
           </div>
           <p className="text-xs text-charcoal-500 mt-1">Saved via Re-wearing</p>
         </div>
@@ -238,6 +301,7 @@ export const Profile = () => {
         </form>
       </div>
 
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
 };

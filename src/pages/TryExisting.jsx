@@ -19,7 +19,13 @@ export const TryExisting = () => {
   const tops = wardrobe.filter(i => i.category === 'Tops');
   const bottoms = wardrobe.filter(i => i.category === 'Bottoms');
   const shoes = wardrobe.filter(i => i.category === 'Shoes');
-  const layers = wardrobe.filter(i => i.category === 'Tops' && (i.name.includes('Jacket') || i.name.includes('Coat') || i.name.includes('Blazer') || i.name.includes('Hoodie')));
+  const dresses = wardrobe.filter(i => i.category === 'Dresses');
+  const layers = wardrobe.filter(i => i.category === 'Accessories' || (i.category === 'Tops' && (i.name.includes('Jacket') || i.name.includes('Coat') || i.name.includes('Blazer') || i.name.includes('Hoodie'))));
+
+  const topRec = currentRecommendation?.items?.find(i => (i.slot || i.category || '').toLowerCase().includes('top'));
+  const bottomRec = currentRecommendation?.items?.find(i => (i.slot || i.category || '').toLowerCase().includes('bottom'));
+  const shoesRec = currentRecommendation?.items?.find(i => (i.slot || i.category || '').toLowerCase().includes('shoe'));
+  const layerRec = currentRecommendation?.items?.find(i => (i.slot || i.category || '').toLowerCase().includes('layer'));
 
   // Calculate selected count
   const selectedSlots = Object.values(tryExistingSelection).filter(Boolean);
@@ -135,32 +141,32 @@ export const TryExisting = () => {
           "TOP",
           "top",
           tops,
-          "Black Oversized Top",
-          false
+          topRec?.name || "Recommended Top",
+          !topRec?.inWardrobe || tops.length === 0
         )}
 
         {renderSlotSection(
           "BOTTOM",
           "bottom",
           bottoms,
-          "Blue Straight-Fit Jeans",
-          false
+          bottomRec?.name || "Recommended Bottom",
+          !bottomRec?.inWardrobe || bottoms.length === 0
         )}
 
         {renderSlotSection(
           "SHOES",
           "shoes",
           shoes,
-          "White Sneakers",
-          false
+          shoesRec?.name || "Recommended Shoes",
+          !shoesRec?.inWardrobe || shoes.length === 0
         )}
 
         {renderSlotSection(
           "LAYER / OUTERWEAR",
           "layer",
           layers,
-          "Denim Jacket (Missing from closet)",
-          true
+          layerRec?.name || "Recommended Layer (Optional)",
+          !layerRec?.inWardrobe || layers.length === 0
         )}
       </div>
 

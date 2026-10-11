@@ -274,7 +274,7 @@ class OutfitRecommender:
         - recommendations: Flat array of all ranked recommendations
         """
         if not self.is_loaded or not self.products:
-            return self._fallback_recommendations(preferences, limit=limit)
+            return self._fallback_recommendations(preferences, limit=limit, wardrobe=wardrobe)
 
         prefs = preferences or {}
         req_occasion = str(prefs.get("occasion", "College")).strip()
@@ -518,9 +518,11 @@ class OutfitRecommender:
             season_score = 0.95 if any(sea_lower in p["season"].lower() or "all" in p["season"].lower() for p in outfit_pieces) else 0.85
 
             # Closet synergy with user wardrobe
-            wardrobe_synergy = 0.85
+            wardrobe_synergy = 0.0
             matched_items_count = 0
             missing_items_list = []
+            used_wardrobe_ids = set()
+
             if wardrobe and isinstance(wardrobe, list) and len(wardrobe) > 0:
                 for p in outfit_pieces:
                     p_name = p["name"].lower()
@@ -529,33 +531,43 @@ class OutfitRecommender:
                     p_col = normalize_color(p.get("colour", ""))
                     is_match = False
                     for w in wardrobe:
+                        w_id = w.get("id")
+                        if w_id and w_id in used_wardrobe_ids:
+                            continue
+
                         w_name = w.get("name", "").lower()
-                        w_sub = w.get("subcategory", w.get("category", "")).lower()
+                        w_cat = w.get("category", "").lower()
+                        w_sub = w.get("subcategory", w_cat).lower()
                         w_slot = w.get("slot", "").lower()
                         w_col = normalize_color(w.get("colour", w.get("color", "")))
-                        if w_name and (w_name in p_name or p_name in w_name):
-                            is_match = True
-                            break
+
+                        # Strict slot checking: A Dress or Saree is NOT a bottom
                         slot_matches = (
-                            (p_slot == "top" and any(k in w_sub or k in w_slot for k in ["top", "shirt", "t-shirt", "kurti"])) or
-                            (p_slot == "bottom" and any(k in w_sub or k in w_slot for k in ["bottom", "jean", "trouser", "pant", "skirt"])) or
-                            (p_slot == "shoes" and any(k in w_sub or k in w_slot for k in ["shoe", "sneaker", "sandal", "footwear", "boot"])) or
-                            (p_slot == "layer" and any(k in w_sub or k in w_slot for k in ["jacket", "blazer", "coat", "layer"]))
+                            (p_slot == "top" and any(k in w_sub or k in w_cat or k in w_slot for k in ["top", "shirt", "t-shirt", "kurti", "kurta"])) or
+                            (p_slot == "bottom" and any(k in w_sub or k in w_cat or k in w_slot for k in ["bottom", "jean", "trouser", "pant", "skirt"])) or
+                            (p_slot == "shoes" and any(k in w_sub or k in w_cat or k in w_slot for k in ["shoe", "sneaker", "sandal", "footwear", "boot", "heel"])) or
+                            (p_slot == "layer" and any(k in w_sub or k in w_cat or k in w_slot for k in ["jacket", "blazer", "coat", "layer"])) or
+                            ((p_slot == "top" or p_slot == "dress") and any(k in w_sub or k in w_cat for k in ["dress", "saree", "anarkali"]))
                         )
-                        if slot_matches and (w_col == p_col or not w_col or not p_col):
+                        color_compatible = (w_col == p_col or not w_col or not p_col or w_col in ["black", "white", "grey", "navy", "beige"])
+
+                        if slot_matches and color_compatible:
                             is_match = True
+                            if w_id:
+                                used_wardrobe_ids.add(w_id)
                             break
+
                     if is_match:
                         matched_items_count += 1
                     else:
                         missing_items_list.append(p["name"])
                 wardrobe_synergy = round(matched_items_count / len(outfit_pieces), 2)
             else:
-                matched_items_count = max(1, min(len(outfit_pieces) - 1, 2))
-                for idx, p in enumerate(outfit_pieces):
-                    if idx >= matched_items_count:
-                        missing_items_list.append(p["name"])
-                wardrobe_synergy = round(matched_items_count / len(outfit_pieces), 2)
+                # User has empty wardrobe or 0 matching clothes: strictly 0 matched items
+                matched_items_count = 0
+                for p in outfit_pieces:
+                    missing_items_list.append(p["name"])
+                wardrobe_synergy = 0.0
 
             # Composite compatibility score (0-100)
             composite_score = round(
@@ -581,7 +593,7 @@ class OutfitRecommender:
         target_limit = max(limit, 8) if limit else 8
         selected_raw_outfits = candidate_outfits[:min(len(candidate_outfits), target_limit)]
         if not selected_raw_outfits:
-            return self._fallback_recommendations(preferences, limit=limit)
+            return self._fallback_recommendations(preferences, limit=limit, wardrobe=wardrobe)
 
         curated_outfits = []
 
@@ -701,101 +713,341 @@ class OutfitRecommender:
             return res["primary_recommendation"]
         return res
 
-    def _fallback_recommendations(self, preferences, limit=4):
-        """Reliable fallback if catalogue is unavailable."""
+    def _fallback_recommendations(self, preferences, limit=4, wardrobe=None):
+        """Dynamic color-harmonized curation calibrated strictly to requested colour and occasion."""
         prefs = preferences or {}
         occ = prefs.get("occasion", "College")
+        occ_lower = occ.lower()
         sty = prefs.get("style", "Casual")
-        sea = prefs.get("season", "Summer")
+        sea = prefs.get("season", "All Season")
+        req_col = prefs.get("colour") or "Any"
+        if not req_col or req_col.lower() == "any":
+            wardrobe_col = None
+            if wardrobe and isinstance(wardrobe, list):
+                for w in wardrobe:
+                    w_cat = str(w.get("category", "")).lower()
+                    w_name = str(w.get("name", w.get("title", ""))).lower()
+                    w_col = str(w.get("colour", w.get("color", ""))).strip()
+                    if occ_lower in ("wedding", "traditional") and ("dress" in w_cat or "saree" in w_name):
+                        if w_col:
+                            wardrobe_col = w_col
+                            break
+                    elif occ_lower not in ("wedding", "traditional") and ("top" in w_cat or "shirt" in w_name or "tee" in w_name):
+                        if w_col:
+                            wardrobe_col = w_col
+                            break
+            req_col = wardrobe_col if wardrobe_col else ("Black" if occ_lower in ("office", "formal", "college", "casual") else "Red")
 
-        fallback_outfits = [
+        col_title = req_col.title()
+        col_norm = normalize_color(req_col)
+
+        has_user_saree = False
+        if wardrobe and isinstance(wardrobe, list):
+            for w in wardrobe:
+                w_cat = str(w.get("category", "")).lower()
+                w_name = str(w.get("name", w.get("title", ""))).lower()
+                if "dress" in w_cat or "saree" in w_name:
+                    has_user_saree = True
+                    break
+
+        top_slot = "Top"
+        bot_slot = "Bottom"
+        shoe_slot = "Shoes"
+
+        # Coordinate bottom & shoes based on color theory and occasion
+        if occ_lower in ("wedding", "traditional"):
+            if has_user_saree:
+                top_name = f"{col_title} Festive Silk Saree"
+                top_art = "sarees"
+                top_slot = "Dress"
+                bot_col = "Gold" if col_norm != "gold" else "Cream"
+                bot_name = f"{bot_col} Zari Brocade Blouse"
+                bot_art = "tops"
+                bot_slot = "Top"
+                shoe_name = "Embellished Metallic Juttis"
+                shoe_col = "Gold"
+                shoe_art = "flats"
+            else:
+                top_name = f"{col_title} Embroidered Anarkali Kurta"
+                top_art = "kurtas"
+                bot_col = "Gold" if col_norm != "gold" else "Cream"
+                bot_name = f"{bot_col} Zari Trim Flared Palazzos"
+                bot_art = "trousers"
+                shoe_name = "Embellished Metallic Juttis"
+                shoe_col = "Gold"
+                shoe_art = "flats"
+        elif occ_lower in ("office", "formal"):
+            top_name = f"{col_title} Tailored Poplin Shirt"
+            top_art = "shirts"
+            bot_col = "Grey" if col_norm not in ["grey", "black"] else "Navy"
+            bot_name = f"{bot_col} High-Waist Tailored Trousers"
+            bot_art = "trousers"
+            shoe_name = "Black Leather Minimalist Loafers"
+            shoe_col = "Black"
+            shoe_art = "formal shoes"
+        elif occ_lower == "party":
+            top_name = f"{col_title} Satin Evening Top"
+            top_art = "tops"
+            bot_col = "Black" if col_norm != "black" else "Silver"
+            bot_name = f"{bot_col} Tailored Evening Trousers"
+            bot_art = "trousers"
+            shoe_name = "Sleek Strappy Block Heels"
+            shoe_col = "Black"
+            shoe_art = "heels"
+        else:  # College, Casual, Travel
+            top_name = f"{col_title} Oversized Tee"
+            top_art = "tshirts"
+            bot_col = "Blue" if col_norm != "blue" else "White"
+            bot_name = f"Vintage {bot_col} Straight-Fit Jeans"
+            bot_art = "jeans"
+            shoe_name = "White Minimalist Retro Sneakers"
+            shoe_col = "White"
+            shoe_art = "casual shoes"
+
+        top_img = get_curated_item_image("Top", col_title, top_art, style=sty)
+        bot_img = get_curated_item_image("Bottom", bot_col, bot_art, style=sty)
+        shoe_img = get_curated_item_image("Shoes", shoe_col, shoe_art, style=sty)
+        hero_img = get_editorial_look_image(occ, sty, col_title, "Full Outfit")
+
+        def evaluate_outfit_pieces(items_list):
+            processed = []
+            matched = 0
+            missing = []
+            used_ids = set()
+
+            for item in items_list:
+                is_owned = False
+                matched_w_id = None
+                matched_w_name = None
+                i_slot = item.get("slot", "").lower()
+                i_col = normalize_color(item.get("colour", ""))
+
+                if wardrobe and isinstance(wardrobe, list):
+                    for w in wardrobe:
+                        w_id = w.get("id")
+                        if w_id and w_id in used_ids:
+                            continue
+                        w_cat = w.get("category", "").lower()
+                        w_sub = w.get("subcategory", w_cat).lower()
+                        w_name = str(w.get("name", w.get("title", ""))).lower()
+                        w_col = normalize_color(w.get("colour", w.get("color", "")))
+
+                        # Strict slot match
+                        slot_match = False
+                        if i_slot in ("top", "topwear"):
+                            slot_match = (
+                                ("top" in w_cat or "shirt" in w_sub or "top" in w_sub or "kurti" in w_sub or "kurta" in w_sub or "tee" in w_sub)
+                                and not ("dress" in w_cat or "saree" in w_name or "saree" in w_sub or "bottom" in w_cat or "shoe" in w_cat)
+                            )
+                        elif i_slot in ("bottom", "bottomwear"):
+                            slot_match = (
+                                ("bottom" in w_cat or "jean" in w_sub or "trouser" in w_sub or "pant" in w_sub or "skirt" in w_sub or "palazzo" in w_sub)
+                                and not ("top" in w_cat or "dress" in w_cat or "shoe" in w_cat)
+                            )
+                        elif i_slot in ("shoes", "footwear"):
+                            slot_match = (
+                                ("shoe" in w_cat or "footwear" in w_cat or "sneaker" in w_sub or "sandal" in w_sub or "heel" in w_sub or "flat" in w_sub or "boot" in w_sub or "jutti" in w_sub or "loafer" in w_sub)
+                                and not ("top" in w_cat or "bottom" in w_cat or "dress" in w_cat)
+                            )
+                        elif i_slot in ("dress", "traditional"):
+                            slot_match = (
+                                ("dress" in w_cat or "saree" in w_sub or "saree" in w_name or "anarkali" in w_sub)
+                                and not ("bottom" in w_cat or "shoe" in w_cat)
+                            )
+                        elif i_slot in ("layer", "outerwear"):
+                            slot_match = (
+                                ("accessories" in w_cat or "outerwear" in w_cat or "jacket" in w_name or "blazer" in w_name or "coat" in w_name)
+                                and not ("bottom" in w_cat or "shoe" in w_cat)
+                            )
+
+                        # Strict color match (same color family)
+                        color_match = bool(w_col and i_col and w_col == i_col)
+
+                        if slot_match and color_match:
+                            is_owned = True
+                            matched_w_id = w_id
+                            matched_w_name = w.get("name", w.get("title", ""))
+                            if w_id:
+                                used_ids.add(w_id)
+                            break
+
+                if is_owned:
+                    matched += 1
+                else:
+                    missing.append(item["name"])
+
+                processed.append({
+                    **item,
+                    "owned": is_owned,
+                    "inWardrobe": is_owned,
+                    "needed_to_buy": not is_owned,
+                    "matchedWardrobeId": matched_w_id,
+                    "matchedWardrobeName": matched_w_name
+                })
+
+            total = len(processed)
+            pct = round((matched / max(1, total)) * 100)
+            return processed, matched, total, pct, missing
+
+        # Primary Curation
+        look1_raw = [
             {
-                "id": "rec_fallback_1",
-                "name": f"{sty} {occ} Curation",
-                "subtitle": "Essential Minimalist Coordination",
-                "occasion": occ,
-                "style": sty,
+                "id": f"item_top_{col_norm}",
+                "name": top_name,
+                "slot": top_slot,
+                "category": "Apparel" if top_slot != "Dress" else "Dresses",
+                "subcategory": top_art.title(),
+                "colour": col_title,
                 "season": sea,
-                "colour": "Black + Blue",
-                "budget": "1800",
-                "compatibility_score": 92,
-                "color_score": 90,
-                "color_harmony_explanation": "Neutral-grounded palette with balanced tonal contrast",
-                "heroImage": EDITORIAL_HERO_IMAGES.get("college"),
-                "items": [
-                    {
-                        "id": "item_top_1",
-                        "name": "Black Oversized Top",
-                        "slot": "Top",
-                        "category": "Apparel",
-                        "subcategory": "Topwear",
-                        "colour": "Black",
-                        "season": "Summer",
-                        "usage": "Casual",
-                        "owned": True,
-                        "inWardrobe": True,
-                        "needed_to_buy": False,
-                        "brand": "Zara",
-                        "description": "Relaxed drop-shoulder organic cotton tee",
-                        "image": DEFAULT_SLOT_IMAGES["Top"]
-                    },
-                    {
-                        "id": "item_bottom_1",
-                        "name": "Blue Straight-Fit Jeans",
-                        "slot": "Bottom",
-                        "category": "Apparel",
-                        "subcategory": "Bottomwear",
-                        "colour": "Blue",
-                        "season": "All Season",
-                        "usage": "Casual",
-                        "owned": True,
-                        "inWardrobe": True,
-                        "needed_to_buy": False,
-                        "brand": "Levi's",
-                        "description": "Mid-rise vintage wash denim with clean straight leg",
-                        "image": DEFAULT_SLOT_IMAGES["Bottom"]
-                    },
-                    {
-                        "id": "item_shoe_1",
-                        "name": "White Minimalist Sneakers",
-                        "slot": "Shoes",
-                        "category": "Footwear",
-                        "subcategory": "Shoes",
-                        "colour": "White",
-                        "season": "All Season",
-                        "usage": "Casual",
-                        "owned": False,
-                        "inWardrobe": False,
-                        "needed_to_buy": True,
-                        "brand": "Veja",
-                        "description": "Low-profile sneakers with off-white rubber cupsole",
-                        "image": DEFAULT_SLOT_IMAGES["Shoes"]
-                    }
-                ],
-                "reasons": [
-                    "High baseline compatibility with neutral tonal anchor",
-                    "Slot complete: 1 Top + 1 Bottom + 1 Footwear",
-                    "2 pieces already in your wardrobe; 1 piece needed to buy"
-                ],
-                "wardrobe_match": {
-                    "matched_count": 2,
-                    "required_count": 3,
-                    "wardrobe_coverage": 0.67,
-                    "percentage": 67,
-                    "statusText": "2 items available in your closet!",
-                    "subtext": "Only 1 item needed to buy to complete ensemble.",
-                    "missing_items": ["White Minimalist Sneakers"]
-                },
-                "explanation": "Essential baseline ensemble offering balanced silhouette and comfort."
+                "usage": occ,
+                "brand": "Zara",
+                "description": f"Relaxed {col_title.lower()} silhouette styled for effortless {occ.lower()} mobility.",
+                "image": top_img
+            },
+            {
+                "id": f"item_bottom_{bot_col.lower()}",
+                "name": bot_name,
+                "slot": bot_slot,
+                "category": "Apparel",
+                "subcategory": bot_art.title(),
+                "colour": bot_col,
+                "season": "All Season",
+                "usage": occ,
+                "brand": "Levi's" if "jeans" in bot_art else "Mango",
+                "description": f"Structured {bot_col.lower()} piece providing harmonious tonal balance with {col_title}.",
+                "image": bot_img
+            },
+            {
+                "id": f"item_shoe_{shoe_col.lower()}",
+                "name": shoe_name,
+                "slot": shoe_slot,
+                "category": "Footwear",
+                "subcategory": shoe_art.title(),
+                "colour": shoe_col,
+                "season": "All Season",
+                "usage": occ,
+                "brand": "Veja",
+                "description": f"Versatile {shoe_col.lower()} footwear offering all-day comfort and crisp contrast.",
+                "image": shoe_img
             }
         ]
 
-        primary = fallback_outfits[0]
+        p_items, p_matched, p_total, p_pct, p_missing = evaluate_outfit_pieces(look1_raw)
+
+        look1 = {
+            "id": f"rec_{occ_lower}_1",
+            "name": f"Look 01: {col_title} {occ} Curation",
+            "subtitle": f"Harmonious {col_title} silhouette calibrated for {occ.lower()} comfort",
+            "occasion": occ,
+            "style": sty,
+            "season": sea,
+            "colour": f"{col_title} + {bot_col}",
+            "budget": "1800",
+            "compatibility_score": 94,
+            "color_score": 92,
+            "color_harmony_explanation": f"{col_title} primary anchor balanced with complementary {bot_col} tones",
+            "heroImage": hero_img,
+            "items": p_items,
+            "reasons": [
+                f"Features your selected {col_title} color theme with high tonal contrast",
+                f"Calibrated for {occ} silhouette requirements and ease of movement",
+                f"{p_matched} of {p_total} pieces in your wardrobe ({p_pct}% closet match)"
+            ],
+            "wardrobe_match": {
+                "matched_count": p_matched,
+                "required_count": p_total,
+                "wardrobe_coverage": round(p_matched / max(1, p_total), 2),
+                "percentage": p_pct,
+                "statusText": f"{p_matched} items in your closet!" if p_matched > 0 else "Pieces needed to buy",
+                "subtext": f"{len(p_missing)} item(s) needed to complete ensemble." if p_missing else "All pieces in closet!",
+                "missing_items": p_missing
+            },
+            "explanation": f"Curated {col_title} look specifically formulated for {occ} styling."
+        }
+
+        # Alternative Look 2: Monochromatic / Neutral Contrast
+        alt_bot_col = "White" if bot_col != "White" else "Blue"
+        alt_bot_name = f"Off-White Wide-Leg Trousers" if alt_bot_col == "White" else f"Dark Indigo Denim Jeans"
+        look2_raw = [
+            {
+                "id": f"item_top_{col_norm}_alt",
+                "name": f"Soft {col_title} Cotton Boxy Top",
+                "slot": "Top",
+                "category": "Apparel",
+                "subcategory": "Topwear",
+                "colour": col_title,
+                "season": sea,
+                "usage": occ,
+                "brand": "Uniqlo",
+                "description": f"Breathable {col_title.lower()} cotton top offering understated everyday chic.",
+                "image": top_img
+            },
+            {
+                "id": f"item_bottom_{alt_bot_col.lower()}",
+                "name": alt_bot_name,
+                "slot": "Bottom",
+                "category": "Apparel",
+                "subcategory": "Bottomwear",
+                "colour": alt_bot_col,
+                "season": "All Season",
+                "usage": occ,
+                "brand": "Mango",
+                "description": f"High-rise relaxed fit {alt_bot_col.lower()} trouser.",
+                "image": get_curated_item_image("Bottom", alt_bot_col, "jeans", style=sty)
+            },
+            {
+                "id": "item_shoe_retro",
+                "name": "Classic Canvas Low-Tops",
+                "slot": "Shoes",
+                "category": "Footwear",
+                "subcategory": "Shoes",
+                "colour": "White",
+                "season": "All Season",
+                "usage": occ,
+                "brand": "Converse",
+                "description": "Crisp white everyday campus sneakers.",
+                "image": shoe_img
+            }
+        ]
+
+        a_items, a_matched, a_total, a_pct, a_missing = evaluate_outfit_pieces(look2_raw)
+
+        look2 = {
+            "id": f"rec_{occ_lower}_2",
+            "name": f"Look 02: {col_title} Minimalist Contrast",
+            "subtitle": f"Modern clean lines pairing {col_title} with {alt_bot_col}",
+            "occasion": occ,
+            "style": sty,
+            "season": sea,
+            "colour": f"{col_title} + {alt_bot_col}",
+            "budget": "2200",
+            "compatibility_score": 91,
+            "color_score": 90,
+            "color_harmony_explanation": f"High key neutral palette emphasizing {col_title} warmth",
+            "heroImage": hero_img,
+            "items": a_items,
+            "reasons": [
+                f"Contemporary minimalist silhouette highlighting {col_title}",
+                f"{a_matched} pieces in your closet ({a_pct}% match)"
+            ],
+            "wardrobe_match": {
+                "matched_count": a_matched,
+                "required_count": a_total,
+                "wardrobe_coverage": round(a_matched / max(1, a_total), 2),
+                "percentage": a_pct,
+                "statusText": f"{a_matched} items in your closet!" if a_matched > 0 else "Pieces needed to buy",
+                "subtext": f"{len(a_missing)} item(s) needed to complete ensemble.",
+                "missing_items": a_missing
+            },
+            "explanation": f"Minimalist interpretation of {col_title} for {occ} occasions."
+        }
+
+        fallback_outfits = [look1, look2]
         return {
             "status": "success",
-            "total": 1,
-            "primary_recommendation": primary,
-            "alternatives": [],
+            "total": len(fallback_outfits),
+            "primary_recommendation": look1,
+            "alternatives": [look2],
             "recommendations": fallback_outfits
         }
 
