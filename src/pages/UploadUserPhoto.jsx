@@ -88,14 +88,24 @@ export const UploadUserPhoto = () => {
             />
             
             {/* Quick Demo Helper */}
-            <div className="text-center pt-2">
-              <span className="text-xs text-charcoal-400 mr-2">Want to test right now?</span>
+            <div className="text-center pt-2 flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentPhoto("/user_portrait.png");
+                  setUserPhoto("/user_portrait.png");
+                  showToast("Loaded First Photo (Flannel Shirt Portrait)!", "info");
+                }}
+                className="text-xs font-semibold text-charcoal-900 bg-taupe-100 hover:bg-taupe-200 px-3 py-1.5 rounded-full transition-colors inline-flex items-center gap-1.5 border border-taupe-300"
+              >
+                👤 Use First Photo (Flannel Portrait)
+              </button>
               <button
                 type="button"
                 onClick={handleUseSample}
-                className="text-xs font-semibold text-charcoal-900 underline hover:text-black inline-flex items-center gap-1"
+                className="text-xs font-semibold text-charcoal-700 underline hover:text-black inline-flex items-center gap-1"
               >
-                <Sparkles className="w-3 h-3" /> Use sample demo photograph
+                <Sparkles className="w-3 h-3 text-charcoal-700" /> Use studio demo photo
               </button>
             </div>
           </div>

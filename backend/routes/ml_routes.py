@@ -189,15 +189,48 @@ def check_wardrobe_match():
 def try_on_endpoint():
     """Virtual try-on execution & status endpoint."""
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
+        user_photo = data.get("user_photo") or data.get("user_image") or data.get("person_image")
+        garment_photo = data.get("garment_photo") or data.get("garment_image") or data.get("cloth_image")
+        garment_category = data.get("garment_category") or data.get("category") or "Top"
+        is_async = bool(data.get("async", False))
+
+        # Backward compatibility for catalog sample preview (e.g. test_all.py)
+        if not user_photo and not garment_photo and "sample_id" in data:
+            status_info = get_vto_system_status()
+            return jsonify({
+                "status": "ready",
+                "sample_id": data["sample_id"],
+                "details": status_info,
+                "message": "AI Virtual Try-On catalog sample ready"
+            }), 200
+
+        if not user_photo:
+            return jsonify({
+                "success": False,
+                "status": "error",
+                "error": "Missing user photograph ('user_photo')."
+            }), 400
+
+        if not garment_photo:
+            return jsonify({
+                "success": False,
+                "status": "error",
+                "error": "Missing garment image ('garment_photo')."
+            }), 400
+
         res = execute_try_on(
-            user_image_path=data.get("user_photo"),
-            garment_image_path=data.get("garment_photo"),
-            sample_id=data.get("sample_id")
+            user_image_path=user_photo,
+            garment_image_path=garment_photo,
+            garment_category=garment_category,
+            async_mode=is_async
         )
+        if not res.get("success"):
+            return jsonify(res), 400
         return jsonify(res), 200
     except Exception as e:
         return jsonify({
+            "success": False,
             "error": f"Try-on request failed: {str(e)}",
             "status": "error"
         }), 500
