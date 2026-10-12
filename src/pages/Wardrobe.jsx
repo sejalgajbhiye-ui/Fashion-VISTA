@@ -5,8 +5,9 @@ import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { EmptyState } from '../components/EmptyState';
 import { wardrobeCategories } from '../data/wardrobeData';
-import { Plus, Search, Filter, Sparkles, Image, Check, AlertCircle, Shirt, Loader2 } from 'lucide-react';
+import { Plus, Search, Filter, Sparkles, Image, Check, AlertCircle, Shirt, Loader2, Upload } from 'lucide-react';
 import { classifyWardrobeGarment } from '../services/api';
+import { resolveGarmentImageUrl, getCategoryFallback, compressImageFile } from '../utils/imageUtils';
 
 export const Wardrobe = () => {
   const {
@@ -71,7 +72,10 @@ export const Wardrobe = () => {
           ...prev,
           category: res.mapped_category || prev.category,
           name: prev.name.trim() ? prev.name : res.predicted_category,
-          image: res.image_url || prev.image,
+          // Preserve client-side compressed base64 data URL so it persists directly in Supabase
+          image: (prev.image && prev.image.startsWith('data:image'))
+            ? prev.image
+            : (res.image_url ? resolveGarmentImageUrl(res.image_url, res.mapped_category) : prev.image),
           predicted_category: res.predicted_category,
           confidence: res.confidence,
           model_used: res.model_used
@@ -89,19 +93,27 @@ export const Wardrobe = () => {
     }
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
     if (file) {
       setCustomImageFile(file);
       setAiPrediction(null);
       setClassifyError(null);
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        setFormData(prev => ({ ...prev, image: uploadEvent.target.result }));
-      };
-      reader.readAsDataURL(file);
-      // Automatically trigger AI classification for uploaded photo
-      runClassification(file);
+      try {
+        // Compress client-side to a crisp ~60-90KB base64 Data URL
+        const compressedDataUrl = await compressImageFile(file);
+        setFormData(prev => ({ ...prev, image: compressedDataUrl }));
+        runClassification(compressedDataUrl);
+      } catch (err) {
+        // Fallback to FileReader if canvas compression is unsupported
+        const reader = new FileReader();
+        reader.onload = (uploadEvent) => {
+          const dataUrl = uploadEvent.target.result;
+          setFormData(prev => ({ ...prev, image: dataUrl }));
+          runClassification(dataUrl);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -109,9 +121,15 @@ export const Wardrobe = () => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
+    const resolvedImage = resolveGarmentImageUrl(
+      formData.image || presetImages[0].url,
+      formData.category,
+      formData.name
+    );
+
     await addWardrobeItem({
       ...formData,
-      image: formData.image || presetImages[0].url
+      image: resolvedImage
     });
 
     setIsAddModalOpen(false);
@@ -126,12 +144,12 @@ export const Wardrobe = () => {
     setFormData({
       name: item.name,
       category: item.category,
-      colour: item.colour,
-      style: item.style,
+      colour: item.colour || '',
+      style: item.style || 'Casual',
       season: item.season || 'All Season',
       brand: item.brand || '',
       description: item.description || '',
-      image: item.image
+      image: resolveGarmentImageUrl(item.image, item.category, item.name)
     });
     setIsEditModalOpen(true);
   };
@@ -140,7 +158,16 @@ export const Wardrobe = () => {
     e.preventDefault();
     if (!itemToEdit || !formData.name.trim()) return;
 
-    updateWardrobeItem(itemToEdit.id, formData);
+    const resolvedImage = resolveGarmentImageUrl(
+      formData.image,
+      formData.category,
+      formData.name
+    );
+
+    updateWardrobeItem(itemToEdit.id, {
+      ...formData,
+      image: resolvedImage
+    });
     setIsEditModalOpen(false);
     setItemToEdit(null);
     setFormData(initialForm);
@@ -337,8 +364,11 @@ export const Wardrobe = () => {
             <div className="flex flex-col sm:flex-row items-center gap-4 p-4 border border-dashed border-taupe-300 rounded-xl bg-[#FAF8F5]">
               <div className="w-24 h-28 rounded-lg overflow-hidden bg-taupe-200 shrink-0 border border-taupe-300">
                 <img
-                  src={formData.image}
+                  src={resolveGarmentImageUrl(formData.image, formData.category, formData.name)}
                   alt="Preview"
+                  onError={(e) => {
+                    e.target.src = getCategoryFallback(formData.category, formData.name);
+                  }}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -603,6 +633,39 @@ export const Wardrobe = () => {
         subtitle={`Updating "${formData.name}"`}
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700 mb-1">
+              Garment Photo
+            </label>
+            <div className="flex items-center gap-4 p-3 border border-dashed border-taupe-300 rounded-xl bg-[#FAF8F5]">
+              <div className="w-16 h-20 rounded-lg overflow-hidden bg-taupe-200 shrink-0 border border-taupe-300">
+                <img
+                  src={resolveGarmentImageUrl(formData.image, formData.category, formData.name)}
+                  alt="Edit preview"
+                  onError={(e) => {
+                    e.target.src = getCategoryFallback(formData.category, formData.name);
+                  }}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <label className="inline-flex cursor-pointer">
+                  <span className="px-3 py-1.5 text-xs font-semibold bg-white border border-taupe-300 rounded-md hover:bg-taupe-100 text-charcoal-800">
+                    Replace Photo
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-[11px] text-charcoal-500">
+                  Upload a fresh photo to update this garment's look.
+                </p>
+              </div>
+            </div>
+          </div>
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700 mb-1">
               Item Name *

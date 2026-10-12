@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Badge } from './Badge';
 import { Check, AlertCircle } from 'lucide-react';
+import { resolveGarmentImageUrl, getCategoryFallback } from '../utils/imageUtils';
 
 export const ClothingCard = ({
   item,
@@ -11,6 +12,21 @@ export const ClothingCard = ({
   actionButton,
   className = ''
 }) => {
+  const [imgSrc, setImgSrc] = useState(() =>
+    resolveGarmentImageUrl(item?.image, item?.category, item?.name)
+  );
+
+  useEffect(() => {
+    setImgSrc(resolveGarmentImageUrl(item?.image, item?.category, item?.name));
+  }, [item?.image, item?.category, item?.name]);
+
+  const handleImageError = () => {
+    const fallback = getCategoryFallback(item?.category, item?.name);
+    if (imgSrc !== fallback) {
+      setImgSrc(fallback);
+    }
+  };
+
   return (
     <div
       onClick={selectable && onSelect ? () => onSelect(item) : undefined}
@@ -23,8 +39,9 @@ export const ClothingCard = ({
       {/* Image container */}
       <div className="relative aspect-[3/4] bg-taupe-100 overflow-hidden">
         <img
-          src={item.image}
+          src={imgSrc}
           alt={item.name}
+          onError={handleImageError}
           className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />

@@ -347,3 +347,4 @@ export async function requestVirtualTryOn(payload = {}) {
   }
 }
 
+export { resolveGarmentImageUrl, getCategoryFallback } from '../utils/imageUtils';

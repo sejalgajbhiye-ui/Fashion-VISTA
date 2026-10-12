@@ -36,13 +36,13 @@ def create_app():
 
     app = Flask(__name__)
     
-    # Configure CORS: support ALLOWED_ORIGINS or FRONTEND_URL environment variables, defaulting to '*'
-    raw_origins = os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "*"
-    if raw_origins != "*":
-        origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
-    else:
-        origins = "*"
-    CORS(app, resources={r"/api/*": {"origins": origins}})
+    # Configure CORS: universally allow all origins so all Vercel deployments and local dev work with zero CORS errors
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": "*"}},
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    )
 
     # Register blueprints
     app.register_blueprint(health_bp, url_prefix="/api")

@@ -23,6 +23,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { requestVirtualTryOn, getVTOStatus } from '../services/api';
+import { resolveGarmentImageUrl, getCategoryFallback } from '../utils/imageUtils';
 
 export const VirtualTryOn = () => {
   const navigate = useNavigate();
@@ -642,8 +643,11 @@ export const VirtualTryOn = () => {
                       )}
                       <div className="w-16 h-16 rounded-xl overflow-hidden bg-taupe-100 mb-2">
                         <img
-                          src={item.image}
+                          src={resolveGarmentImageUrl(item.image, item.slot || item.category, item.name)}
                           alt={item.name}
+                          onError={(e) => {
+                            e.target.src = getCategoryFallback(item.slot || item.category, item.name);
+                          }}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -686,8 +690,11 @@ export const VirtualTryOn = () => {
                         )}
                         <div className="w-16 h-16 rounded-xl overflow-hidden bg-taupe-100 mb-2">
                           <img
-                            src={item.image || "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=300&q=80"}
+                            src={resolveGarmentImageUrl(item.image, item.category, item.name)}
                             alt={item.name}
+                            onError={(e) => {
+                              e.target.src = getCategoryFallback(item.category, item.name);
+                            }}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -1129,8 +1136,11 @@ export const VirtualTryOn = () => {
               >
                 <div className="w-12 h-14 rounded-lg bg-taupe-200 overflow-hidden shrink-0">
                   <img
-                    src={item.image}
+                    src={resolveGarmentImageUrl(item.image, item.slot || item.category, item.name)}
                     alt={item.name}
+                    onError={(e) => {
+                      e.target.src = getCategoryFallback(item.slot || item.category, item.name);
+                    }}
                     className="w-full h-full object-cover"
                   />
                 </div>

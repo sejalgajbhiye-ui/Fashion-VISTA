@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Badge } from './Badge';
+import { resolveGarmentImageUrl, getCategoryFallback } from '../utils/imageUtils';
 
 export const OutfitCard = ({
   outfit = {},
@@ -95,8 +96,11 @@ export const OutfitCard = ({
     <div className="group bg-white rounded-xl overflow-hidden border border-taupe-200 hover:border-taupe-300 hover:shadow-card transition-all duration-300 flex flex-col">
       <div className="relative aspect-[4/3] bg-taupe-100 overflow-hidden">
         <img
-          src={outfit.image}
+          src={resolveGarmentImageUrl(outfit.image, 'Dresses', outfit.name || outfit.outfitName)}
           alt={outfit.name || outfit.outfitName}
+          onError={(e) => {
+            e.target.src = getCategoryFallback('Dresses', outfit.name || outfit.outfitName);
+          }}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />
