@@ -72,10 +72,6 @@ export const Wardrobe = () => {
           ...prev,
           category: res.mapped_category || prev.category,
           name: prev.name.trim() ? prev.name : res.predicted_category,
-          // Preserve client-side compressed base64 data URL so it persists directly in Supabase
-          image: (prev.image && prev.image.startsWith('data:image'))
-            ? prev.image
-            : (res.image_url ? resolveGarmentImageUrl(res.image_url, res.mapped_category) : prev.image),
           predicted_category: res.predicted_category,
           confidence: res.confidence,
           model_used: res.model_used
@@ -93,27 +89,20 @@ export const Wardrobe = () => {
     }
   };
 
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       setCustomImageFile(file);
       setAiPrediction(null);
       setClassifyError(null);
-      try {
-        // Compress client-side to a crisp ~60-90KB base64 Data URL
-        const compressedDataUrl = await compressImageFile(file);
-        setFormData(prev => ({ ...prev, image: compressedDataUrl }));
-        runClassification(compressedDataUrl);
-      } catch (err) {
-        // Fallback to FileReader if canvas compression is unsupported
-        const reader = new FileReader();
-        reader.onload = (uploadEvent) => {
-          const dataUrl = uploadEvent.target.result;
-          setFormData(prev => ({ ...prev, image: dataUrl }));
-          runClassification(dataUrl);
-        };
-        reader.readAsDataURL(file);
-      }
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const rawDataUrl = uploadEvent.target.result;
+        // Directly set the uploaded photo so it appears immediately!
+        setFormData(prev => ({ ...prev, image: rawDataUrl }));
+        runClassification(file);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
