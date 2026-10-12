@@ -16,10 +16,13 @@ export const WardrobeCard = ({
     setImgSrc(resolveGarmentImageUrl(item?.image, item?.category, item?.name));
   }, [item?.image, item?.category, item?.name]);
 
-  const handleImageError = () => {
+  const handleImageError = (e) => {
     const fallback = getCategoryFallback(item?.category, item?.name);
     if (imgSrc !== fallback) {
       setImgSrc(fallback);
+    }
+    if (e?.target && e.target.src !== fallback) {
+      e.target.src = fallback;
     }
   };
 

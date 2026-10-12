@@ -3,22 +3,21 @@
  *
  * Handles cross-origin image resolution between Vercel frontend,
  * Render backend, Supabase PostgreSQL, and local environments.
- * Guarantees zero broken images with high-definition fallbacks.
+ * Guarantees zero broken images with high-definition CDN fallbacks.
  */
 
-// Fallback images curated by category and style
+// Globally reliable CDN fallback images curated by category and style
 export const CATEGORY_FALLBACK_IMAGES = {
-  Tops: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80',
+  Tops: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=700&q=80',
+  Tshirt: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=700&q=80',
   Bottoms: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=80',
+  Jeans: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=80',
   Dresses: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=700&q=80',
+  Saree: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80',
   Shoes: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=80',
   Accessories: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=700&q=80',
-  Saree: '/royal_blue_saree.jpg',
-  Tshirt: '/green_tshirt.png',
   Default: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80'
 };
-
-const RENDER_BACKEND_ORIGIN = 'https://fashion-vista-70os.onrender.com';
 
 /**
  * Returns an appropriate high-definition fallback image URL based on category and item name
@@ -30,14 +29,14 @@ export function getCategoryFallback(category = '', name = '') {
   const cat = String(category || '').toLowerCase();
   const n = String(name || '').toLowerCase();
 
-  if (n.includes('saree') || cat.includes('saree') || n.includes('ethnic') || n.includes('anarkali')) {
+  if (n.includes('saree') || cat.includes('saree') || n.includes('ethnic') || n.includes('drape') || n.includes('anarkali') || n.includes('lehenga')) {
     return CATEGORY_FALLBACK_IMAGES.Saree;
   }
-  if (n.includes('tshirt') || n.includes('t-shirt') || n.includes('tee')) {
+  if (n.includes('tshirt') || n.includes('t-shirt') || n.includes('tee') || n.includes('top')) {
     return CATEGORY_FALLBACK_IMAGES.Tshirt;
   }
-  if (cat.includes('bottom') || cat.includes('pant') || cat.includes('jean') || cat.includes('trouser')) {
-    return CATEGORY_FALLBACK_IMAGES.Bottoms;
+  if (n.includes('jean') || n.includes('denim') || cat.includes('bottom') || cat.includes('pant') || cat.includes('trouser')) {
+    return CATEGORY_FALLBACK_IMAGES.Jeans;
   }
   if (cat.includes('dress') || cat.includes('gown') || cat.includes('skirt')) {
     return CATEGORY_FALLBACK_IMAGES.Dresses;
@@ -56,7 +55,7 @@ export function getCategoryFallback(category = '', name = '') {
 }
 
 /**
- * Resolves a garment image URL across Vercel, Render backend, base64, and local dev
+ * Resolves a garment image URL across Vercel, Supabase, base64, and local dev
  * @param {string} img - Raw image URL or relative path
  * @param {string} category - Item category for fallback
  * @param {string} name - Item name for specific fallback
@@ -74,35 +73,17 @@ export function resolveGarmentImageUrl(img, category = '', name = '') {
     return clean;
   }
 
-  // 2. Absolute HTTP/HTTPS URLs (Unsplash, Cloudinary, etc.)
+  // 2. Absolute HTTP/HTTPS URLs (Unsplash, Supabase storage, Cloudinary, etc.)
   if (clean.startsWith('http://') || clean.startsWith('https://')) {
     return clean;
   }
 
-  // 3. Backend uploads path (e.g. /api/wardrobe/uploads/...)
-  if (clean.startsWith('/api/wardrobe/uploads/') || clean.startsWith('/api/')) {
-    // Check if we have an explicit backend URL configured
-    const configuredApi = import.meta.env?.VITE_API_BASE_URL || '';
-    let backendOrigin = RENDER_BACKEND_ORIGIN;
-
-    if (configuredApi && configuredApi.startsWith('http')) {
-      backendOrigin = configuredApi.replace(/\/api\/?$/, '');
-    }
-
-    // In local dev without deployed backend, stay relative to let Vite proxy handle it
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && !configuredApi.includes('render.com')) {
-      return clean;
-    }
-
-    return `${backendOrigin}${clean}`;
-  }
-
-  // 4. Relative static assets in public/ folder (e.g. /royal_blue_saree.jpg)
+  // 3. Static assets served by Vercel / Vite public folder (e.g. /api/wardrobe/uploads/... or /royal_blue_saree.jpg)
   if (clean.startsWith('/')) {
     return clean;
   }
 
-  return clean;
+  return getCategoryFallback(category, name);
 }
 
 /**
@@ -139,7 +120,6 @@ export function compressImageFile(file, maxWidth = 800, quality = 0.82) {
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          // Fallback to original data URL if canvas context unavailable
           return resolve(event.target.result);
         }
 

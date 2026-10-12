@@ -16,6 +16,7 @@ import {
   updateSupabaseWardrobeItem,
   deleteSupabaseWardrobeItem
 } from '../services/supabaseWardrobe';
+import { resolveGarmentImageUrl } from '../utils/imageUtils';
 
 const FashionContext = createContext();
 
@@ -225,13 +226,22 @@ export const FashionProvider = ({ children }) => {
       const key = getWardrobeKey(user);
       try { localStorage.removeItem('fashion_vista_wardrobe'); } catch (_) {}
 
+      const sanitizeItems = (items) => {
+        if (!Array.isArray(items)) return [];
+        return items.map(item => ({
+          ...item,
+          image: resolveGarmentImageUrl(item.image, item.category, item.name)
+        }));
+      };
+
       // 1. Supabase Cloud Sync (if configured & authenticated)
       if (isSupabaseConfigured && user) {
         try {
           const cloudItems = await fetchSupabaseWardrobeItems(user.id);
           if (cloudItems !== null && Array.isArray(cloudItems)) {
-            setWardrobe(cloudItems);
-            try { localStorage.setItem(key, JSON.stringify(cloudItems)); } catch (_) {}
+            const sanitized = sanitizeItems(cloudItems);
+            setWardrobe(sanitized);
+            try { localStorage.setItem(key, JSON.stringify(sanitized)); } catch (_) {}
             return;
           }
         } catch (e) {
@@ -243,8 +253,9 @@ export const FashionProvider = ({ children }) => {
       try {
         const backendItems = await fetchWardrobeItems();
         if (backendItems !== null && Array.isArray(backendItems)) {
-          setWardrobe(backendItems);
-          try { localStorage.setItem(key, JSON.stringify(backendItems)); } catch (_) {}
+          const sanitized = sanitizeItems(backendItems);
+          setWardrobe(sanitized);
+          try { localStorage.setItem(key, JSON.stringify(sanitized)); } catch (_) {}
           return;
         }
       } catch (e) {
@@ -254,7 +265,7 @@ export const FashionProvider = ({ children }) => {
       // 3. User-specific localStorage fallback
       try {
         const cached = localStorage.getItem(key);
-        setWardrobe(cached ? JSON.parse(cached) : []);
+        setWardrobe(cached ? sanitizeItems(JSON.parse(cached)) : []);
       } catch {
         setWardrobe([]);
       }
