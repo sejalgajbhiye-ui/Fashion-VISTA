@@ -29,26 +29,59 @@ export function getCategoryFallback(category = '', name = '') {
   const cat = String(category || '').toLowerCase();
   const n = String(name || '').toLowerCase();
 
+  // 1. Match authentic user wardrobe garments
+  if (n.includes('maroon') || (n === 'top' && cat.includes('top'))) {
+    return '/wardrobe_user/maroon_collared_top.jpg';
+  }
+  if (n.includes('peplum') || n.includes('beige')) {
+    return '/wardrobe_user/beige_peplum_top.jpg';
+  }
+  if (n.includes('vest') || n.includes('pinstripe')) {
+    return '/wardrobe_user/black_pinstripe_vest.jpg';
+  }
+  if (n.includes('puff') || n.includes('pink')) {
+    return '/wardrobe_user/pink_puff_sleeve_blouse.jpg';
+  }
+  if (n.includes('gingham') || n.includes('red')) {
+    return '/wardrobe_user/red_gingham_peplum_top.jpg';
+  }
+  if (n.includes('floral') || n.includes('ruffle')) {
+    return '/wardrobe_user/floral_ruffle_blouse.jpg';
+  }
+  if (n.includes('sneaker') || (n === 'sneaker' && cat.includes('shoe'))) {
+    return '/wardrobe_user/grey_suede_sneakers.jpg';
+  }
+  if (n.includes('sandal') || n.includes('slide') || (n === 'sandal' && cat.includes('shoe'))) {
+    return '/wardrobe_user/dual_strap_slide_sandals.jpg';
+  }
+  if (n.includes('powder') || n.includes('asymmetric') || (cat.includes('dress') && n.includes('blue'))) {
+    return '/wardrobe_user/powder_blue_asymmetric_dress.jpg';
+  }
+  if (n.includes('skirt') || n.includes('midi') || (n === 'skirt' && cat.includes('dress'))) {
+    return '/wardrobe_user/belted_black_midi_dress.jpg';
+  }
+
+  // 2. Generic Category fallbacks
   if (n.includes('saree') || cat.includes('saree') || n.includes('ethnic') || n.includes('drape') || n.includes('anarkali') || n.includes('lehenga')) {
     return CATEGORY_FALLBACK_IMAGES.Saree;
   }
-  if (n.includes('tshirt') || n.includes('t-shirt') || n.includes('tee') || n.includes('top')) {
+  if (n.includes('tshirt') || n.includes('t-shirt') || n.includes('tee')) {
     return CATEGORY_FALLBACK_IMAGES.Tshirt;
   }
   if (n.includes('jean') || n.includes('denim') || cat.includes('bottom') || cat.includes('pant') || cat.includes('trouser')) {
     return CATEGORY_FALLBACK_IMAGES.Jeans;
   }
-  if (cat.includes('dress') || cat.includes('gown') || cat.includes('skirt')) {
-    return CATEGORY_FALLBACK_IMAGES.Dresses;
+  if (cat.includes('dress') || cat.includes('gown')) {
+    return '/wardrobe_user/belted_black_midi_dress.jpg';
   }
-  if (cat.includes('shoe') || cat.includes('sneaker') || cat.includes('heel') || cat.includes('boot')) {
-    return CATEGORY_FALLBACK_IMAGES.Shoes;
+  if (cat.includes('shoe') || cat.includes('heel') || cat.includes('boot')) {
+    return '/wardrobe_user/grey_suede_sneakers.jpg';
   }
   if (cat.includes('access') || cat.includes('bag') || cat.includes('watch') || cat.includes('belt')) {
     return CATEGORY_FALLBACK_IMAGES.Accessories;
   }
   if (cat.includes('top') || cat.includes('shirt') || cat.includes('blazer') || cat.includes('jacket')) {
-    return CATEGORY_FALLBACK_IMAGES.Tops;
+    return '/wardrobe_user/maroon_collared_top.jpg';
   }
 
   return CATEGORY_FALLBACK_IMAGES.Default;
@@ -73,12 +106,22 @@ export function resolveGarmentImageUrl(img, category = '', name = '') {
     return clean;
   }
 
-  // 2. Absolute HTTP/HTTPS URLs (Unsplash, Supabase storage, Cloudinary, etc.)
+  // 2. Intercept legacy local API paths (/api/wardrobe/uploads/...) which 404 on Vercel
+  if (clean.startsWith('/api/') || clean.startsWith('api/')) {
+    return getCategoryFallback(category, name);
+  }
+
+  // 3. User static assets served by Vercel
+  if (clean.startsWith('/wardrobe_user/')) {
+    return clean;
+  }
+
+  // 4. Absolute HTTP/HTTPS URLs (Unsplash, Supabase storage, Cloudinary, etc.)
   if (clean.startsWith('http://') || clean.startsWith('https://')) {
     return clean;
   }
 
-  // 3. Static assets served by Vercel / Vite public folder (e.g. /api/wardrobe/uploads/... or /royal_blue_saree.jpg)
+  // 5. Static assets in public folder
   if (clean.startsWith('/')) {
     return clean;
   }
