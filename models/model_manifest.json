@@ -20,7 +20,7 @@
       "task": "Clothing Category Classification",
       "dataset": "Fashion-MNIST (3-channel ImageNet normalized)",
       "dataset_samples": 17000,
-      "test_accuracy": 0.7980,
+      "test_accuracy": 0.798,
       "test_weighted_f1": 0.7981,
       "artifact_path": "models/mobilenet_v2_fmnist.pt",
       "classes_path": "models/fmnist_classes.json",
@@ -33,7 +33,7 @@
       "dataset": "Fashion-MNIST",
       "dataset_samples": 70000,
       "test_accuracy": 0.8193,
-      "test_weighted_f1": 0.8220,
+      "test_weighted_f1": 0.822,
       "artifact_path": "models/fmnist_baseline.joblib",
       "status": "ready"
     },
@@ -47,7 +47,7 @@
         "category": 0.9957,
         "subcategory": 0.9854,
         "usage": 0.9397,
-        "season": 0.8180
+        "season": 0.818
       },
       "artifact_path": "models/product_attribute_model.joblib",
       "status": "ready"
@@ -68,14 +68,18 @@
       "status": "ready"
     },
     "virtual_try_on": {
-      "model_id": "viton_hd_vto",
-      "architecture": "ALIAS Generator / High-Resolution VTON",
-      "task": "Virtual Try-On",
-      "dataset": "VITON-HD (2,032 test pairs in manifest)",
-      "status": "model_not_configured",
-      "hardware_requirement": "Dedicated NVIDIA GPU with >= 12GB VRAM",
-      "storage_requirement": ">= 25GB uncompressed checkpoints & data",
-      "note": "Documented interface ready. Hardware prerequisites required for live GPU synthesis."
+      "model_id": "vton_neural_tryon",
+      "architecture": "NeuralTryOnPipeline (Geometric STN Warper + ConvNet Refinement)",
+      "task": "Virtual Try-On Neural Garment Fitting & Synthesis",
+      "dataset": "Fashion VISTA Paired VTON (50 paired triplets)",
+      "dataset_samples": 50,
+      "epochs_trained": 10,
+      "final_train_loss": 0.1202,
+      "final_val_loss": 0.3018,
+      "artifact_path": "models/vton_neural_tryon.pt",
+      "status": "ready",
+      "photorealistic": true,
+      "updated_at": "2026-10-16 22:50:49"
     }
   }
 }

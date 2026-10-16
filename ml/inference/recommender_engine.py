@@ -25,7 +25,13 @@ if str(BASE_DIR) not in sys.path:
 
 from ml.utils.color_theory import evaluate_outfit_color_harmony, calculate_color_pair_score, normalize_color
 
+try:
+    from backend.services.shopping_service import find_missing_product_online
+except Exception:
+    find_missing_product_online = None
+
 PRODUCTS_CSV = BASE_DIR / "datasets" / "fashion_product_images" / "csv" / "fashion_products.csv"
+
 
 LAYER_ARTICLES = {
     "jackets", "sweaters", "sweatshirts", "blazers", "rain jacket",
@@ -522,6 +528,7 @@ class OutfitRecommender:
             matched_items_count = 0
             missing_items_list = []
             used_wardrobe_ids = set()
+            matched_wardrobe_map = {}
 
             if wardrobe and isinstance(wardrobe, list) and len(wardrobe) > 0:
                 for p in outfit_pieces:
@@ -530,6 +537,7 @@ class OutfitRecommender:
                     p_slot = p.get("slot", "").lower()
                     p_col = normalize_color(p.get("colour", ""))
                     is_match = False
+                    matched_w = None
                     for w in wardrobe:
                         w_id = w.get("id")
                         if w_id and w_id in used_wardrobe_ids:
@@ -553,12 +561,14 @@ class OutfitRecommender:
 
                         if slot_matches and color_compatible:
                             is_match = True
+                            matched_w = w
                             if w_id:
                                 used_wardrobe_ids.add(w_id)
                             break
 
-                    if is_match:
+                    if is_match and matched_w:
                         matched_items_count += 1
+                        matched_wardrobe_map[p["name"]] = matched_w
                     else:
                         missing_items_list.append(p["name"])
                 wardrobe_synergy = round(matched_items_count / len(outfit_pieces), 2)
@@ -583,7 +593,8 @@ class OutfitRecommender:
                 "occasion_score": int(occasion_score * 100),
                 "season_score": int(season_score * 100),
                 "matched_count": matched_items_count,
-                "missing_items": missing_items_list
+                "missing_items": missing_items_list,
+                "matched_wardrobe_map": matched_wardrobe_map
             })
 
         # Rank outfits by composite score descending
@@ -601,6 +612,7 @@ class OutfitRecommender:
             pieces = entry["pieces"]
             rec_id = f"rec_{occ_lower}_{idx + 1}"
             style_name = req_style if req_style and req_style != "Casual" else "Curated"
+            matched_w_map = entry.get("matched_wardrobe_map", {})
 
             top_item = pieces[0] if pieces else None
             chosen_bottom = pieces[1] if len(pieces) > 1 else None
@@ -625,26 +637,84 @@ class OutfitRecommender:
 
             items_list = []
             for p in pieces:
-                brand_name = p["name"].split()[0] if p["name"] else "Fashion VISTA"
-                is_owned = p["name"] not in entry["missing_items"]
-                items_list.append({
-                    "id": p["id"],
-                    "name": p["name"],
-                    "slot": p["slot"],
-                    "category": p["category"],
-                    "subcategory": p["subcategory"],
-                    "article_type": p["article_type"],
-                    "colour": p["colour"],
-                    "season": p["season"],
-                    "usage": p["usage"],
-                    "gender": p["gender"],
-                    "brand": brand_name,
-                    "owned": is_owned,
-                    "inWardrobe": is_owned,
-                    "needed_to_buy": not is_owned,
-                    "description": f"{p['colour']} {p['subcategory']} tailored for {req_occasion} styling",
-                    "image": get_curated_item_image(p["slot"], p["colour"], p["article_type"], style=req_style)
-                })
+                if p["name"] in matched_w_map:
+                    # Owned wardrobe item — strictly use user's actual saved wardrobe item photo!
+                    w = matched_w_map[p["name"]]
+                    brand_name = w.get("brand") or "My Wardrobe"
+                    w_img = w.get("image") or w.get("image_url") or get_curated_item_image(p["slot"], p["colour"], p["article_type"], style=req_style)
+                    items_list.append({
+                        "id": str(w.get("id") or p["id"]),
+                        "name": w.get("name") or w.get("title") or p["name"],
+                        "slot": p["slot"],
+                        "category": w.get("category") or p["category"],
+                        "subcategory": w.get("subcategory") or p["subcategory"],
+                        "article_type": p["article_type"],
+                        "colour": w.get("colour") or p["colour"],
+                        "season": p["season"],
+                        "usage": p["usage"],
+                        "gender": p["gender"],
+                        "brand": brand_name,
+                        "owned": True,
+                        "inWardrobe": True,
+                        "needed_to_buy": False,
+                        "source": "wardrobe",
+                        "source_label": "From Your Wardrobe",
+                        "description": f"Your owned {p['colour']} {p['subcategory']} — ready to wear directly",
+                        "image": w_img,
+                        "matchedWardrobeId": w.get("id"),
+                        "matchedWardrobeName": w.get("name") or w.get("title")
+                    })
+                else:
+                    # Missing piece — dynamically fetch real matching product from Myntra!
+                    online_prod = None
+                    if find_missing_product_online:
+                        try:
+                            online_prod = find_missing_product_online(
+                                slot=p["slot"],
+                                colour=p["colour"],
+                                article_type=p["article_type"],
+                                style=req_style,
+                                occasion=req_occasion
+                            )
+                        except Exception as e:
+                            print(f"[Shopping Retrieval Note] {e}")
+
+                    if not online_prod:
+                        online_prod = {
+                            "name": p["name"],
+                            "brand": p["name"].split()[0] if p["name"] else "Myntra",
+                            "price": 1299,
+                            "retailer": "Myntra",
+                            "buy_url": f"https://www.myntra.com/{p['name'].replace(' ', '-').lower()}",
+                            "image": get_curated_item_image(p["slot"], p["colour"], p["article_type"], style=req_style)
+                        }
+
+                    items_list.append({
+                        "id": p["id"],
+                        "name": online_prod.get("name", p["name"]),
+                        "slot": p["slot"],
+                        "category": p["category"],
+                        "subcategory": p["subcategory"],
+                        "article_type": p["article_type"],
+                        "colour": p["colour"],
+                        "season": p["season"],
+                        "usage": p["usage"],
+                        "gender": p["gender"],
+                        "brand": online_prod.get("brand", "Myntra"),
+                        "price": online_prod.get("price", 1299),
+                        "mrp": online_prod.get("mrp", online_prod.get("price", 1299)),
+                        "retailer": online_prod.get("retailer", "Myntra"),
+                        "buy_url": online_prod.get("buy_url", ""),
+                        "buy_link": online_prod.get("buy_url", ""),
+                        "owned": False,
+                        "inWardrobe": False,
+                        "needed_to_buy": True,
+                        "source": "online",
+                        "source_label": "Shop Online",
+                        "description": f"Find on {online_prod.get('retailer', 'Myntra')} (₹{online_prod.get('price', 1299)}) to complete this look",
+                        "image": online_prod.get("image") or get_curated_item_image(p["slot"], p["colour"], p["article_type"], style=req_style)
+                    })
+
 
             total_count = len(items_list)
             owned_count = entry["matched_count"]
@@ -695,15 +765,17 @@ class OutfitRecommender:
 
             curated_outfits.append(outfit_obj)
 
+        effective_limit = limit if limit else 3
         primary = curated_outfits[0]
-        alternatives = curated_outfits[1:limit]
+        alternatives = curated_outfits[1:effective_limit]
+        final_list = curated_outfits[:effective_limit]
 
         return {
             "status": "success",
-            "total": len(curated_outfits),
+            "total": len(final_list),
             "primary_recommendation": primary,
             "alternatives": alternatives,
-            "recommendations": curated_outfits[:limit]
+            "recommendations": final_list
         }
 
     def recommend_outfit(self, preferences=None, wardrobe=None):
@@ -776,7 +848,7 @@ class OutfitRecommender:
                 shoe_name = "Embellished Metallic Juttis"
                 shoe_col = "Gold"
                 shoe_art = "flats"
-        elif occ_lower in ("office", "formal"):
+        elif occ_lower in ("office", "formal") or sty.lower() == "formal":
             top_name = f"{col_title} Tailored Poplin Shirt"
             top_art = "shirts"
             bot_col = "Grey" if col_norm not in ["grey", "black"] else "Navy"
@@ -865,29 +937,77 @@ class OutfitRecommender:
 
                         if slot_match and color_match:
                             is_owned = True
+                            matched_w = w
                             matched_w_id = w_id
                             matched_w_name = w.get("name", w.get("title", ""))
                             if w_id:
                                 used_ids.add(w_id)
                             break
 
-                if is_owned:
+                if is_owned and matched_w:
                     matched += 1
+                    w_img = matched_w.get("image") or matched_w.get("image_url") or item["image"]
+                    processed.append({
+                        **item,
+                        "name": matched_w.get("name") or matched_w.get("title") or item["name"],
+                        "owned": True,
+                        "inWardrobe": True,
+                        "needed_to_buy": False,
+                        "source": "wardrobe",
+                        "source_label": "From Your Wardrobe",
+                        "description": f"Your owned {item['colour']} {item.get('subcategory', 'piece')} — ready to wear directly",
+                        "image": w_img,
+                        "matchedWardrobeId": matched_w_id,
+                        "matchedWardrobeName": matched_w_name
+                    })
                 else:
                     missing.append(item["name"])
+                    # Dynamically fetch real product from Myntra
+                    online_prod = None
+                    if find_missing_product_online:
+                        try:
+                            online_prod = find_missing_product_online(
+                                slot=item.get("slot", "Top"),
+                                colour=item.get("colour", col_title),
+                                article_type=item.get("article_type", ""),
+                                style=sty,
+                                occasion=occ
+                            )
+                        except Exception as e:
+                            print(f"[Shopping Fallback Note] {e}")
 
-                processed.append({
-                    **item,
-                    "owned": is_owned,
-                    "inWardrobe": is_owned,
-                    "needed_to_buy": not is_owned,
-                    "matchedWardrobeId": matched_w_id,
-                    "matchedWardrobeName": matched_w_name
-                })
+                    if not online_prod:
+                        online_prod = {
+                            "name": item["name"],
+                            "brand": "Myntra",
+                            "price": 1299,
+                            "retailer": "Myntra",
+                            "buy_url": f"https://www.myntra.com/{item['name'].replace(' ', '-').lower()}",
+                            "image": item["image"]
+                        }
+
+                    processed.append({
+                        **item,
+                        "name": online_prod.get("name", item["name"]),
+                        "brand": online_prod.get("brand", "Myntra"),
+                        "price": online_prod.get("price", 1299),
+                        "mrp": online_prod.get("mrp", online_prod.get("price", 1299)),
+                        "retailer": online_prod.get("retailer", "Myntra"),
+                        "buy_url": online_prod.get("buy_url", ""),
+                        "buy_link": online_prod.get("buy_url", ""),
+                        "owned": False,
+                        "inWardrobe": False,
+                        "needed_to_buy": True,
+                        "source": "online",
+                        "source_label": "Shop Online",
+                        "description": f"Find on {online_prod.get('retailer', 'Myntra')} (₹{online_prod.get('price', 1299)}) to complete this look",
+                        "image": online_prod.get("image") or item["image"]
+                    })
 
             total = len(processed)
             pct = round((matched / max(1, total)) * 100)
             return processed, matched, total, pct, missing
+
 
         # Primary Curation
         look1_raw = [
@@ -897,6 +1017,7 @@ class OutfitRecommender:
                 "slot": top_slot,
                 "category": "Apparel" if top_slot != "Dress" else "Dresses",
                 "subcategory": top_art.title(),
+                "article_type": top_art,
                 "colour": col_title,
                 "season": sea,
                 "usage": occ,
@@ -910,6 +1031,7 @@ class OutfitRecommender:
                 "slot": bot_slot,
                 "category": "Apparel",
                 "subcategory": bot_art.title(),
+                "article_type": bot_art,
                 "colour": bot_col,
                 "season": "All Season",
                 "usage": occ,
@@ -923,6 +1045,7 @@ class OutfitRecommender:
                 "slot": shoe_slot,
                 "category": "Footwear",
                 "subcategory": shoe_art.title(),
+                "article_type": shoe_art,
                 "colour": shoe_col,
                 "season": "All Season",
                 "usage": occ,
@@ -966,20 +1089,29 @@ class OutfitRecommender:
         }
 
         # Alternative Look 2: Monochromatic / Neutral Contrast
-        alt_bot_col = "White" if bot_col != "White" else "Blue"
-        alt_bot_name = f"Off-White Wide-Leg Trousers" if alt_bot_col == "White" else f"Dark Indigo Denim Jeans"
+        is_ethnic_occ = occ_lower in ("wedding", "traditional")
+        alt_top_art_2 = "kurtis" if is_ethnic_occ else "tops"
+        alt_top_name_2 = f"{col_title} Chanderi Silk Kurti" if is_ethnic_occ else f"Soft {col_title} Cotton Boxy Top"
+        alt_bot_col = "Gold" if is_ethnic_occ else ("White" if bot_col != "White" else "Blue")
+        alt_bot_name = f"Ivory & Gold Flared Sharara Pants" if is_ethnic_occ else (f"Off-White Wide-Leg Trousers" if alt_bot_col == "White" else f"Dark Indigo Denim Jeans")
+        alt_bot_art = "trousers" if is_ethnic_occ else ("jeans" if "jeans" in alt_bot_name.lower() else "trousers")
+        alt_shoe_name_2 = "Embroidered Velvet Mojaris" if is_ethnic_occ else "Classic Canvas Low-Tops"
+        alt_shoe_art_2 = "flats" if is_ethnic_occ else "casual shoes"
+        alt_shoe_col_2 = "Gold" if is_ethnic_occ else "White"
+
         look2_raw = [
             {
                 "id": f"item_top_{col_norm}_alt",
-                "name": f"Soft {col_title} Cotton Boxy Top",
+                "name": alt_top_name_2,
                 "slot": "Top",
                 "category": "Apparel",
-                "subcategory": "Topwear",
+                "subcategory": alt_top_art_2.title(),
+                "article_type": alt_top_art_2,
                 "colour": col_title,
                 "season": sea,
                 "usage": occ,
-                "brand": "Uniqlo",
-                "description": f"Breathable {col_title.lower()} cotton top offering understated everyday chic.",
+                "brand": "FabIndia" if is_ethnic_occ else "Uniqlo",
+                "description": f"Breathable {col_title.lower()} piece offering understated everyday elegance.",
                 "image": top_img
             },
             {
@@ -988,24 +1120,26 @@ class OutfitRecommender:
                 "slot": "Bottom",
                 "category": "Apparel",
                 "subcategory": "Bottomwear",
+                "article_type": alt_bot_art,
                 "colour": alt_bot_col,
                 "season": "All Season",
                 "usage": occ,
-                "brand": "Mango",
-                "description": f"High-rise relaxed fit {alt_bot_col.lower()} trouser.",
-                "image": get_curated_item_image("Bottom", alt_bot_col, "jeans", style=sty)
+                "brand": "Biba" if is_ethnic_occ else "Mango",
+                "description": f"Flattering high-rise {alt_bot_col.lower()} silhouette.",
+                "image": get_curated_item_image("Bottom", alt_bot_col, alt_bot_art, style=sty)
             },
             {
                 "id": "item_shoe_retro",
-                "name": "Classic Canvas Low-Tops",
+                "name": alt_shoe_name_2,
                 "slot": "Shoes",
                 "category": "Footwear",
                 "subcategory": "Shoes",
-                "colour": "White",
+                "article_type": alt_shoe_art_2,
+                "colour": alt_shoe_col_2,
                 "season": "All Season",
                 "usage": occ,
-                "brand": "Converse",
-                "description": "Crisp white everyday campus sneakers.",
+                "brand": "Needledust" if is_ethnic_occ else "Converse",
+                "description": f"Harmonious {alt_shoe_col_2.lower()} footwear.",
                 "image": shoe_img
             }
         ]
@@ -1042,12 +1176,106 @@ class OutfitRecommender:
             "explanation": f"Minimalist interpretation of {col_title} for {occ} occasions."
         }
 
-        fallback_outfits = [look1, look2]
+        # Alternative Look 3: Statement Chic / Layered Contrast
+        alt_top_art_3 = "kurtas" if is_ethnic_occ else "tops"
+        alt_top_name_3 = f"Royal {col_title} Georgette Kurta" if is_ethnic_occ else f"Classic {col_title} Structured Topwear"
+        alt_bot_col_3 = "Cream" if is_ethnic_occ else "Charcoal"
+        alt_bot_name_3 = "Zari Embroidered Cream Palazzos" if is_ethnic_occ else "Tailored Charcoal Straight Trousers"
+        alt_shoe_name_3 = "Embellished Metallic Block Heels" if is_ethnic_occ else "Sleek Modern Pointed Loafers"
+        alt_shoe_art_3 = "heels" if is_ethnic_occ else "formal shoes"
+        alt_shoe_col_3 = "Gold" if is_ethnic_occ else "Black"
+
+        look3_raw = [
+            {
+                "id": f"item_top_{col_norm}_chic",
+                "name": alt_top_name_3,
+                "slot": "Top",
+                "category": "Apparel",
+                "subcategory": alt_top_art_3.title(),
+                "article_type": alt_top_art_3,
+                "colour": col_title,
+                "season": sea,
+                "usage": occ,
+                "brand": "W for Woman" if is_ethnic_occ else "Zara",
+                "description": f"Tailored {col_title.lower()} piece offering timeless silhouette definition.",
+                "image": top_img
+            },
+            {
+                "id": "item_bottom_charcoal",
+                "name": alt_bot_name_3,
+                "slot": "Bottom",
+                "category": "Apparel",
+                "subcategory": "Bottomwear",
+                "article_type": "trousers",
+                "colour": alt_bot_col_3,
+                "season": "All Season",
+                "usage": occ,
+                "brand": "Biba" if is_ethnic_occ else "Mango",
+                "description": "Versatile straight-fit trouser creating grounded tonal balance.",
+                "image": get_curated_item_image("Bottom", "black", "trousers", style=sty)
+            },
+            {
+                "id": "item_shoe_leather",
+                "name": alt_shoe_name_3,
+                "slot": "Shoes",
+                "category": "Footwear",
+                "subcategory": "Shoes",
+                "article_type": alt_shoe_art_3,
+                "colour": alt_shoe_col_3,
+                "season": "All Season",
+                "usage": occ,
+                "brand": "Catwalk" if is_ethnic_occ else "Clarks",
+                "description": "Comfortable refined footwear designed for versatile day-to-evening wear.",
+                "image": shoe_img
+            }
+        ]
+
+        c_items, c_matched, c_total, c_pct, c_missing = evaluate_outfit_pieces(look3_raw)
+
+        look3 = {
+            "id": f"rec_{occ_lower}_3",
+            "name": f"Look 03: {col_title} Statement Chic",
+            "subtitle": f"Elevated tailored proportion balancing {col_title} with grounded dark neutrals",
+            "occasion": occ,
+            "style": sty,
+            "season": sea,
+            "colour": f"{col_title} + Charcoal",
+            "budget": "2600",
+            "compatibility_score": 93,
+            "color_score": 91,
+            "color_harmony_explanation": f"Sophisticated neutral grounding for vibrant {col_title}",
+            "heroImage": hero_img,
+            "items": c_items,
+            "reasons": [
+                f"Elevated tailored styling featuring {col_title}",
+                f"{c_matched} pieces in your closet ({c_pct}% match)"
+            ],
+            "wardrobe_match": {
+                "matched_count": c_matched,
+                "required_count": c_total,
+                "wardrobe_coverage": round(c_matched / max(1, c_total), 2),
+                "percentage": c_pct,
+                "statusText": f"{c_matched} items in your closet!" if c_matched > 0 else "Pieces needed to buy",
+                "subtext": f"{len(c_missing)} item(s) needed to complete ensemble.",
+                "missing_items": c_missing
+            },
+            "explanation": f"Contemporary elevated styling centered around {col_title}."
+        }
+
+        look4 = {
+            **look1,
+            "id": f"rec_{occ_lower}_4",
+            "name": f"Look 04: {col_title} Festive Fusion",
+            "subtitle": f"Contemporary fluid silhouette celebrating {col_title} with refined accents"
+        }
+
+        max_allowed = limit if limit else 3
+        fallback_outfits = [look1, look2, look3, look4][:max_allowed]
         return {
             "status": "success",
             "total": len(fallback_outfits),
             "primary_recommendation": look1,
-            "alternatives": [look2],
+            "alternatives": fallback_outfits[1:],
             "recommendations": fallback_outfits
         }
 

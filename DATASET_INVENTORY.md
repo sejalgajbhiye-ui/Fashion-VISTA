@@ -9,9 +9,9 @@ Comprehensive catalog of datasets, schemas, validation results, access requireme
 | Dataset | Primary File | Rows | Columns | Verified Images | Download Status | License |
 | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
 | **Fashion-MNIST** | `fashion_mnist_labels.csv` | 70,000 | 5 | 7,000 | Downloaded & Verified | MIT (Permissive Open Source) |
-| **DeepFashion** | `deepfashion_attributes.csv` | 215,781 | 5 | 0 | Downloaded & Processed | Non-Commercial Research (Signed Agreement) |
-| **Fashion Product Images** | `fashion_products.csv` | 44,446 | 10 | 0 | Downloaded & Processed | CC0: Public Domain |
-| **VITON-HD** | `viton_hd_pairs.csv` | 2,032 | 4 | 2,032 | Downloaded & Processed | CC BY-NC 4.0 (Non-Commercial) |
+| **DeepFashion** | `deepfashion_attributes.csv` | 0 | 0 | 0 | Requires CUHK Registration & Password | Non-Commercial Research (Signed Agreement) |
+| **Fashion Product Images** | `fashion_products.csv` | 0 | 0 | 0 | Requires Kaggle Authentication (~/.kaggle/kaggle.json) | CC0: Public Domain |
+| **VITON-HD** | `viton_hd_pairs.csv` | 0 | 0 | 0 | Awaiting User Approval & Disk Space Allocation (~25GB) | CC BY-NC 4.0 (Non-Commercial) |
 
 ---
 

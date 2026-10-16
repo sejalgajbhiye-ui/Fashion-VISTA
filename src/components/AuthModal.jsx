@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useFashion } from '../context/FashionContext';
 import { Button } from './Button';
-import { X, Lock, Mail, User, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, Lock, Mail, User, Sparkles, AlertCircle, CheckCircle2, Camera } from 'lucide-react';
 
 export const AuthModal = ({ isOpen, onClose }) => {
   const { signIn, signUp, isConfigured } = useAuth();
-  const { showToast } = useFashion();
+  const { showToast, setUserPhoto } = useFashion();
 
   const [mode, setMode] = useState('login'); // 'login' | 'signup'
   const [email, setEmail] = useState('');
@@ -16,7 +16,53 @@ export const AuthModal = ({ isOpen, onClose }) => {
   const [errorMsg, setErrorMsg] = useState('');
   const [signupSuccess, setSignupSuccess] = useState(false);
 
+  // User portrait image state for account creation (.jpg / .png)
+  const [userImagePreview, setUserImagePreview] = useState(null);
+  const [userImageFileName, setUserImageFileName] = useState('');
+  const fileInputRef = useRef(null);
+
   if (!isOpen) return null;
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validExtensions = /\.(jpe?g|png)$/i;
+    const validMimes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!validMimes.includes(file.type) && !validExtensions.test(file.name)) {
+      setErrorMsg('Please upload a valid .jpg or .png image.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMsg('Image size exceeds 10MB limit.');
+      return;
+    }
+
+    setUserImageFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result;
+      setUserImagePreview(dataUrl);
+      if (dataUrl) {
+        setUserPhoto(dataUrl);
+        try {
+          localStorage.setItem('fashion_vista_user_photo', dataUrl);
+        } catch (storageErr) {
+          console.warn('Storage notice:', storageErr);
+        }
+      }
+      setErrorMsg('');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = (e) => {
+    e.stopPropagation();
+    setUserImagePreview(null);
+    setUserImageFileName('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,7 +90,20 @@ export const AuthModal = ({ isOpen, onClose }) => {
         showToast('Successfully signed in!', 'success');
         onClose();
       } else {
-        const metadata = { full_name: fullName.trim() || undefined };
+        const photoData = userImagePreview;
+        if (photoData) {
+          setUserPhoto(photoData);
+          try {
+            localStorage.setItem('fashion_vista_user_photo', photoData);
+          } catch (storageErr) {
+            console.warn('Storage notice:', storageErr);
+          }
+        }
+        const metadata = {
+          full_name: fullName.trim() || undefined,
+          user_photo: photoData || undefined,
+          avatar_url: photoData || undefined
+        };
         const data = await signUp(email, password, metadata);
         if (data.session) {
           showToast('Account created and signed in!', 'success');
@@ -192,6 +251,83 @@ export const AuthModal = ({ isOpen, onClose }) => {
                 />
               </div>
             </div>
+
+            {mode === 'signup' && (
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700">
+                    Your Photo (.jpg, .png)
+                  </label>
+                  <span className="text-[10px] text-charcoal-500 font-semibold uppercase tracking-wider bg-taupe-100 px-2 py-0.5 rounded">
+                    Virtual Try-On
+                  </span>
+                </div>
+
+                {userImagePreview ? (
+                  <div className="p-3 bg-[#FAF8F5] border border-taupe-300 rounded-2xl flex items-center justify-between gap-3 shadow-2xs">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-11 h-11 rounded-xl overflow-hidden border border-taupe-300 shrink-0 bg-white shadow-xs">
+                        <img
+                          src={userImagePreview}
+                          alt="Uploaded Portrait"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-charcoal-900 truncate block">
+                          {userImageFileName || 'User Portrait'}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-semibold">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          Ready for Try-On
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-2 py-1 text-[11px] font-semibold text-charcoal-700 hover:text-black bg-white border border-taupe-300 rounded-lg shadow-2xs hover:bg-taupe-50 transition-colors"
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="p-1 text-charcoal-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                        title="Remove Photo"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-taupe-300 hover:border-charcoal-800 rounded-2xl p-3.5 text-center cursor-pointer bg-[#FAF8F5]/70 hover:bg-[#FAF8F5] transition-all group"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-white border border-taupe-200 mx-auto flex items-center justify-center text-charcoal-600 group-hover:scale-105 group-hover:text-charcoal-900 transition-all shadow-2xs mb-1.5">
+                      <Camera className="w-4 h-4" />
+                    </div>
+                    <p className="text-xs font-bold text-charcoal-900">
+                      Upload photo <span className="font-normal text-charcoal-500">(.jpg / .png)</span>
+                    </p>
+                    <p className="text-[10px] text-charcoal-500 mt-0.5">
+                      Used to render how curated looks fit on your body
+                    </p>
+                  </div>
+                )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </div>
+            )}
 
             <Button
               type="submit"

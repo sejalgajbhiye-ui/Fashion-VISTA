@@ -22,7 +22,8 @@ import {
   Check,
   RotateCcw
 } from 'lucide-react';
-import { requestVirtualTryOn, getVTOStatus } from '../services/api';
+import { requestVirtualTryOn, requestOutfitTryOn, getVTOStatus } from '../services/api';
+
 
 export const VirtualTryOn = () => {
   const navigate = useNavigate();
@@ -117,10 +118,15 @@ export const VirtualTryOn = () => {
     return outfitItems[0] || null;
   });
 
-  // Source tab for garment selection: 'recommendation' | 'wardrobe' | 'custom'
-  const [garmentSourceTab, setGarmentSourceTab] = useState(() => initialCustomGarmentImg ? 'custom' : 'recommendation');
+  // Source tab for garment selection: 'mixed_outfit' | 'recommendation' | 'wardrobe' | 'custom'
+  const [garmentSourceTab, setGarmentSourceTab] = useState(() => {
+    if (initialCustomGarmentImg) return 'custom';
+    if (currentRecommendation?.items?.length > 0) return 'mixed_outfit';
+    return 'recommendation';
+  });
   const [customGarmentImage, setCustomGarmentImage] = useState(initialCustomGarmentImg);
   const [customGarmentTitle, setCustomGarmentTitle] = useState(initialCustomGarmentTitle);
+
 
   // VTO Engine status
   const [vtoStatus, setVtoStatus] = useState({ status: 'checking', message: 'Checking AI engine...' });
@@ -324,6 +330,67 @@ export const VirtualTryOn = () => {
     }
   };
 
+  // Execute Real Mixed Outfit Multi-Garment Try-On
+  const handleExecuteOutfitTryOn = async () => {
+    if (!userPhoto) {
+      showToast("Please provide or upload a user portrait photo first.", "error");
+      return;
+    }
+
+    const itemsToTry = currentRecommendation?.items || [];
+    if (itemsToTry.length === 0) {
+      showToast("No recommendation outfit items available.", "error");
+      return;
+    }
+
+    setIsProcessing(true);
+    setErrorMessage(null);
+    setCurrentStep(0);
+    setHasSavedHistory(false);
+
+    const stepTimer1 = setTimeout(() => setCurrentStep(1), 400);
+    const stepTimer2 = setTimeout(() => setCurrentStep(2), 900);
+    const stepTimer3 = setTimeout(() => setCurrentStep(3), 1400);
+
+    try {
+      const payload = {
+        user_photo: userPhoto,
+        garments: itemsToTry
+      };
+
+      const result = await requestOutfitTryOn(payload);
+
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+      clearTimeout(stepTimer3);
+
+      if (result && result.status === 'completed' && result.result_image) {
+        setTryOnResult({
+          ...result,
+          garment_name: currentRecommendation.name || "Curated Mixed Ensemble",
+          timestamp: new Date().toISOString(),
+          is_mixed_outfit: true,
+          applied_garments: result.applied_garments || itemsToTry
+        });
+        setViewMode('tryon');
+        showToast("Mixed Outfit Virtual Try-On synthesized successfully! ✨", "success");
+      } else {
+        const errMsg = result?.error || "Mixed outfit try-on synthesis failed.";
+        setErrorMessage(errMsg);
+        showToast(errMsg, "error");
+      }
+    } catch (err) {
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+      clearTimeout(stepTimer3);
+      setErrorMessage(err.message || "Failed to communicate with AI Try-On service.");
+      showToast("Try-On request failed. Please check backend connection.", "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+
   // Save current try-on result to History
   const handleSaveToHistory = () => {
     if (!tryOnResult || !tryOnResult.result_image) return;
@@ -489,11 +556,11 @@ export const VirtualTryOn = () => {
               </button>
             </div>
 
-            <div className="relative aspect-[3/4] max-h-72 rounded-2xl overflow-hidden bg-taupe-100 border border-taupe-200 shadow-subtle group">
+            <div className="relative h-72 sm:h-80 w-full rounded-2xl overflow-hidden bg-taupe-100/70 border border-taupe-200 shadow-subtle group flex items-center justify-center p-1">
               <img
                 src={userPhoto || defaultUserImg}
                 alt="Your original uploaded portrait"
-                className="w-full h-full object-cover object-center"
+                className="max-h-full max-w-full w-auto h-full object-contain mx-auto"
               />
               <div className="absolute bottom-3 left-3 bg-charcoal-900/80 backdrop-blur-sm text-cream-50 text-[11px] px-3 py-1 rounded-full font-medium">
                 Calibrated Posture
@@ -584,22 +651,33 @@ export const VirtualTryOn = () => {
             </div>
 
             {/* Source Selection Tabs */}
-            <div className="flex rounded-xl bg-taupe-100 p-1 text-xs font-semibold">
+            <div className="flex rounded-xl bg-taupe-100 p-1 text-xs font-semibold overflow-x-auto gap-1">
+              <button
+                type="button"
+                onClick={() => setGarmentSourceTab('mixed_outfit')}
+                className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center whitespace-nowrap ${
+                  garmentSourceTab === 'mixed_outfit'
+                    ? 'bg-charcoal-900 text-white shadow-sm'
+                    : 'text-charcoal-600 hover:text-black'
+                }`}
+              >
+                ✨ Mixed Outfit
+              </button>
               <button
                 type="button"
                 onClick={() => setGarmentSourceTab('recommendation')}
-                className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center ${
+                className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center whitespace-nowrap ${
                   garmentSourceTab === 'recommendation'
                     ? 'bg-white text-charcoal-900 shadow-sm'
                     : 'text-charcoal-500 hover:text-charcoal-800'
                 }`}
               >
-                Curated Look ({tryableRecommendationItems.length})
+                Single Piece ({tryableRecommendationItems.length})
               </button>
               <button
                 type="button"
                 onClick={() => setGarmentSourceTab('wardrobe')}
-                className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center ${
+                className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center whitespace-nowrap ${
                   garmentSourceTab === 'wardrobe'
                     ? 'bg-white text-charcoal-900 shadow-sm'
                     : 'text-charcoal-500 hover:text-charcoal-800'
@@ -610,15 +688,109 @@ export const VirtualTryOn = () => {
               <button
                 type="button"
                 onClick={() => setGarmentSourceTab('custom')}
-                className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center ${
+                className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center whitespace-nowrap ${
                   garmentSourceTab === 'custom'
                     ? 'bg-white text-charcoal-900 shadow-sm'
                     : 'text-charcoal-500 hover:text-charcoal-800'
                 }`}
               >
-                Custom Upload
+                Upload
               </button>
             </div>
+
+            {/* TAB CONTENT: MIXED OUTFIT (WARDROBE + ONLINE SHOPPING) */}
+            {garmentSourceTab === 'mixed_outfit' && (
+              <div className="space-y-3">
+                <div className="p-3 rounded-2xl bg-[#FCFAF7] border border-taupe-200">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-charcoal-500">
+                      Active Mixed Blueprint
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      Wardrobe + Myntra Mixed
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-charcoal-900 truncate">
+                    {currentRecommendation?.name || "Curated Ensemble"}
+                  </h4>
+                </div>
+
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {(currentRecommendation?.items || []).map((item, idx) => {
+                    const isOwned = Boolean(item.inWardrobe || item.owned);
+                    const slotLabel = String(item.slot || item.category || 'Garment').toUpperCase();
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-2.5 rounded-2xl border flex items-center gap-3 transition-all ${
+                          isOwned
+                            ? 'bg-emerald-50/60 border-emerald-200'
+                            : 'bg-amber-50/60 border-amber-200'
+                        }`}
+                      >
+                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-white border border-taupe-200 shrink-0">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                isOwned
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : 'bg-amber-100 text-amber-800 border border-amber-300'
+                              }`}
+                            >
+                              {isOwned ? "✓ From Your Wardrobe" : "🛍️ Shop Online"}
+                            </span>
+                            <span className="text-[10px] text-charcoal-400 font-bold uppercase">
+                              {slotLabel}
+                            </span>
+                          </div>
+                          <div className="text-xs font-bold text-charcoal-900 truncate mt-0.5">
+                            {item.name}
+                          </div>
+                          {!isOwned ? (
+                            <div className="flex items-center justify-between mt-1 text-[11px]">
+                              <span className="font-extrabold text-charcoal-900">
+                                ₹{item.price || 999}
+                              </span>
+                              <a
+                                href={item.buy_link || item.buy_url || `https://www.myntra.com/${encodeURIComponent(item.name || '').replace(/%20/g, '-')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-bold text-charcoal-900 hover:text-black underline flex items-center gap-0.5"
+                              >
+                                Buy on {item.retailer || 'Myntra'} ↗
+                              </a>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-emerald-700 font-medium mt-0.5">
+                              Using your actual wardrobe piece
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={handleExecuteOutfitTryOn}
+                  disabled={isProcessing}
+                  className="w-full justify-center shadow-card font-semibold py-2.5 text-xs sm:text-sm"
+                  iconLeft={<Sparkles className="w-4 h-4 text-cream-200" />}
+                >
+                  {isProcessing ? "Synthesizing Mixed Ensemble..." : "Try Mixed Outfit on You ✨"}
+                </Button>
+              </div>
+            )}
+
 
             {/* TAB CONTENT: CURATED RECOMMENDATION ITEMS */}
             {garmentSourceTab === 'recommendation' && (
@@ -913,7 +1085,7 @@ export const VirtualTryOn = () => {
             </div>
 
             {/* DISPLAY CANVAS CONTAINER */}
-            <div className="relative aspect-[3/4] max-h-[500px] w-full rounded-2xl overflow-hidden bg-[#FBF9F6] border border-taupe-200 flex flex-col items-center justify-center shadow-inner">
+            <div className="relative h-[480px] sm:h-[540px] w-full rounded-2xl overflow-hidden bg-[#FBF9F6] border border-taupe-200 flex flex-col items-center justify-center shadow-inner p-2">
               
               {/* STATE A: PROCESSING LOADER WITH STEP PROGRESSION */}
               {isProcessing && (
@@ -950,11 +1122,11 @@ export const VirtualTryOn = () => {
 
               {/* STATE B: DISPLAY GENERATED RESULT OR ORIGINAL */}
               {!isProcessing && tryOnResult?.result_image && (
-                <div className="w-full h-full relative group">
+                <div className="w-full h-full relative group flex items-center justify-center">
                   <img
                     src={viewMode === 'tryon' ? tryOnResult.result_image : (userPhoto || defaultUserImg)}
                     alt={viewMode === 'tryon' ? "AI Virtual Try-On Result" : "Original User Portrait"}
-                    className="w-full h-full object-cover object-center"
+                    className="max-h-full max-w-full w-auto h-full object-contain mx-auto rounded-lg"
                   />
 
                   {/* Corner Badges */}
@@ -962,7 +1134,7 @@ export const VirtualTryOn = () => {
                     {viewMode === 'tryon' ? (
                       <>
                         <Sparkles className="w-3 h-3 text-amber-300" />
-                        AI Neural Warping Synthesized
+                        {tryOnResult.is_mixed_outfit ? "AI Mixed Outfit Synthesized" : "AI Neural Warping Synthesized"}
                       </>
                     ) : (
                       <>
@@ -972,11 +1144,33 @@ export const VirtualTryOn = () => {
                     )}
                   </div>
 
+                  {/* Mixed Outfit Garment Badges */}
+                  {viewMode === 'tryon' && (tryOnResult.applied_garments || tryOnResult.is_mixed_outfit) && (
+                    <div className="absolute top-12 left-3 right-3 flex flex-wrap gap-1.5 z-10 pointer-events-none">
+                      {(tryOnResult.applied_garments || []).map((g, gIdx) => {
+                        const isOwned = g.source === 'wardrobe' || g.inWardrobe;
+                        return (
+                          <span
+                            key={gIdx}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm border ${
+                              isOwned
+                                ? 'bg-emerald-950/85 text-emerald-200 border-emerald-500/50'
+                                : 'bg-charcoal-950/85 text-amber-200 border-amber-500/50'
+                            }`}
+                          >
+                            {isOwned ? "✓ Wardrobe: " : "🛍️ Online: "} {g.name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {viewMode === 'tryon' && tryOnResult.metrics?.inference_time_sec && (
                     <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-charcoal-900 text-[11px] px-2.5 py-1 rounded-full font-bold shadow-sm">
                       ⚡ {tryOnResult.metrics.inference_time_sec}s CPU
                     </div>
                   )}
+
 
                   {/* Quick toggle pill at the bottom */}
                   <div className="absolute bottom-4 inset-x-0 flex justify-center">

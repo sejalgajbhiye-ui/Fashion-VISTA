@@ -86,7 +86,7 @@ class FashionCNN(nn.Module):
         return x
 
 
-def train_and_evaluate():
+def train_and_evaluate(epochs=10):
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -137,7 +137,7 @@ def train_and_evaluate():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    epochs = 4
+    print(f"\n--- Training FashionCNN for {epochs} Epochs ---")
     cnn_start = time.time()
     for epoch in range(1, epochs + 1):
         model.train()
@@ -267,4 +267,8 @@ Diagonal elements represent correct predictions across test items:
 
 
 if __name__ == "__main__":
-    train_and_evaluate()
+    import argparse
+    parser = argparse.ArgumentParser(description="Train Fashion-MNIST Classifier")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs to train (default: 10)")
+    args = parser.parse_args()
+    train_and_evaluate(epochs=args.epochs)

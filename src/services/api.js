@@ -237,12 +237,13 @@ export async function predictProductAttributes(text) {
  * @param {Array} wardrobe
  * @param {number} limit
  */
-export async function fetchRecommendations(preferences, wardrobe = [], limit = 8) {
+export async function fetchRecommendations(preferences, wardrobe = [], limit = 3, userPhoto = null) {
   try {
+    const cappedLimit = Math.min(3, limit || 3);
     const res = await fetch(`${API_BASE_URL}/recommendations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ preferences, wardrobe, limit })
+      body: JSON.stringify({ preferences, wardrobe, limit: cappedLimit, user_photo: userPhoto })
     });
     if (!res.ok) throw new Error(`Recommendation error (${res.status})`);
     return await res.json();
@@ -253,19 +254,20 @@ export async function fetchRecommendations(preferences, wardrobe = [], limit = 8
 }
 
 /**
- * Generate outfit recommendation
+ * Generate outfit recommendation with personalized try-on
  * @param {Object} preferences
  * @param {Array} wardrobe
+ * @param {string|null} userPhoto
  */
-export async function generateMLRecommendation(preferences, wardrobe = []) {
+export async function generateMLRecommendation(preferences, wardrobe = [], userPhoto = null) {
   try {
-    // Try primary recommendations endpoint first with full limit of 8 outfits
-    const multiRes = await fetchRecommendations(preferences, wardrobe, 8);
+    // Generate up to 3 outfit looks with try-on previews
+    const multiRes = await fetchRecommendations(preferences, wardrobe, 3, userPhoto);
     if (multiRes && multiRes.primary_recommendation) {
       return {
         ...multiRes.primary_recommendation,
-        alternatives: multiRes.alternatives || [],
-        recommendations: multiRes.recommendations || []
+        alternatives: (multiRes.alternatives || []).slice(0, 2),
+        recommendations: (multiRes.recommendations || []).slice(0, 3)
       };
     }
 
@@ -273,7 +275,7 @@ export async function generateMLRecommendation(preferences, wardrobe = []) {
     const res = await fetch(`${API_BASE_URL}/ml/recommend`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ preferences, wardrobe })
+      body: JSON.stringify({ preferences, wardrobe, user_photo: userPhoto })
     });
     if (!res.ok) throw new Error(`Recommendation error ${res.status}`);
     const data = await res.json();
@@ -323,7 +325,7 @@ export async function getVTOStatus() {
 /**
  * Functionality 4: AI Virtual Try-On Execution Endpoint
  * Synthesizes neural geometric cloth warping and silhouette blending
- * @param {Object} payload - { person_image, garment_image, category, blend_mode }
+ * @param {Object} payload - { person_image, garment_image, category, blend_mode, items }
  */
 export async function requestVirtualTryOn(payload = {}) {
   try {
@@ -346,4 +348,50 @@ export async function requestVirtualTryOn(payload = {}) {
     };
   }
 }
+
+/**
+ * Genuine Multi-Garment Outfit Virtual Try-On Endpoint
+ * Synthesizes mixed outfits combining wardrobe items and online shopping items
+ * @param {Object} payload - { user_photo, garments }
+ */
+export async function requestOutfitTryOn(payload = {}) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/try-on/outfit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || `Outfit Try-On error (${res.status})`);
+    }
+    return data;
+  } catch (err) {
+    console.warn('Outfit Try-On request failed:', err.message);
+    return {
+      status: 'error',
+      error: err.message || 'Outfit Try-On service unavailable'
+    };
+  }
+}
+
+/**
+ * Dynamic live retail product search (Myntra) without persistent catalog databases
+ * @param {Object} params - { q, slot, colour, limit }
+ */
+export async function searchOnlineProducts(params = {}) {
+  try {
+    const searchParams = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE_URL}/shopping/search?${searchParams}`, {
+      method: 'GET'
+    });
+    if (!res.ok) throw new Error(`Search error (${res.status})`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Online product search unavailable:', err.message);
+    return { status: 'error', products: [] };
+  }
+}
+
 

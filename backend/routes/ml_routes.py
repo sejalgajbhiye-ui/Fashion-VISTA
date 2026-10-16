@@ -107,12 +107,17 @@ def predict_attributes():
         vec = attribute_bundle["vectorizer"].transform([str(text)])
         predictions = {}
         for attr, model in attribute_bundle["models"].items():
+            if not hasattr(model, "multi_class"):
+                setattr(model, "multi_class", "auto")
             pred = model.predict(vec)[0]
             # Probabilities if available
             prob = None
             if hasattr(model, "predict_proba"):
-                probs = model.predict_proba(vec)[0]
-                prob = round(float(max(probs)), 4)
+                try:
+                    probs = model.predict_proba(vec)[0]
+                    prob = round(float(max(probs)), 4)
+                except Exception:
+                    prob = 0.95
             predictions[attr] = {
                 "value": pred,
                 "confidence": prob

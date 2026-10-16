@@ -183,9 +183,9 @@ def get_all_wardrobe_items(user_id=None):
             (user_id,)
         )
     else:
-        # For guests without an account, only return items explicitly saved by guest session
+        # For guests without an account, return guest or default seed items
         cursor.execute(
-            "SELECT * FROM wardrobe_items WHERE user_id = 'guest' ORDER BY created_at DESC"
+            "SELECT * FROM wardrobe_items WHERE user_id = 'guest' OR user_id IS NULL ORDER BY created_at DESC"
         )
     rows = cursor.fetchall()
     items = [dict(row) for row in rows]

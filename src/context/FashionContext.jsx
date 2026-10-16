@@ -16,6 +16,7 @@ import {
   updateSupabaseWardrobeItem,
   deleteSupabaseWardrobeItem
 } from '../services/supabaseWardrobe';
+import { synthesizeLookTryOn } from '../utils/tryOnGenerator';
 
 const FashionContext = createContext();
 
@@ -114,14 +115,22 @@ export const matchOutfitWithWardrobe = (outfit, userWardrobe = []) => {
 
     return {
       ...item,
+      name: isOwned ? (matchedItem.name || item.name) : item.name,
+      image: isOwned ? (matchedItem.image || item.image) : item.image,
       inWardrobe: isOwned,
       owned: isOwned,
       needed_to_buy: !isOwned,
+      source: isOwned ? 'wardrobe' : 'online',
+      source_label: isOwned ? 'From Your Wardrobe' : 'Shop Online',
+      retailer: isOwned ? null : (item.retailer || 'Myntra'),
+      price: isOwned ? null : (item.price || 1299),
+      buy_link: isOwned ? null : (item.buy_link || item.buy_url || `https://www.myntra.com/${encodeURIComponent(item.name || '').replace(/%20/g, '-')}`),
       matchedWardrobeId: matchedItem ? matchedItem.id : null,
       matchedWardrobeName: matchedItem ? matchedItem.name : null,
       matchedWardrobeImage: matchedItem ? matchedItem.image : null
     };
   });
+
 
   const ownedCount = items.filter(i => i.inWardrobe).length;
   const totalCount = items.length;
@@ -193,6 +202,9 @@ export const normalizeOutfitObject = (raw, idx = 0, defaultPrefs = {}, userWardr
     heroImage: heroImg,
     image: heroImg,
     composed_look_image: raw.composed_look_image || null,
+    user_tryon_image: raw.user_tryon_image || raw.tryonImage || null,
+    tryonImage: raw.user_tryon_image || raw.tryonImage || null,
+    user_photo: raw.user_photo || raw.userPhoto || null,
     items: raw.items || [],
     compatibility_score: raw.compatibility_score || 92,
     color_score: raw.color_score || 90,
@@ -373,7 +385,7 @@ export const FashionProvider = ({ children }) => {
   }, [tryExistingSelection]);
 
   // 5. User full-body photo for Virtual Try-On
-  const defaultUserPhoto = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80";
+  const defaultUserPhoto = "/user_indian_portrait.jpg";
   const [userPhoto, setUserPhotoState] = useState(() => {
     return localStorage.getItem('fashion_vista_user_photo') || defaultUserPhoto;
   });
@@ -594,19 +606,19 @@ export const FashionProvider = ({ children }) => {
   const generateRecommendation = async (newPrefs) => {
     setPreferences(newPrefs);
 
-    // Attempt real ML recommendation from Flask backend
+    // Attempt real ML recommendation from Flask backend with userPhoto
     let mlRec = null;
     try {
-      mlRec = await generateMLRecommendation(newPrefs, wardrobe);
+      mlRec = await generateMLRecommendation(newPrefs, wardrobe, userPhoto);
     } catch (err) {
       console.warn("Backend ML recommendation unavailable, falling back to local curation:", err);
     }
 
     let rawOutfits = [];
     if (mlRec && Array.isArray(mlRec.recommendations) && mlRec.recommendations.length > 0) {
-      rawOutfits = mlRec.recommendations;
+      rawOutfits = mlRec.recommendations.slice(0, 3);
     } else if (mlRec && mlRec.items && mlRec.items.length >= 3) {
-      rawOutfits = [mlRec, ...(mlRec.alternatives || [])];
+      rawOutfits = [mlRec, ...(mlRec.alternatives || [])].slice(0, 3);
     } else {
       // Dynamic fallback strictly matching user-selected colour and occasion
       const occ = newPrefs.occasion || 'College';
@@ -684,8 +696,9 @@ export const FashionProvider = ({ children }) => {
         shoeCol = 'White';
       }
 
-      const dynamicLook = {
-        id: `rec-${occLower}-${Date.now()}`,
+      // Look 01: Primary Curation
+      const dynamicLook1 = {
+        id: `rec-${occLower}-1-${Date.now()}`,
         name: `Look 01: ${col} ${occ} Curation`,
         subtitle: `Harmonious ${col} silhouette calibrated for ${occ.toLowerCase()} comfort`,
         occasion: occ,
@@ -729,15 +742,135 @@ export const FashionProvider = ({ children }) => {
         ]
       };
 
-      rawOutfits = [dynamicLook];
+      // Look 02: Minimalist / Neutral Contrast
+      const altBotCol = botCol === 'White' ? 'Blue' : 'White';
+      const dynamicLook2 = {
+        id: `rec-${occLower}-2-${Date.now()}`,
+        name: `Look 02: ${col} Minimalist Contrast`,
+        subtitle: `Clean contemporary lines pairing ${col} with ${altBotCol} accents`,
+        occasion: occ,
+        style: newPrefs.style || 'Casual',
+        colour: `${col} + ${altBotCol}`,
+        budget: '2100',
+        compatibility_score: 91,
+        color_score: 89,
+        heroImage: defaultRecommendation.heroImage,
+        items: [
+          {
+            id: `piece-2-top-${col.toLowerCase()}`,
+            name: `Modern ${col} Relaxed Fit Blouse`,
+            slot: 'Top',
+            category: 'Tops',
+            colour: col,
+            brand: 'Uniqlo',
+            description: `Lightweight ${col.toLowerCase()} cotton top offering understated everyday chic.`,
+            image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80'
+          },
+          {
+            id: `piece-2-bot-${altBotCol.toLowerCase()}`,
+            name: `Tailored ${altBotCol} Relaxed Trousers`,
+            slot: 'Bottom',
+            category: 'Bottoms',
+            colour: altBotCol,
+            brand: 'Mango',
+            description: `High-rise relaxed fit ${altBotCol.toLowerCase()} trousers providing high-contrast clarity.`,
+            image: 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=700&q=80'
+          },
+          {
+            id: 'piece-2-shoe-white',
+            name: 'Classic White Canvas Sneakers',
+            slot: 'Shoes',
+            category: 'Shoes',
+            colour: 'White',
+            brand: 'Converse',
+            description: 'Crisp white retro sneakers ensuring balanced everyday proportion.',
+            image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=80'
+          }
+        ]
+      };
+
+      // Look 03: Statement Chic
+      const dynamicLook3 = {
+        id: `rec-${occLower}-3-${Date.now()}`,
+        name: `Look 03: ${col} Statement Chic`,
+        subtitle: `Elevated silhouette balancing ${col} with grounded dark charcoal neutrals`,
+        occasion: occ,
+        style: newPrefs.style || 'Casual',
+        colour: `${col} + Charcoal`,
+        budget: '2400',
+        compatibility_score: 93,
+        color_score: 91,
+        heroImage: defaultRecommendation.heroImage,
+        items: [
+          {
+            id: `piece-3-top-${col.toLowerCase()}`,
+            name: `Structured ${col} Elegant Topwear`,
+            slot: 'Top',
+            category: 'Tops',
+            colour: col,
+            brand: 'Massimo Dutti',
+            description: `Sophisticated ${col.toLowerCase()} silhouette styled with refined proportions.`,
+            image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80'
+          },
+          {
+            id: 'piece-3-bot-charcoal',
+            name: 'Charcoal Straight-Leg Trousers',
+            slot: 'Bottom',
+            category: 'Bottoms',
+            colour: 'Charcoal',
+            brand: 'Zara',
+            description: 'Deep neutral trousers giving grounding and elegance to vibrant colors.',
+            image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80'
+          },
+          {
+            id: 'piece-3-shoe-black',
+            name: 'Black Leather Pointed Loafers',
+            slot: 'Shoes',
+            category: 'Shoes',
+            colour: 'Black',
+            brand: 'Clarks',
+            description: 'Refined black footwear for versatile polished style.',
+            image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=700&q=80'
+          }
+        ]
+      };
+
+      rawOutfits = [dynamicLook1, dynamicLook2, dynamicLook3];
     }
 
     const cleanOutfits = rawOutfits
+      .slice(0, 3)
       .map((o, idx) => normalizeOutfitObject(o, idx, newPrefs, wardrobe))
       .filter(Boolean);
 
-    const finalOutfits = cleanOutfits.length > 0
-      ? cleanOutfits
+    // Generate/enrich personalized try-on image for EACH of the maximum 3 looks on the user's photo
+    const outfitsWithTryOn = await Promise.all(
+      cleanOutfits.map(async (outfit, idx) => {
+        try {
+          if (userPhoto && !outfit.user_tryon_image) {
+            const tryonImg = await synthesizeLookTryOn(userPhoto, outfit, outfit.name || `Look 0${idx + 1}`);
+            if (tryonImg) {
+              return {
+                ...outfit,
+                user_tryon_image: tryonImg,
+                tryonImage: tryonImg,
+                user_photo: userPhoto
+              };
+            }
+          }
+          return {
+            ...outfit,
+            user_photo: userPhoto
+          };
+        } catch (tryonErr) {
+          console.warn(`Try-on synthesis note for look ${idx + 1}:`, tryonErr);
+          return outfit;
+        }
+      })
+    );
+
+    const finalOutfits = outfitsWithTryOn.length > 0
+      ? outfitsWithTryOn
       : [normalizeOutfitObject(defaultRecommendation, 0, newPrefs, wardrobe)];
 
     const primaryOutfit = {

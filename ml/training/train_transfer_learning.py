@@ -101,7 +101,7 @@ def preprocess_to_3channel(images_np):
     return torch.tensor(standardized, dtype=torch.float32)
 
 
-def train_and_evaluate(sample_limit=12000, epochs=2):
+def train_and_evaluate(sample_limit=12000, epochs=10):
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
