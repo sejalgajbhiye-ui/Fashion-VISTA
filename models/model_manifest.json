@@ -69,17 +69,22 @@
     },
     "virtual_try_on": {
       "model_id": "vton_neural_tryon",
-      "architecture": "NeuralTryOnPipeline (Geometric STN Warper + ConvNet Refinement)",
+      "architecture": "NeuralTryOnPipeline (STN Warper + ResNet Refinement with Perceptual Loss)",
       "task": "Virtual Try-On Neural Garment Fitting & Synthesis",
-      "dataset": "Fashion VISTA Paired VTON (50 paired triplets)",
-      "dataset_samples": 50,
-      "epochs_trained": 10,
-      "final_train_loss": 0.1202,
-      "final_val_loss": 0.3018,
+      "dataset": "Fashion VISTA Paired VTON (261 paired triplets)",
+      "dataset_samples": 261,
+      "epochs_trained": 5,
+      "input_resolution": [
+        512,
+        512
+      ],
+      "perceptual_loss": "Multi-Scale Intermediate Feature Loss",
+      "final_train_loss": 0.2464,
+      "final_val_loss": 0.2196,
       "artifact_path": "models/vton_neural_tryon.pt",
       "status": "ready",
       "photorealistic": true,
-      "updated_at": "2026-10-16 22:50:49"
+      "updated_at": "2026-10-17 13:55:08"
     }
   }
 }

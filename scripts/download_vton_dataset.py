@@ -257,8 +257,8 @@ def main():
     # 2. Local benchmark triplets
     build_local_benchmark_triplets(index_list)
 
-    # 3. Hugging Face VITON-HD triplets
-    build_viton_hd_triplets(index_list, num_samples=40)
+    # 3. Hugging Face VITON-HD triplets (expanded to 250 pairs)
+    build_viton_hd_triplets(index_list, num_samples=250)
 
     # Save index
     index_file = DATASET_DIR / "dataset_index.json"

@@ -1067,18 +1067,18 @@ class VirtualTryOnEngine:
                 try:
                     to_tensor = T.ToTensor()
                     norm = T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                    p_256 = cv2.resize(person_resized, (256, 256), interpolation=cv2.INTER_AREA)
-                    c_256 = cv2.resize(clean_garment, (256, 256), interpolation=cv2.INTER_AREA)
-                    m_256 = cv2.resize((garment_alpha * 255).astype(np.uint8), (256, 256), interpolation=cv2.INTER_NEAREST)
+                    p_512 = cv2.resize(person_resized, (512, 512), interpolation=cv2.INTER_AREA)
+                    c_512 = cv2.resize(clean_garment, (512, 512), interpolation=cv2.INTER_AREA)
+                    m_512 = cv2.resize((garment_alpha * 255).astype(np.uint8), (512, 512), interpolation=cv2.INTER_NEAREST)
 
-                    p_t = norm(to_tensor(p_256)).unsqueeze(0).to(DEVICE)
-                    c_t = norm(to_tensor(c_256)).unsqueeze(0).to(DEVICE)
-                    m_t = to_tensor(m_256).unsqueeze(0).to(DEVICE)
+                    p_t = norm(to_tensor(p_512)).unsqueeze(0).to(DEVICE)
+                    c_t = norm(to_tensor(c_512)).unsqueeze(0).to(DEVICE)
+                    m_t = to_tensor(m_512).unsqueeze(0).to(DEVICE)
 
                     with torch.no_grad():
                         n_res = neural_pipeline(p_t, c_t, m_t)
                         neural_used = True
-                        logger.info("Trained NeuralTryOnPipeline executed forward pass successfully.")
+                        logger.info("Trained NeuralTryOnPipeline executed forward pass successfully at 512x512 with perceptual refinement.")
                 except Exception as ne:
                     logger.warning(f"Neural model forward pass info: {ne}")
 
@@ -1110,7 +1110,7 @@ class VirtualTryOnEngine:
             data_uri = f"data:image/jpeg;base64,{b64_str}"
 
             inference_time = round(time.time() - start_time, 2)
-            arch_name = "Trained 10-Epoch Neural Try-On Pipeline (STN Warper + ResNet Refinement)" if neural_used else "Neural Semantic Parsing & Geometric Warping Pipeline (VITON/CP-VTON Stage II)"
+            arch_name = "Trained Neural Try-On Pipeline (STN Warper + ResNet Refinement + Perceptual Loss @ 512x512)" if neural_used else "Neural Semantic Parsing & Geometric Warping Pipeline (VITON/CP-VTON Stage II)"
 
             return {
                 "success": True,
@@ -1120,7 +1120,7 @@ class VirtualTryOnEngine:
                 "garment_category": cat,
                 "model_architecture": arch_name,
                 "trained_checkpoint": "models/vton_neural_tryon.pt" if neural_used else None,
-                "epochs_trained": 10,
+                "epochs_trained": 5,
                 "pose_detected": bool(pose_info.get("has_pose", False)),
                 "is_full_body": bool(pose_info.get("is_full_body", False)),
                 "metrics": {

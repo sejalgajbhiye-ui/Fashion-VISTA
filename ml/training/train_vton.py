@@ -33,8 +33,8 @@ MODELS_DIR = BASE_DIR / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 DEVICE = torch.device("cpu")
-IMAGE_SIZE = (256, 256)
-EPOCHS = 10
+IMAGE_SIZE = (512, 512)
+EPOCHS = 5
 BATCH_SIZE = 4
 LEARNING_RATE = 1e-3
 
@@ -251,7 +251,7 @@ class NeuralTryOnPipeline(nn.Module):
 
 
 # ============================================================================
-# 3. Loss Functions
+# 3. Perceptual Feature Loss & Objective Functions
 # ============================================================================
 def compute_image_gradients(img: torch.Tensor):
     """Computes Sobel horizontal and vertical image gradients."""
@@ -260,12 +260,76 @@ def compute_image_gradients(img: torch.Tensor):
     return dx, dy
 
 
-def tryon_loss_fn(pred: torch.Tensor, target: torch.Tensor, warped_cloth: torch.Tensor, alpha: torch.Tensor):
+class PerceptualLoss(nn.Module):
+    """
+    Multi-Scale Deep Feature Perceptual Loss (Johnson et al. / VGG / MobileNet style).
+    Extracts deep intermediate feature representations to enforce high-frequency
+    structural similarity, crisp fabric texture, and contour fidelity.
+    """
+
+    def __init__(self, device: torch.device):
+        super().__init__()
+        import torchvision.models as models
+        self.device = device
+        self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1))
+        self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1))
+
+        # Use cached vision backbone for perceptual features
+        mb = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT).features.to(device).eval()
+        for p in mb.parameters():
+            p.requires_grad = False
+
+        # Slice 1: Low-level edges & fine fabric textures (conv 0..2)
+        self.slice1 = nn.Sequential(*[mb[i] for i in range(2)]).to(device)
+        # Slice 2: Mid-level shapes & contours (conv 2..7)
+        self.slice2 = nn.Sequential(*[mb[i] for i in range(2, 7)]).to(device)
+        # Slice 3: High-level semantic composition (conv 7..14)
+        self.slice3 = nn.Sequential(*[mb[i] for i in range(7, 14)]).to(device)
+
+    def _normalize(self, x: torch.Tensor) -> torch.Tensor:
+        # Inputs are in [-1, 1], map to [0, 1] then ImageNet standard
+        x_01 = (x + 1.0) * 0.5
+        return (x_01 - self.mean) / self.std
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        # Downsample to 256x256 for fast, stable perceptual feature extraction
+        p_small = F.interpolate(pred, size=(256, 256), mode="bilinear", align_corners=False)
+        t_small = F.interpolate(target, size=(256, 256), mode="bilinear", align_corners=False)
+
+        pn = self._normalize(p_small)
+        tn = self._normalize(t_small)
+
+        p1 = self.slice1(pn)
+        with torch.no_grad():
+            t1 = self.slice1(tn)
+        l1 = F.l1_loss(p1, t1)
+
+        p2 = self.slice2(p1)
+        with torch.no_grad():
+            t2 = self.slice2(t1)
+        l2 = F.l1_loss(p2, t2)
+
+        p3 = self.slice3(p2)
+        with torch.no_grad():
+            t3 = self.slice3(t2)
+        l3 = F.l1_loss(p3, t3)
+
+        return l1 + 0.5 * l2 + 0.25 * l3
+
+
+def tryon_loss_fn(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    warped_cloth: torch.Tensor,
+    alpha: torch.Tensor,
+    perceptual_module: PerceptualLoss = None
+):
     """
     Combined objective:
     1. L1 Pixel Reconstruction Loss
-    2. Gradient Texture & Edge Sharpness Loss
-    3. Alpha Sparsity & Torso Alignment Regularization
+    2. Deep Feature Perceptual Loss (Multi-scale texture & pattern preservation)
+    3. Gradient Texture & Edge Sharpness Loss (Sobel gradients)
+    4. Warping Regularization (Anatomical alignment)
     """
     l1_loss = F.l1_loss(pred, target)
 
@@ -277,22 +341,30 @@ def tryon_loss_fn(pred: torch.Tensor, target: torch.Tensor, warped_cloth: torch.
     # Warping regularization (garment should stay near plausible bounds)
     warp_reg = F.l1_loss(warped_cloth * alpha, target * alpha)
 
-    total_loss = l1_loss + 0.4 * grad_loss + 0.2 * warp_reg
+    # Perceptual feature loss
+    if perceptual_module is not None:
+        perc_loss = perceptual_module(pred, target)
+    else:
+        perc_loss = torch.tensor(0.0, device=pred.device)
+
+    total_loss = l1_loss + 0.3 * grad_loss + 0.2 * warp_reg + 0.05 * perc_loss
     return total_loss, {
         "l1": l1_loss.item(),
         "grad": grad_loss.item(),
         "warp": warp_reg.item(),
+        "perceptual": perc_loss.item(),
         "total": total_loss.item()
     }
 
 
 # ============================================================================
-# 4. Training Loop (10 Epochs)
+# 4. Training Loop (Expanded Paired Dataset + 512x512 + Perceptual Loss)
 # ============================================================================
 def train_model():
-    logger.info("=" * 65)
-    logger.info("Fashion VISTA — Training Neural Try-On Model (10 Epochs)")
-    logger.info("=" * 65)
+    logger.info("=" * 70)
+    logger.info(f"Fashion VISTA — Training Neural Try-On Model ({EPOCHS} Epochs @ {IMAGE_SIZE[0]}x{IMAGE_SIZE[1]})")
+    logger.info("Features: Expanded Paired Dataset + 512x512 Resolution + Perceptual Loss")
+    logger.info("=" * 70)
 
     index_path = DATASET_DIR / "dataset_index.json"
     if not index_path.exists():
@@ -300,7 +372,7 @@ def train_model():
 
     dataset = VTONPairedDataset(index_path)
     total_len = len(dataset)
-    val_len = min(6, int(total_len * 0.15))
+    val_len = min(20, int(total_len * 0.10))
     train_len = total_len - val_len
 
     train_set, val_set = torch.utils.data.random_split(
@@ -312,11 +384,12 @@ def train_model():
     val_loader = DataLoader(val_set, batch_size=BATCH_SIZE, shuffle=False)
 
     logger.info(f"Loaded {total_len} paired triplets: {train_len} train, {val_len} validation.")
-    logger.info(f"Device: {DEVICE} | Batch size: {BATCH_SIZE} | Epochs: {EPOCHS}")
+    logger.info(f"Device: {DEVICE} | Batch size: {BATCH_SIZE} | Epochs: {EPOCHS} | Resolution: {IMAGE_SIZE}")
 
     model = NeuralTryOnPipeline().to(DEVICE)
+    perceptual_module = PerceptualLoss(DEVICE)
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.75)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.75)
 
     history = []
     start_total_time = time.time()
@@ -327,6 +400,7 @@ def train_model():
         train_losses = []
         l1_losses = []
         grad_losses = []
+        perc_losses = []
 
         for batch in train_loader:
             p = batch["person"].to(DEVICE)
@@ -336,16 +410,20 @@ def train_model():
 
             optimizer.zero_grad()
             res = model(p, c, c_mask)
-            loss, loss_details = tryon_loss_fn(res["output"], target, res["warped_cloth"], res["alpha"])
+            loss, loss_details = tryon_loss_fn(
+                res["output"], target, res["warped_cloth"], res["alpha"],
+                perceptual_module=perceptual_module
+            )
             loss.backward()
 
-            # Gradient clipping for stability
+            # Gradient clipping for numerical stability
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0)
             optimizer.step()
 
             train_losses.append(loss_details["total"])
             l1_losses.append(loss_details["l1"])
             grad_losses.append(loss_details["grad"])
+            perc_losses.append(loss_details["perceptual"])
 
         scheduler.step()
 
@@ -360,18 +438,22 @@ def train_model():
                 vtarget = vbatch["person_wearing_cloth"].to(DEVICE)
 
                 vres = model(vp, vc, vc_mask)
-                vloss, _ = tryon_loss_fn(vres["output"], vtarget, vres["warped_cloth"], vres["alpha"])
+                vloss, _ = tryon_loss_fn(
+                    vres["output"], vtarget, vres["warped_cloth"], vres["alpha"],
+                    perceptual_module=perceptual_module
+                )
                 val_losses.append(vloss.item())
 
         mean_train = float(np.mean(train_losses))
         mean_l1 = float(np.mean(l1_losses))
         mean_grad = float(np.mean(grad_losses))
+        mean_perc = float(np.mean(perc_losses))
         mean_val = float(np.mean(val_losses)) if val_losses else mean_train
         duration = time.time() - epoch_start
 
         logger.info(
             f"Epoch [{epoch:02d}/{EPOCHS:02d}] "
-            f"Train Loss: {mean_train:.4f} (L1: {mean_l1:.4f}, Grad: {mean_grad:.4f}) | "
+            f"Train Loss: {mean_train:.4f} (L1: {mean_l1:.4f}, Grad: {mean_grad:.4f}, Perc: {mean_perc:.4f}) | "
             f"Val Loss: {mean_val:.4f} | "
             f"Time: {duration:.2f}s | LR: {scheduler.get_last_lr()[0]:.6f}"
         )
@@ -381,6 +463,7 @@ def train_model():
             "train_loss": round(mean_train, 4),
             "l1_loss": round(mean_l1, 4),
             "grad_loss": round(mean_grad, 4),
+            "perceptual_loss": round(mean_perc, 4),
             "val_loss": round(mean_val, 4),
             "duration_sec": round(duration, 2)
         })
@@ -392,13 +475,16 @@ def train_model():
     output_model_path = MODELS_DIR / "vton_neural_tryon.pt"
     checkpoint = {
         "model_state_dict": model.state_dict(),
-        "architecture": "NeuralTryOnPipeline (STN Warper + ResNet Refinement Synthesis)",
+        "architecture": "NeuralTryOnPipeline (STN Warper + ResNet Refinement Synthesis with Perceptual Loss)",
         "epochs": EPOCHS,
         "input_resolution": list(IMAGE_SIZE),
         "history": history,
         "final_train_loss": history[-1]["train_loss"],
         "final_val_loss": history[-1]["val_loss"],
+        "final_l1_loss": history[-1]["l1_loss"],
+        "final_perceptual_loss": history[-1]["perceptual_loss"],
         "dataset_samples": total_len,
+        "perceptual_loss_enabled": True,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     }
     torch.save(checkpoint, output_model_path)
@@ -412,11 +498,13 @@ def train_model():
 
         manifest["models"]["virtual_try_on"] = {
             "model_id": "vton_neural_tryon",
-            "architecture": "NeuralTryOnPipeline (Geometric STN Warper + ConvNet Refinement)",
+            "architecture": "NeuralTryOnPipeline (STN Warper + ResNet Refinement with Perceptual Loss)",
             "task": "Virtual Try-On Neural Garment Fitting & Synthesis",
             "dataset": f"Fashion VISTA Paired VTON ({total_len} paired triplets)",
             "dataset_samples": total_len,
             "epochs_trained": EPOCHS,
+            "input_resolution": list(IMAGE_SIZE),
+            "perceptual_loss": "Multi-Scale Intermediate Feature Loss",
             "final_train_loss": history[-1]["train_loss"],
             "final_val_loss": history[-1]["val_loss"],
             "artifact_path": "models/vton_neural_tryon.pt",
