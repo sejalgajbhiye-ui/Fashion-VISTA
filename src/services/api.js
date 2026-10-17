@@ -394,4 +394,83 @@ export async function searchOnlineProducts(params = {}) {
   }
 }
 
+/**
+ * FitInView Virtual Try-On API Integration
+ */
+
+/**
+ * Fetch FitInView account credit balance, key configuration, and limits
+ */
+export async function getFitInViewAccount() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/tryon/fitinview/account`, {
+      method: 'GET'
+    });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('FitInView account check notice:', err.message);
+    return { configured: false, error: err.message };
+  }
+}
+
+/**
+ * Dispatches an automated batch try-on workflow for top-ranked recommendations.
+ * @param {Object} payload - { user_photo, preferences, recommendations, limit, output_size }
+ */
+export async function startFitInViewBatchTryOn(payload = {}) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/tryon/fitinview/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || `Batch try-on dispatch error (${res.status})`);
+    }
+    return data;
+  } catch (err) {
+    console.error('FitInView batch try-on dispatch failed:', err);
+    throw err;
+  }
+}
+
+/**
+ * Polls progress and retrieves generated try-on results for a batch
+ * @param {string} batchId
+ */
+export async function getFitInViewBatchStatus(batchId) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/tryon/fitinview/batch/${batchId}`, {
+      method: 'GET'
+    });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn(`FitInView batch poll error for ${batchId}:`, err.message);
+    return { success: false, status: 'error', error: err.message };
+  }
+}
+
+/**
+ * Retries an individual failed try-on job within a batch
+ * @param {string} batchId
+ * @param {string} jobId
+ * @param {string} userPhoto
+ */
+export async function retryFitInViewJob(batchId, jobId, userPhoto) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/tryon/fitinview/batch/${batchId}/retry/${jobId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_photo: userPhoto })
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn(`FitInView retry error for ${jobId}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 

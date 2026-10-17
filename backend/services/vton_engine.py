@@ -452,9 +452,9 @@ class VirtualTryOnEngine:
                         "is_model": False,
                         "category": "topwear",
                         "neck": np.array([x_min + box_w * 0.50, y_min + box_h * 0.05], dtype=np.float32),
-                        "left_shoulder": np.array([x_max - box_w * 0.82, y_min + box_h * 0.18], dtype=np.float32),
+                        "left_shoulder": np.array([x_max - box_w * 0.18, y_min + box_h * 0.18], dtype=np.float32),
                         "right_shoulder": np.array([x_min + box_w * 0.18, y_min + box_h * 0.18], dtype=np.float32),
-                        "left_hip": np.array([x_max - box_w * 0.78, y_max - box_h * 0.02], dtype=np.float32),
+                        "left_hip": np.array([x_max - box_w * 0.22, y_max - box_h * 0.02], dtype=np.float32),
                         "right_hip": np.array([x_min + box_w * 0.22, y_max - box_h * 0.02], dtype=np.float32)
                     }
                 return clean_rgb, alpha_float, anchors
@@ -993,6 +993,44 @@ class VirtualTryOnEngine:
             # Strictly clamp alpha to valid garment pixels (eliminates jagged black outlines!)
             cloth_alpha_clamped = np.minimum(warped_alpha, valid_cloth)
             cloth_alpha_effective = cloth_alpha_clamped * top_mask
+
+        # Arm & Hand Foreground Protection (keeps raised hands, peace signs, and forearms in front of clothing)
+        arm_fg_mask = np.zeros((h, w), dtype=np.float32)
+        sh_w = pose_info.get("shoulder_width", w * 0.35)
+        arm_thickness = max(14, int(sh_w * 0.16))
+        hand_radius = max(18, int(sh_w * 0.18))
+
+        # Check left arm
+        if pose_info.get("conf_l_wr", 0) > 0.25 and "left_wrist" in pose_info:
+            l_wr = pose_info["left_wrist"].astype(np.int32)
+            cv2.circle(arm_fg_mask, (l_wr[0], l_wr[1]), hand_radius, 1.0, -1)
+            if "left_elbow" in pose_info:
+                l_el = pose_info["left_elbow"].astype(np.int32)
+                cv2.line(arm_fg_mask, (l_el[0], l_el[1]), (l_wr[0], l_wr[1]), 1.0, arm_thickness)
+                dir_vec = (l_wr - l_el).astype(np.float32)
+                dir_norm = np.linalg.norm(dir_vec)
+                if dir_norm > 5:
+                    hand_tip = (l_wr + (dir_vec / dir_norm) * hand_radius * 1.2).astype(np.int32)
+                    cv2.circle(arm_fg_mask, (hand_tip[0], hand_tip[1]), int(hand_radius * 0.9), 1.0, -1)
+                    cv2.line(arm_fg_mask, (l_wr[0], l_wr[1]), (hand_tip[0], hand_tip[1]), 1.0, arm_thickness)
+
+        # Check right arm
+        if pose_info.get("conf_r_wr", 0) > 0.25 and "right_wrist" in pose_info:
+            r_wr = pose_info["right_wrist"].astype(np.int32)
+            cv2.circle(arm_fg_mask, (r_wr[0], r_wr[1]), hand_radius, 1.0, -1)
+            if "right_elbow" in pose_info:
+                r_el = pose_info["right_elbow"].astype(np.int32)
+                cv2.line(arm_fg_mask, (r_el[0], r_el[1]), (r_wr[0], r_wr[1]), 1.0, arm_thickness)
+                dir_vec = (r_wr - r_el).astype(np.float32)
+                dir_norm = np.linalg.norm(dir_vec)
+                if dir_norm > 5:
+                    hand_tip = (r_wr + (dir_vec / dir_norm) * hand_radius * 1.2).astype(np.int32)
+                    cv2.circle(arm_fg_mask, (hand_tip[0], hand_tip[1]), int(hand_radius * 0.9), 1.0, -1)
+                    cv2.line(arm_fg_mask, (r_wr[0], r_wr[1]), (hand_tip[0], hand_tip[1]), 1.0, arm_thickness)
+
+        if np.any(arm_fg_mask > 0):
+            arm_fg_mask = cv2.GaussianBlur(arm_fg_mask, (7, 7), 0)
+            cloth_alpha_effective = cloth_alpha_effective * (1.0 - np.clip(arm_fg_mask * 1.15, 0.0, 1.0))
 
         # Soft edge feathering strictly within valid cloth boundaries
         cloth_alpha_smooth = cv2.GaussianBlur(cloth_alpha_effective, (3, 3), 0)

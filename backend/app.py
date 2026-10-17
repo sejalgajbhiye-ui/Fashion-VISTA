@@ -28,6 +28,7 @@ from backend.routes.wardrobe_routes import wardrobe_bp
 from backend.routes.recommendation_routes import recommendation_bp
 from backend.routes.tryon_routes import tryon_bp
 from backend.routes.shopping_routes import shopping_bp
+from backend.routes.fitinview_routes import fitinview_bp
 from backend.database import init_db
 
 
@@ -52,6 +53,7 @@ def create_app():
     app.register_blueprint(recommendation_bp, url_prefix="/api")
     app.register_blueprint(tryon_bp, url_prefix="/api")
     app.register_blueprint(shopping_bp, url_prefix="/api")
+    app.register_blueprint(fitinview_bp, url_prefix="/api")
 
 
     @app.errorhandler(404)
