@@ -653,12 +653,12 @@ class OccasionEnsembleRecommender:
                 dress_img = tmpl["image"]
                 dress_buy_url = f"https://www.myntra.com/women-{target_color.lower()}-{sil_name.lower().replace(' ', '-')}"
 
-            # If below 1500 show Meesho, Amazon, or Flipkart; if above 1500 show Myntra
-            if dress_price < 1500:
-                if dress_price <= 750:
+            # If below 2000 show Meesho, Amazon, or Flipkart; if above 2000 show Myntra
+            if dress_price < 2000:
+                if dress_price <= 800:
                     retailer = "Meesho"
                     dress_buy_url = f"https://www.meesho.com/search?q={quote_plus(dress_name)}"
-                elif dress_price <= 1150:
+                elif dress_price <= 1400:
                     retailer = "Flipkart"
                     dress_buy_url = f"https://www.flipkart.com/search?q={quote_plus(dress_name)}&otracker=search"
                 else:
@@ -702,11 +702,11 @@ class OccasionEnsembleRecommender:
                 jewel_img = theme["jewel_img"]
                 jewel_url = f"https://www.myntra.com/necklace-and-chains?rawQuery={theme['metals'].replace(' ', '+')}"
 
-            if jewel_price < 1500:
-                if jewel_price <= 750:
+            if jewel_price < 2000:
+                if jewel_price <= 800:
                     j_retailer = "Meesho"
                     jewel_url = f"https://www.meesho.com/search?q={quote_plus(jewel_name)}"
-                elif jewel_price <= 1150:
+                elif jewel_price <= 1400:
                     j_retailer = "Flipkart"
                     jewel_url = f"https://www.flipkart.com/search?q={quote_plus(jewel_name)}&otracker=search"
                 else:
@@ -749,11 +749,11 @@ class OccasionEnsembleRecommender:
                 shoe_img = theme["shoe_img"]
                 shoe_url = f"https://www.myntra.com/women-footwear?rawQuery={theme['shoe_col']}+heels"
 
-            if shoe_price < 1500:
-                if shoe_price <= 750:
+            if shoe_price < 2000:
+                if shoe_price <= 800:
                     s_retailer = "Meesho"
                     shoe_url = f"https://www.meesho.com/search?q={quote_plus(shoe_name)}"
-                elif shoe_price <= 1150:
+                elif shoe_price <= 1400:
                     s_retailer = "Flipkart"
                     shoe_url = f"https://www.flipkart.com/search?q={quote_plus(shoe_name)}&otracker=search"
                 else:
@@ -798,11 +798,11 @@ class OccasionEnsembleRecommender:
                 bag_img = theme["bag_img"]
                 bag_url = f"https://www.myntra.com/women-handbags?rawQuery={target_color}+clutch"
 
-            if bag_price < 1500:
-                if bag_price <= 750:
+            if bag_price < 2000:
+                if bag_price <= 800:
                     b_retailer = "Meesho"
                     bag_url = f"https://www.meesho.com/search?q={quote_plus(bag_name)}"
-                elif bag_price <= 1150:
+                elif bag_price <= 1400:
                     b_retailer = "Flipkart"
                     bag_url = f"https://www.flipkart.com/search?q={quote_plus(bag_name)}&otracker=search"
                 else:
@@ -1158,14 +1158,14 @@ class OccasionEnsembleRecommender:
             try: max_price = int(max_price)
             except: max_price = None
 
-        if price_range == "under-1500":
-            min_price, max_price = 0, 1500
-        elif price_range == "1500-3000":
-            min_price, max_price = 1500, 3000
-        elif price_range == "3000-6000":
-            min_price, max_price = 3000, 6000
-        elif price_range == "above-6000":
-            min_price, max_price = 6000, None
+        if price_range in ("under-2000", "under-1500"):
+            min_price, max_price = 0, 2000
+        elif price_range in ("2000-4000", "2000-5000", "1500-3000"):
+            min_price, max_price = 2000, 5000
+        elif price_range in ("4000-8000", "5000-10000", "3000-6000"):
+            min_price, max_price = 5000, 10000
+        elif price_range in ("8000-plus", "above-6000", "6000-plus"):
+            min_price, max_price = 8000, None
 
         # Seamlessly load Virtual Wardrobe items from SQLite database if not provided
         active_wardrobe = wardrobe

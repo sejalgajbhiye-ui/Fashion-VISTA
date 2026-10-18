@@ -57,6 +57,7 @@ const COLOR_PRESETS = [
 // Pre-defined Hard Budget Constraint Presets
 const BUDGET_PRESETS = [
   { id: 'all', label: 'All Budgets', value: null },
+  { id: '2000', label: 'Under ₹2,000 (Meesho/Amazon/Flipkart)', value: 2000 },
   { id: '3000', label: 'Under ₹3,000', value: 3000 },
   { id: '5000', label: 'Under ₹5,000', value: 5000 },
   { id: '8000', label: 'Under ₹8,000', value: 8000 },
@@ -76,15 +77,15 @@ const EXCLUDED_COLOR_PRESETS = [
 // Pre-defined Live Price Range Filter Presets
 const PRICE_RANGE_PRESETS = [
   { id: 'all', label: 'All Price Ranges', min: null, max: null },
-  { id: 'under-1500', label: 'Under ₹1,500', min: null, max: 1500 },
-  { id: '1500-3000', label: '₹1,500 - ₹3,000', min: 1500, max: 3000 },
-  { id: '3000-6000', label: '₹3,000 - ₹6,000', min: 3000, max: 6000 },
-  { id: '6000-plus', label: '₹6,000+', min: 6000, max: null }
+  { id: 'under-2000', label: 'Under ₹2,000 (Meesho / Amazon / Flipkart)', min: null, max: 2000 },
+  { id: '2000-4000', label: '₹2,000 - ₹4,000 (Myntra)', min: 2000, max: 4000 },
+  { id: '4000-8000', label: '₹4,000 - ₹8,000 (Myntra)', min: 4000, max: 8000 },
+  { id: '8000-plus', label: '₹8,000+ (Myntra Luxury)', min: 8000, max: null }
 ];
 
 // Direct Product Buy Card Component
 // Shows verified live seller price, MRP, discount, and a direct purchase link to the exact specific product
-// Dynamically supports Meesho, Flipkart, Amazon for < ₹1,500 and Myntra for >= ₹1,500
+// Dynamically supports Meesho, Flipkart, Amazon for < ₹2,000 and Myntra for >= ₹2,000
 const DirectProductBuyCard = ({ item }) => {
   if (!item) return null;
   const price = item.price || item.base_price || 0;
@@ -92,22 +93,22 @@ const DirectProductBuyCard = ({ item }) => {
   const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
   // Enforce price-based retailer rule:
-  // If price < 1500: Meesho, Flipkart, or Amazon
-  // If price >= 1500: Myntra
+  // If price < 2000: Meesho, Flipkart, or Amazon
+  // If price >= 2000: Myntra
   let retailer = item.retailer;
   if (!retailer || retailer === 'Wardrobe') {
-    if (price < 1500) {
-      if (price <= 750) retailer = 'Meesho';
-      else if (price <= 1150) retailer = 'Flipkart';
+    if (price < 2000) {
+      if (price <= 800) retailer = 'Meesho';
+      else if (price <= 1400) retailer = 'Flipkart';
       else retailer = 'Amazon';
     } else {
       retailer = 'Myntra';
     }
-  } else if (price >= 1500 && ['Meesho', 'Flipkart', 'Amazon'].includes(retailer)) {
+  } else if (price >= 2000 && ['Meesho', 'Flipkart', 'Amazon'].includes(retailer)) {
     retailer = 'Myntra';
-  } else if (price < 1500 && retailer === 'Myntra') {
-    if (price <= 750) retailer = 'Meesho';
-    else if (price <= 1150) retailer = 'Flipkart';
+  } else if (price < 2000 && retailer === 'Myntra') {
+    if (price <= 800) retailer = 'Meesho';
+    else if (price <= 1400) retailer = 'Flipkart';
     else retailer = 'Amazon';
   }
 
@@ -143,7 +144,7 @@ const DirectProductBuyCard = ({ item }) => {
       tagText: 'text-[#9333EA]',
       tagBg: 'bg-[#FDF4FF]',
       tagBorder: 'border-[#E9D5FF]',
-      label: 'Meesho Verified Deal (< ₹1,500)'
+      label: 'Meesho Verified Deal (< ₹2,000)'
     },
     Flipkart: {
       bgGradient: 'from-[#EFF6FF] via-white to-[#F0F9FF]',
@@ -153,7 +154,7 @@ const DirectProductBuyCard = ({ item }) => {
       tagText: 'text-[#1D4ED8]',
       tagBg: 'bg-[#EFF6FF]',
       tagBorder: 'border-[#BFDBFE]',
-      label: 'Flipkart Assured (< ₹1,500)'
+      label: 'Flipkart Assured (< ₹2,000)'
     },
     Amazon: {
       bgGradient: 'from-[#FFFBEB] via-white to-[#FEF3C7]',
@@ -163,7 +164,7 @@ const DirectProductBuyCard = ({ item }) => {
       tagText: 'text-[#B45309]',
       tagBg: 'bg-[#FEF3C7]',
       tagBorder: 'border-[#FDE68A]',
-      label: 'Amazon Prime (< ₹1,500)'
+      label: 'Amazon Prime (< ₹2,000)'
     },
     Myntra: {
       bgGradient: 'from-[#FFF5F7] via-white to-[#FDF2F4]',
@@ -173,7 +174,7 @@ const DirectProductBuyCard = ({ item }) => {
       tagText: 'text-[#E11B5A]',
       tagBg: 'bg-[#FFE4EE]',
       tagBorder: 'border-[#F8BBD0]',
-      label: 'Myntra Curated (₹1,500+)'
+      label: 'Myntra Curated (₹2,000+)'
     }
   };
 
@@ -312,7 +313,7 @@ export const Recommendations = () => {
     base_price: ensemble_breakdown?.dress?.base_price || 3899,
     price: ensemble_breakdown?.dress?.price ?? (ensemble_breakdown?.dress?.is_owned ? 0 : 3899),
     mrp: ensemble_breakdown?.dress?.mrp || Math.round((ensemble_breakdown?.dress?.base_price || 3899) * 1.5),
-    retailer: ensemble_breakdown?.dress?.retailer || ((ensemble_breakdown?.dress?.price || 3899) < 1500 ? 'Meesho' : 'Myntra'),
+    retailer: ensemble_breakdown?.dress?.retailer || ((ensemble_breakdown?.dress?.price || 3899) < 2000 ? 'Meesho' : 'Myntra'),
     buy_url: ensemble_breakdown?.dress?.buy_url || (Array.isArray(ensemble_breakdown?.dress?.retailer_links) ? ensemble_breakdown?.dress?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.dress?.retailer_links?.myntra?.url) || null,
     is_wardrobe_match: Boolean(ensemble_breakdown?.dress?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'dress'))),
     matched_item_name: ensemble_breakdown?.dress?.matched_wardrobe_name || wardrobe_matches[0]?.name || null,
@@ -329,7 +330,7 @@ export const Recommendations = () => {
     base_price: ensemble_breakdown?.jewellery?.base_price || 1499,
     price: ensemble_breakdown?.jewellery?.price ?? (ensemble_breakdown?.jewellery?.is_owned ? 0 : 1499),
     mrp: ensemble_breakdown?.jewellery?.mrp || Math.round((ensemble_breakdown?.jewellery?.base_price || 1499) * 1.5),
-    retailer: ensemble_breakdown?.jewellery?.retailer || ((ensemble_breakdown?.jewellery?.price || 1499) < 1500 ? 'Flipkart' : 'Myntra'),
+    retailer: ensemble_breakdown?.jewellery?.retailer || ((ensemble_breakdown?.jewellery?.price || 1499) < 2000 ? 'Flipkart' : 'Myntra'),
     buy_url: ensemble_breakdown?.jewellery?.buy_url || (Array.isArray(ensemble_breakdown?.jewellery?.retailer_links) ? ensemble_breakdown?.jewellery?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.jewellery?.retailer_links?.myntra?.url) || null,
     is_wardrobe_match: Boolean(ensemble_breakdown?.jewellery?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'jewellery'))),
     matched_item_name: ensemble_breakdown?.jewellery?.matched_wardrobe_name || null,
@@ -347,7 +348,7 @@ export const Recommendations = () => {
     base_price: ensemble_breakdown?.footwear?.base_price || 1299,
     price: ensemble_breakdown?.footwear?.price ?? (ensemble_breakdown?.footwear?.is_owned ? 0 : 1299),
     mrp: ensemble_breakdown?.footwear?.mrp || Math.round((ensemble_breakdown?.footwear?.base_price || 1299) * 1.5),
-    retailer: ensemble_breakdown?.footwear?.retailer || ((ensemble_breakdown?.footwear?.price || 1299) < 1500 ? 'Amazon' : 'Myntra'),
+    retailer: ensemble_breakdown?.footwear?.retailer || ((ensemble_breakdown?.footwear?.price || 1299) < 2000 ? 'Amazon' : 'Myntra'),
     buy_url: ensemble_breakdown?.footwear?.buy_url || (Array.isArray(ensemble_breakdown?.footwear?.retailer_links) ? ensemble_breakdown?.footwear?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.footwear?.retailer_links?.myntra?.url) || null,
     is_wardrobe_match: Boolean(ensemble_breakdown?.footwear?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'footwear'))),
     matched_item_name: ensemble_breakdown?.footwear?.matched_wardrobe_name || null,
@@ -364,7 +365,7 @@ export const Recommendations = () => {
     base_price: ensemble_breakdown?.handbag?.base_price || 899,
     price: ensemble_breakdown?.handbag?.price ?? (ensemble_breakdown?.handbag?.is_owned ? 0 : 899),
     mrp: ensemble_breakdown?.handbag?.mrp || Math.round((ensemble_breakdown?.handbag?.base_price || 899) * 1.5),
-    retailer: ensemble_breakdown?.handbag?.retailer || ((ensemble_breakdown?.handbag?.price || 899) < 1500 ? 'Meesho' : 'Myntra'),
+    retailer: ensemble_breakdown?.handbag?.retailer || ((ensemble_breakdown?.handbag?.price || 899) < 2000 ? 'Meesho' : 'Myntra'),
     buy_url: ensemble_breakdown?.handbag?.buy_url || (Array.isArray(ensemble_breakdown?.handbag?.retailer_links) ? ensemble_breakdown?.handbag?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.handbag?.retailer_links?.myntra?.url) || null,
     is_wardrobe_match: Boolean(ensemble_breakdown?.handbag?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'handbag'))),
     matched_item_name: ensemble_breakdown?.handbag?.matched_wardrobe_name || null,
