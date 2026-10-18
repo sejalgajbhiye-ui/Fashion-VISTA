@@ -202,15 +202,9 @@ def search_live_myntra_products(
 
     slug = clean_query.replace(" ", "-").lower()
     url = f"https://www.myntra.com/{slug}?rawQuery={quote_plus(clean_query)}"
-    if min_price is not None and max_price is not None:
-        url += f"&f=Price%3A{min_price}.0_{max_price}.0"
-    elif min_price is not None:
-        url += f"&f=Price%3A{min_price}.0_100000.0"
-    elif max_price is not None:
-        url += f"&f=Price%3A0.0_{max_price}.0"
 
     try:
-        resp = requests.get(url, headers=REQUEST_HEADERS, timeout=3)
+        resp = requests.get(url, headers=REQUEST_HEADERS, timeout=4)
         if resp.status_code == 200:
             match = re.search(r"window\.__myx\s*=\s*(\{.*?\});?</script>", resp.text, re.DOTALL)
             if match:
@@ -272,6 +266,40 @@ def search_live_myntra_products(
                         })
                         if len(products) >= limit:
                             break
+
+                # Fallback: if no products matched strict price bounds, pick lowest-priced products
+                if not products and raw_products:
+                    sorted_p = sorted(raw_products, key=lambda x: int(x.get("price") or x.get("discountedPrice") or 999))
+                    for p in sorted_p:
+                        p_name = p.get("productName") or p.get("additionalInfo") or clean_query.title()
+                        p_brand = p.get("brand") or "Myntra"
+                        p_price = int(p.get("price") or p.get("discountedPrice") or 999)
+                        p_mrp = int(p.get("mrp") or p_price)
+                        p_img = None
+                        images = p.get("images", [])
+                        if images and isinstance(images, list):
+                            p_img = images[0].get("src")
+                        if not p_img:
+                            p_img = p.get("searchImage")
+                        if p_img and p_img.startswith("http://"):
+                            p_img = "https://" + p_img[7:]
+                        landing = p.get("landingPageUrl", "")
+                        buy_url = f"https://www.myntra.com/{landing.lstrip('/')}" if landing else url
+                        if p_name and p_img:
+                            products.append({
+                                "name": f"{p_brand} {p_name}".strip(),
+                                "brand": p_brand,
+                                "price": p_price,
+                                "mrp": p_mrp,
+                                "retailer": "Myntra",
+                                "image": p_img,
+                                "buy_url": buy_url,
+                                "source": "online",
+                                "inWardrobe": False,
+                                "owned": False
+                            })
+                            if len(products) >= limit:
+                                break
 
                 if products:
                     _PRODUCT_SEARCH_CACHE[cache_key] = products

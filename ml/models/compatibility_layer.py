@@ -325,22 +325,23 @@ class OutfitCompatibilityLayer:
         # Collect pieces
         pieces = ensemble.get("items") or []
         if not pieces:
+            needs_bot = ensemble.get("needs_bottomwear", False)
             if "ensemble_breakdown" in ensemble:
                 bd = ensemble["ensemble_breakdown"]
                 pieces = [
-                    {"slot": "Dress", **bd.get("dress", {})},
-                    {"slot": "Bottomwear", **bd.get("bottomwear", {})},
-                    {"slot": "Jewellery", **bd.get("jewellery", {})},
-                    {"slot": "Footwear", **bd.get("footwear", {})},
-                    {"slot": "Handbag", **bd.get("handbag", {})}
+                    {"slot": "Dress", **(bd.get("dress") or {})},
+                    *([{"slot": "Bottomwear", **(bd.get("bottomwear") or {})}] if needs_bot and bd.get("bottomwear") else []),
+                    {"slot": "Jewellery", **(bd.get("jewellery") or {})},
+                    {"slot": "Footwear", **(bd.get("footwear") or {})},
+                    {"slot": "Handbag", **(bd.get("handbag") or {})}
                 ]
             elif "dress" in ensemble:
                 pieces = [
-                    {"slot": "Dress", **ensemble.get("dress", {})},
-                    {"slot": "Bottomwear", **ensemble.get("bottomwear", {})},
-                    {"slot": "Jewellery", **ensemble.get("jewellery", {})},
-                    {"slot": "Footwear", **ensemble.get("footwear", {})},
-                    {"slot": "Handbag", **ensemble.get("handbag", {})}
+                    {"slot": "Dress", **(ensemble.get("dress") or {})},
+                    *([{"slot": "Bottomwear", **(ensemble.get("bottomwear") or {})}] if needs_bot and ensemble.get("bottomwear") else []),
+                    {"slot": "Jewellery", **(ensemble.get("jewellery") or {})},
+                    {"slot": "Footwear", **(ensemble.get("footwear") or {})},
+                    {"slot": "Handbag", **(ensemble.get("handbag") or {})}
                 ]
 
         # 1. Preference Relevance (Occasion, Color, Style alignment)

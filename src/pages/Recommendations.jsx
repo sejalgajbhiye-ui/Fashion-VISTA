@@ -82,46 +82,20 @@ const DirectProductBuyCard = ({ item }) => {
   const mrp = item.mrp && item.mrp > price ? item.mrp : Math.round(price * 1.45);
   const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
-  // Enforce price-based retailer rule:
-  // If price < 2000: Meesho, Flipkart, or Amazon
-  // If price >= 2000: Myntra
-  let retailer = item.retailer;
-  if (!retailer || retailer === 'Wardrobe') {
-    if (price < 2000) {
-      if (price <= 800) retailer = 'Meesho';
-      else if (price <= 1400) retailer = 'Flipkart';
-      else retailer = 'Amazon';
-    } else {
-      retailer = 'Myntra';
-    }
-  } else if (price >= 2000 && ['Meesho', 'Flipkart', 'Amazon'].includes(retailer)) {
-    retailer = 'Myntra';
-  } else if (price < 2000 && retailer === 'Myntra') {
-    if (price <= 800) retailer = 'Meesho';
-    else if (price <= 1400) retailer = 'Flipkart';
-    else retailer = 'Amazon';
-  }
-
-  // Determine direct buy URL
+  // Authentic direct buy link from ML / Shopping Pipeline
   let buyUrl = item.buy_url;
-  const queryEnc = encodeURIComponent(item.name || 'ethnic wear');
-  if (retailer === 'Meesho') {
-    if (!buyUrl || !buyUrl.includes('meesho.com')) {
-      buyUrl = `https://www.meesho.com/search?q=${queryEnc}`;
-    }
-  } else if (retailer === 'Flipkart') {
-    if (!buyUrl || !buyUrl.includes('flipkart.com')) {
-      buyUrl = `https://www.flipkart.com/search?q=${queryEnc}&otracker=search`;
-    }
-  } else if (retailer === 'Amazon') {
-    if (!buyUrl || !buyUrl.includes('amazon.in')) {
-      buyUrl = `https://www.amazon.in/s?k=${queryEnc}`;
-    }
+  let retailer = item.retailer || 'Myntra';
+
+  if (buyUrl) {
+    if (buyUrl.includes('myntra.com')) retailer = 'Myntra';
+    else if (buyUrl.includes('flipkart.com')) retailer = 'Flipkart';
+    else if (buyUrl.includes('amazon.in')) retailer = 'Amazon';
+    else if (buyUrl.includes('meesho.com')) retailer = 'Meesho';
+    else if (buyUrl.includes('ajio.com')) retailer = 'Ajio';
   } else {
-    // Myntra
-    if (!buyUrl || (!buyUrl.includes('myntra.com') && !buyUrl.startsWith('http'))) {
-      buyUrl = `https://www.myntra.com/search?q=${queryEnc}`;
-    }
+    const queryEnc = encodeURIComponent(item.name || 'ethnic wear');
+    buyUrl = `https://www.myntra.com/search?q=${queryEnc}`;
+    retailer = 'Myntra';
   }
 
   // Retailer styling themes
@@ -134,7 +108,7 @@ const DirectProductBuyCard = ({ item }) => {
       tagText: 'text-[#9333EA]',
       tagBg: 'bg-[#FDF4FF]',
       tagBorder: 'border-[#E9D5FF]',
-      label: 'Meesho Verified Deal (< ₹2,000)'
+      label: 'Meesho Verified Deal'
     },
     Flipkart: {
       bgGradient: 'from-[#EFF6FF] via-white to-[#F0F9FF]',
@@ -144,7 +118,7 @@ const DirectProductBuyCard = ({ item }) => {
       tagText: 'text-[#1D4ED8]',
       tagBg: 'bg-[#EFF6FF]',
       tagBorder: 'border-[#BFDBFE]',
-      label: 'Flipkart Assured (< ₹2,000)'
+      label: 'Flipkart Assured'
     },
     Amazon: {
       bgGradient: 'from-[#FFFBEB] via-white to-[#FEF3C7]',
@@ -154,7 +128,7 @@ const DirectProductBuyCard = ({ item }) => {
       tagText: 'text-[#B45309]',
       tagBg: 'bg-[#FEF3C7]',
       tagBorder: 'border-[#FDE68A]',
-      label: 'Amazon Prime (< ₹2,000)'
+      label: 'Amazon Prime'
     },
     Myntra: {
       bgGradient: 'from-[#FFF5F7] via-white to-[#FDF2F4]',
@@ -164,7 +138,17 @@ const DirectProductBuyCard = ({ item }) => {
       tagText: 'text-[#E11B5A]',
       tagBg: 'bg-[#FFE4EE]',
       tagBorder: 'border-[#F8BBD0]',
-      label: 'Myntra Curated (₹2,000+)'
+      label: 'Myntra Verified Product'
+    },
+    Ajio: {
+      bgGradient: 'from-[#F0FDF4] via-white to-[#ECFDF5]',
+      border: 'border-[#A7F3D0]',
+      badgeBg: 'bg-[#059669]',
+      btnBg: 'bg-[#059669] hover:bg-[#047857] ring-[#059669]/20',
+      tagText: 'text-[#059669]',
+      tagBg: 'bg-[#ECFDF5]',
+      tagBorder: 'border-[#A7F3D0]',
+      label: 'Ajio Curated Trend'
     }
   };
 
@@ -179,7 +163,7 @@ const DirectProductBuyCard = ({ item }) => {
             {theme.label}
           </span>
           <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-300">
-            ✓ Direct Verified Buy Link
+            ✓ Direct Product Buy Link
           </span>
         </div>
         {discount > 0 && (
@@ -220,6 +204,29 @@ const DirectProductBuyCard = ({ item }) => {
           <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
         </a>
       </div>
+
+      {/* Cross-Retailer Price Comparison Links */}
+      {item.retailer_links && typeof item.retailer_links === 'object' && !Array.isArray(item.retailer_links) && (
+        <div className="pt-2.5 border-t border-taupe-200/60 flex flex-wrap items-center gap-2 text-[11px]">
+          <span className="font-semibold text-charcoal-500">Compare on other stores:</span>
+          {Object.entries(item.retailer_links)
+            .filter(([storeKey]) => storeKey.toLowerCase() !== retailer.toLowerCase())
+            .map(([storeKey, storeData]) => (
+              <a
+                key={storeKey}
+                href={storeData.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded-lg bg-white/90 border border-taupe-200 text-charcoal-700 hover:text-charcoal-950 hover:border-charcoal-400 font-bold transition-all shadow-2xs inline-flex items-center gap-1.5"
+              >
+                <span>{storeData.retailer}</span>
+                {storeData.price && (
+                  <span className="text-charcoal-500 font-medium">₹{storeData.price?.toLocaleString('en-IN')}</span>
+                )}
+              </a>
+            ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -293,7 +300,10 @@ export const Recommendations = () => {
     retailer_links = []
   } = activeOutfit || {};
 
-  // Extract or synthesize the 5 core slots strictly based on preferences (no hairstyle)
+  // Determine if active outfit requires bottomwear (kurtas/separates = true, sarees/lehengas/gowns = false)
+  const needsBottomwear = Boolean(activeOutfit?.needs_bottomwear ?? (ensemble_breakdown?.bottomwear != null));
+
+  // Extract slots strictly based on preferences (no hairstyle)
   const dressSlot = {
     name: ensemble_breakdown?.dress?.name || items.find(i => ['dress', 'traditional', 'top'].includes(String(i.slot || i.category).toLowerCase()))?.name || name,
     category: ensemble_breakdown?.dress?.category || silhouette || 'Dress / Silhouette',
@@ -303,7 +313,7 @@ export const Recommendations = () => {
     base_price: ensemble_breakdown?.dress?.base_price || 3899,
     price: ensemble_breakdown?.dress?.price ?? (ensemble_breakdown?.dress?.is_owned ? 0 : 3899),
     mrp: ensemble_breakdown?.dress?.mrp || Math.round((ensemble_breakdown?.dress?.base_price || 3899) * 1.5),
-    retailer: ensemble_breakdown?.dress?.retailer || ((ensemble_breakdown?.dress?.price || 3899) < 2000 ? 'Meesho' : 'Myntra'),
+    retailer: ensemble_breakdown?.dress?.retailer || 'Myntra',
     buy_url: ensemble_breakdown?.dress?.buy_url || (Array.isArray(ensemble_breakdown?.dress?.retailer_links) ? ensemble_breakdown?.dress?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.dress?.retailer_links?.myntra?.url) || null,
     is_wardrobe_match: Boolean(ensemble_breakdown?.dress?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'dress'))),
     matched_item_name: ensemble_breakdown?.dress?.matched_wardrobe_name || wardrobe_matches[0]?.name || null,
@@ -312,23 +322,23 @@ export const Recommendations = () => {
     retailer_links: ensemble_breakdown?.dress?.retailer_links || []
   };
 
-  const bottomwearSlot = {
-    name: ensemble_breakdown?.bottomwear?.name || items.find(i => ['bottomwear', 'bottom', 'palazzo', 'pants', 'trousers', 'churidar', 'sharara', 'skirt'].includes(String(i.slot || i.category).toLowerCase()))?.name || `${safePrefs.colour || 'Coordinated'} Flared Bottomwear`,
-    type: ensemble_breakdown?.bottomwear?.category || ensemble_breakdown?.bottomwear?.type || 'Bottomwear / Palazzos',
-    fabric: ensemble_breakdown?.bottomwear?.fabric || 'Pure Silk Blend / High-Grade Tailored Fabric',
-    color: ensemble_breakdown?.bottomwear?.color || safePrefs.colour || 'Coordinated',
-    image: ensemble_breakdown?.bottomwear?.image || items.find(i => ['bottomwear', 'bottom', 'palazzo', 'pants', 'trousers', 'churidar', 'sharara', 'skirt'].includes(String(i.slot || i.category).toLowerCase()))?.image || 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=800&q=80',
-    base_price: ensemble_breakdown?.bottomwear?.base_price || 999,
-    price: ensemble_breakdown?.bottomwear?.price ?? (ensemble_breakdown?.bottomwear?.is_owned ? 0 : 999),
-    mrp: ensemble_breakdown?.bottomwear?.mrp || Math.round((ensemble_breakdown?.bottomwear?.base_price || 999) * 1.5),
-    retailer: ensemble_breakdown?.bottomwear?.retailer || ((ensemble_breakdown?.bottomwear?.price || 999) < 2000 ? 'Flipkart' : 'Myntra'),
-    buy_url: ensemble_breakdown?.bottomwear?.buy_url || (Array.isArray(ensemble_breakdown?.bottomwear?.retailer_links) ? ensemble_breakdown?.bottomwear?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.bottomwear?.retailer_links?.myntra?.url) || null,
-    is_wardrobe_match: Boolean(ensemble_breakdown?.bottomwear?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => String(m.slot || '').toLowerCase() === 'bottomwear'))),
-    matched_item_name: ensemble_breakdown?.bottomwear?.matched_wardrobe_name || null,
-    money_saved: ensemble_breakdown?.bottomwear?.is_owned ? (ensemble_breakdown?.bottomwear?.base_price || 999) : 0,
-    styling_tip: ensemble_breakdown?.bottomwear?.styling_tip || 'Pairs seamlessly with the top silhouette to balance proportions.',
-    retailer_links: ensemble_breakdown?.bottomwear?.retailer_links || []
-  };
+  const bottomwearSlot = needsBottomwear && ensemble_breakdown?.bottomwear ? {
+    name: ensemble_breakdown.bottomwear.name || `${safePrefs.colour || 'Coordinated'} Flared Bottomwear`,
+    type: ensemble_breakdown.bottomwear.category || ensemble_breakdown.bottomwear.type || 'Bottomwear / Palazzos',
+    fabric: ensemble_breakdown.bottomwear.fabric || 'Pure Silk Blend / High-Grade Tailored Fabric',
+    color: ensemble_breakdown.bottomwear.color || safePrefs.colour || 'Coordinated',
+    image: ensemble_breakdown.bottomwear.image || 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=800&q=80',
+    base_price: ensemble_breakdown.bottomwear.base_price || 999,
+    price: ensemble_breakdown.bottomwear.price ?? (ensemble_breakdown.bottomwear.is_owned ? 0 : 999),
+    mrp: ensemble_breakdown.bottomwear.mrp || Math.round((ensemble_breakdown.bottomwear.base_price || 999) * 1.5),
+    retailer: ensemble_breakdown.bottomwear.retailer || 'Myntra',
+    buy_url: ensemble_breakdown.bottomwear.buy_url || (Array.isArray(ensemble_breakdown.bottomwear.retailer_links) ? ensemble_breakdown.bottomwear.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown.bottomwear.retailer_links?.myntra?.url) || null,
+    is_wardrobe_match: Boolean(ensemble_breakdown.bottomwear.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => String(m.slot || '').toLowerCase() === 'bottomwear'))),
+    matched_item_name: ensemble_breakdown.bottomwear.matched_wardrobe_name || null,
+    money_saved: ensemble_breakdown.bottomwear.is_owned ? (ensemble_breakdown.bottomwear.base_price || 999) : 0,
+    styling_tip: ensemble_breakdown.bottomwear.styling_tip || 'Pairs seamlessly with the top silhouette to balance proportions.',
+    retailer_links: ensemble_breakdown.bottomwear.retailer_links || []
+  } : null;
 
   const jewellerySlot = {
     name: ensemble_breakdown?.jewellery?.name || `${safePrefs.colour || 'Gold'} Harmonized Jewellery Set`,
@@ -338,7 +348,7 @@ export const Recommendations = () => {
     base_price: ensemble_breakdown?.jewellery?.base_price || 1499,
     price: ensemble_breakdown?.jewellery?.price ?? (ensemble_breakdown?.jewellery?.is_owned ? 0 : 1499),
     mrp: ensemble_breakdown?.jewellery?.mrp || Math.round((ensemble_breakdown?.jewellery?.base_price || 1499) * 1.5),
-    retailer: ensemble_breakdown?.jewellery?.retailer || ((ensemble_breakdown?.jewellery?.price || 1499) < 2000 ? 'Flipkart' : 'Myntra'),
+    retailer: ensemble_breakdown?.jewellery?.retailer || 'Myntra',
     buy_url: ensemble_breakdown?.jewellery?.buy_url || (Array.isArray(ensemble_breakdown?.jewellery?.retailer_links) ? ensemble_breakdown?.jewellery?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.jewellery?.retailer_links?.myntra?.url) || null,
     is_wardrobe_match: Boolean(ensemble_breakdown?.jewellery?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'jewellery'))),
     matched_item_name: ensemble_breakdown?.jewellery?.matched_wardrobe_name || null,
@@ -356,7 +366,7 @@ export const Recommendations = () => {
     base_price: ensemble_breakdown?.footwear?.base_price || 1299,
     price: ensemble_breakdown?.footwear?.price ?? (ensemble_breakdown?.footwear?.is_owned ? 0 : 1299),
     mrp: ensemble_breakdown?.footwear?.mrp || Math.round((ensemble_breakdown?.footwear?.base_price || 1299) * 1.5),
-    retailer: ensemble_breakdown?.footwear?.retailer || ((ensemble_breakdown?.footwear?.price || 1299) < 2000 ? 'Amazon' : 'Myntra'),
+    retailer: ensemble_breakdown?.footwear?.retailer || 'Myntra',
     buy_url: ensemble_breakdown?.footwear?.buy_url || (Array.isArray(ensemble_breakdown?.footwear?.retailer_links) ? ensemble_breakdown?.footwear?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.footwear?.retailer_links?.myntra?.url) || null,
     is_wardrobe_match: Boolean(ensemble_breakdown?.footwear?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'footwear'))),
     matched_item_name: ensemble_breakdown?.footwear?.matched_wardrobe_name || null,
@@ -373,7 +383,7 @@ export const Recommendations = () => {
     base_price: ensemble_breakdown?.handbag?.base_price || 899,
     price: ensemble_breakdown?.handbag?.price ?? (ensemble_breakdown?.handbag?.is_owned ? 0 : 899),
     mrp: ensemble_breakdown?.handbag?.mrp || Math.round((ensemble_breakdown?.handbag?.base_price || 899) * 1.5),
-    retailer: ensemble_breakdown?.handbag?.retailer || ((ensemble_breakdown?.handbag?.price || 899) < 2000 ? 'Meesho' : 'Myntra'),
+    retailer: ensemble_breakdown?.handbag?.retailer || 'Myntra',
     buy_url: ensemble_breakdown?.handbag?.buy_url || (Array.isArray(ensemble_breakdown?.handbag?.retailer_links) ? ensemble_breakdown?.handbag?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.handbag?.retailer_links?.myntra?.url) || null,
     is_wardrobe_match: Boolean(ensemble_breakdown?.handbag?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'handbag'))),
     matched_item_name: ensemble_breakdown?.handbag?.matched_wardrobe_name || null,
@@ -839,16 +849,18 @@ export const Recommendations = () => {
                       </p>
                     </div>
 
-                    {/* 5-Slot Mini Pill List (Dress, Bottomwear, Jewellery, Footwear, Handbag) */}
+                    {/* Coordinated Dimension Mini Pill List */}
                     <div className="p-3 rounded-2xl bg-[#FAF8F5] border border-taupe-200 space-y-1.5 text-xs">
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-semibold text-charcoal-500">👗 Dress/Top:</span>
+                        <span className="font-semibold text-charcoal-500">{outfit.needs_bottomwear ? '👗 Dress/Top:' : '👗 Dress / Attire:'}</span>
                         <span className="font-bold text-charcoal-900 truncate max-w-[180px]">{outfit.ensemble_breakdown?.dress?.name || 'Curated Attire'}</span>
                       </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-semibold text-charcoal-500">👖 Bottomwear:</span>
-                        <span className="font-bold text-charcoal-900 truncate max-w-[180px]">{outfit.ensemble_breakdown?.bottomwear?.name || 'Suitable Bottomwear'}</span>
-                      </div>
+                      {outfit.needs_bottomwear && outfit.ensemble_breakdown?.bottomwear && (
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-semibold text-charcoal-500">👖 Bottomwear:</span>
+                          <span className="font-bold text-charcoal-900 truncate max-w-[180px]">{outfit.ensemble_breakdown?.bottomwear?.name || 'Suitable Bottomwear'}</span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-semibold text-charcoal-500">💎 Jewellery:</span>
                         <span className="font-bold text-charcoal-900 truncate max-w-[180px]">{outfit.ensemble_breakdown?.jewellery?.type || 'Matching Choker'}</span>
@@ -871,7 +883,7 @@ export const Recommendations = () => {
                       </div>
                     ) : (
                       <div className="p-2.5 rounded-xl bg-taupe-100 border border-taupe-200 text-xs font-medium text-charcoal-600 flex items-center justify-between">
-                        <span>Complete 5-Piece Ensemble</span>
+                        <span>{outfit.needs_bottomwear ? 'Complete 5-Piece Ensemble' : 'Complete 4-Piece Ensemble'}</span>
                         <span className="font-bold text-charcoal-900">₹{(outfit.total_price || 4800).toLocaleString('en-IN')}</span>
                       </div>
                     )}
@@ -999,7 +1011,7 @@ export const Recommendations = () => {
               </div>
               <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-charcoal-500 block">Dimensions Curated</span>
-                <span className="text-xs sm:text-sm font-bold text-charcoal-900 mt-1 block">5 / 5 Complete Ensemble</span>
+                <span className="text-xs sm:text-sm font-bold text-charcoal-900 mt-1 block">{needsBottomwear ? '5 / 5 Complete Ensemble' : '4 / 4 Complete Ensemble'}</span>
               </div>
             </div>
           </section>
@@ -1109,19 +1121,21 @@ export const Recommendations = () => {
             </div>
           </section>
 
-          {/* THE 5 DIMENSIONS OF OCCASION STYLING (Dress/Top, Bottomwear, Jewellery, Footwear, Handbag) */}
+          {/* THE DIMENSIONS OF OCCASION STYLING */}
           <section className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-taupe-200">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-charcoal-900 text-cream-50 flex items-center justify-center font-bold text-xs">
-                  5★
+                  {needsBottomwear ? '5★' : '4★'}
                 </div>
                 <div>
                   <h3 className="editorial-heading text-xl sm:text-2xl font-bold text-charcoal-900">
-                    The 5 Core Ensemble Components
+                    {needsBottomwear ? 'The 5 Core Ensemble Components' : 'The 4 Core Ensemble Components'}
                   </h3>
                   <p className="text-xs text-charcoal-500">
-                    Curated across Dress/Top, Suitable Bottomwear, Jewellery, Footwear & Handbag with verified direct product links from Meesho, Flipkart, Amazon (under ₹2,000) and Myntra (₹2,000+)
+                    {needsBottomwear
+                      ? 'Curated across Dress/Top, Suitable Bottomwear, Jewellery, Footwear & Handbag with verified direct product links.'
+                      : 'Curated across Dress/Attire, Jewellery, Footwear & Handbag with verified direct product links.'}
                   </p>
                 </div>
               </div>
@@ -1134,7 +1148,7 @@ export const Recommendations = () => {
                     activeTab === 'all-slots' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
                   }`}
                 >
-                  All 5 Slots
+                  {needsBottomwear ? 'All 5 Slots' : 'All 4 Slots'}
                 </button>
                 <button
                   onClick={() => setActiveTab('dress')}
@@ -1142,16 +1156,18 @@ export const Recommendations = () => {
                     activeTab === 'dress' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
                   }`}
                 >
-                  👗 Dress / Top
+                  👗 {needsBottomwear ? 'Dress / Top' : 'Dress / Attire'}
                 </button>
-                <button
-                  onClick={() => setActiveTab('bottomwear')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === 'bottomwear' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
-                  }`}
-                >
-                  👖 Bottomwear
-                </button>
+                {needsBottomwear && (
+                  <button
+                    onClick={() => setActiveTab('bottomwear')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      activeTab === 'bottomwear' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
+                    }`}
+                  >
+                    👖 Bottomwear
+                  </button>
+                )}
                 <button
                   onClick={() => setActiveTab('jewellery')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -1264,8 +1280,8 @@ export const Recommendations = () => {
               </div>
             )}
 
-            {/* CARD 2: 👖 BOTTOMWEAR */}
-            {(activeTab === 'all-slots' || activeTab === 'bottomwear') && (
+            {/* CARD 2: 👖 BOTTOMWEAR (Rendered only when structurally necessary) */}
+            {needsBottomwear && bottomwearSlot && (activeTab === 'all-slots' || activeTab === 'bottomwear') && (
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-taupe-300 shadow-card space-y-6">
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
                   <div className="w-full lg:w-72 shrink-0 rounded-2xl overflow-hidden bg-taupe-100 border border-taupe-200 aspect-[3/4] relative shadow-subtle group">
@@ -1377,7 +1393,7 @@ export const Recommendations = () => {
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
                       <div className="flex items-center gap-2">
                         <span className="bg-charcoal-900 text-cream-50 px-2.5 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
-                          DIMENSION 03: JEWELLERY
+                          {needsBottomwear ? 'DIMENSION 03: JEWELLERY' : 'DIMENSION 02: JEWELLERY'}
                         </span>
                         <span className="text-xs font-semibold text-charcoal-600">
                           {jewellerySlot.type}
@@ -1460,7 +1476,7 @@ export const Recommendations = () => {
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
                       <div className="flex items-center gap-2">
                         <span className="bg-charcoal-900 text-cream-50 px-2.5 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
-                          DIMENSION 04: FOOTWEAR
+                          {needsBottomwear ? 'DIMENSION 04: FOOTWEAR' : 'DIMENSION 03: FOOTWEAR'}
                         </span>
                         <span className="text-xs font-semibold text-charcoal-600">
                           {footwearSlot.type}
@@ -1544,7 +1560,7 @@ export const Recommendations = () => {
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
                       <div className="flex items-center gap-2">
                         <span className="bg-charcoal-900 text-cream-50 px-2.5 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
-                          DIMENSION 05: HANDBAG & ACCENTS
+                          {needsBottomwear ? 'DIMENSION 05: HANDBAG & ACCENTS' : 'DIMENSION 04: HANDBAG & ACCENTS'}
                         </span>
                         <span className="text-xs font-semibold text-charcoal-600">
                           {handbagSlot.type}
