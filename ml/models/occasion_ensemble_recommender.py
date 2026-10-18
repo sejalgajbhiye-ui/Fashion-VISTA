@@ -271,6 +271,12 @@ SILHOUETTES_WEDDING = [
         "base_price": 2899,
         "image": "/garment_cloth2_red_saree.png",
         "styling_tip": "Pleat cleanly and pin at shoulder, letting the rich pallu drape effortlessly.",
+        "bottomwear_title": "{color} Satin Silk Saree Petticoat & Shaper",
+        "bottomwear_fabric": "Premium Stretch Satin Silk with Drawstring Waist",
+        "bottomwear_type": "Flared Saree Underskirt",
+        "bottomwear_tip": "Seamless fish-cut drape enhances the graceful fall of the saree pleats without bunching.",
+        "bottomwear_price": 799,
+        "bottomwear_image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "The choker sits close to the collarbone to frame the sweetheart neckline.",
         "shoe_heel": "Flat with Double Cushioned Memory Foam (Ceremony Ready)",
         "bag_desc": "Drawstring potli with golden tassels and pearl handle."
@@ -285,6 +291,12 @@ SILHOUETTES_WEDDING = [
         "base_price": 2499,
         "image": "/garment_cloth3_green_anarkali.png",
         "styling_tip": "Wear with dupatta draped over one shoulder to highlight the flared empire waist.",
+        "bottomwear_title": "{color} Hand-Dyed Pure Silk Churidar Leggings",
+        "bottomwear_fabric": "Pure Silk Blend with Gathered Ankles & Elasticated Drawstring",
+        "bottomwear_type": "Silk Churidar",
+        "bottomwear_tip": "Multi-fold ankle gathers sit snugly above the footwear to complement the voluminous flare.",
+        "bottomwear_price": 899,
+        "bottomwear_image": "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Chandelier earrings draw vertical focus to balance the expansive flare.",
         "shoe_heel": "2-Inch Metallic Block Heel with Ankle Strap",
         "bag_desc": "Structured velvet potli bag with brass chain handle."
@@ -299,6 +311,12 @@ SILHOUETTES_WEDDING = [
         "base_price": 3499,
         "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Drape dupatta diagonally across the chest and pin at the waist for royal poise.",
+        "bottomwear_title": "{color} 6-Meter Heavily Flared Zari Silk Lehenga Skirt",
+        "bottomwear_fabric": "Pure Brocade Silk with Inner Can-Can Layering",
+        "bottomwear_type": "Flared Lehenga Skirt",
+        "bottomwear_tip": "Structured inner can-can net ensures architectural 360-degree volume for grand ceremony twirls.",
+        "bottomwear_price": 2499,
+        "bottomwear_image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Layered choker and matching maang tikka elevate traditional bridal formality.",
         "shoe_heel": "Cushioned Mojaris with Zero Pinch Points",
         "bag_desc": "Pearl encrusted evening minaudiere box clutch."
@@ -313,6 +331,12 @@ SILHOUETTES_WEDDING = [
         "base_price": 2799,
         "image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Cinch the embellished belt firmly at the natural waist for an elongated silhouette.",
+        "bottomwear_title": "{color} Micro-Pleated Mermaid Shapewear Underskirt",
+        "bottomwear_fabric": "Four-Way Stretch Microfiber Shapewear with Side Slit",
+        "bottomwear_type": "Saree Shaper Skirt",
+        "bottomwear_tip": "Contoured mermaid silhouette supports easy walking while keeping pleated folds sharp.",
+        "bottomwear_price": 999,
+        "bottomwear_image": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Geometric statement earrings provide crisp contrast to fluid drape folds.",
         "shoe_heel": "2.5-Inch Block Heel Sandals with Soft Arch Support",
         "bag_desc": "Textured metallic minaudiere clutch with chain strap."
@@ -327,6 +351,12 @@ SILHOUETTES_WEDDING = [
         "base_price": 2299,
         "image": "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Pin dupatta gracefully over both shoulders to showcase peplum movement.",
+        "bottomwear_title": "{color} Two-Tiered Gotta Patti Flared Sharara Pants",
+        "bottomwear_fabric": "Pure Georgette with Zari Gotta Patti Trim",
+        "bottomwear_type": "Tiered Sharara Pants",
+        "bottomwear_tip": "Flared two-tier panels create graceful kinetic ripple with every step and sangeet dance beat.",
+        "bottomwear_price": 1299,
+        "bottomwear_image": "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Oversized Jhumkas bounce cheerful light during sangeet dance celebrations.",
         "shoe_heel": "Flat Cushioned Double-Sole Juttis (Zero Fatigue)",
         "bag_desc": "Velvet drawstring potli with golden dabka embroidery."
@@ -341,6 +371,12 @@ SILHOUETTES_WEDDING = [
         "base_price": 2199,
         "image": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Wear with delicate wrist cuffs to accentuate sheer chikankari sleeve work.",
+        "bottomwear_title": "{color} Lucknawi Hand-Embroidered Silk Cigarette Trousers",
+        "bottomwear_fabric": "Pure Raw Silk with Scalloped Chikankari Lace Hem",
+        "bottomwear_type": "Cigarette Trousers",
+        "bottomwear_tip": "Clean ankle-skimming crop displays embroidered hem detail and handcrafted footwear.",
+        "bottomwear_price": 1199,
+        "bottomwear_image": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Oxidized silver/gold filigree perfectly complements detailed white thread embroidery.",
         "shoe_heel": "Hand-Embroidered Raw Silk Juttis",
         "bag_desc": "Embroidered cotton fabric potli with delicate pearl handle."
@@ -355,6 +391,12 @@ SILHOUETTES_WEDDING = [
         "base_price": 3299,
         "image": "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Keep neck accessories minimal to let cowl neckline drape naturally.",
+        "bottomwear_title": "{color} Seamless High-Waist Sculpting Shapewear Shorts",
+        "bottomwear_fabric": "Breathable High-Elastic Polyamide Microfiber",
+        "bottomwear_type": "Sculpting Inner Shaper",
+        "bottomwear_tip": "Zero-panty-line seamless construction ensures fluid bias drape across hips and thigh slit.",
+        "bottomwear_price": 849,
+        "bottomwear_image": "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Solitaire drop earrings draw visual focus up to facial symmetry.",
         "shoe_heel": "3-Inch Stiletto Heels with Cushioned Insole",
         "bag_desc": "Architectural brushed metal minaudiere evening clutch."
@@ -369,6 +411,12 @@ SILHOUETTES_WEDDING = [
         "base_price": 3199,
         "image": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Pair with pointed pumps to elongate leg line under wide-leg trousers.",
+        "bottomwear_title": "{color} Tailored Satin-Side-Stripe Wide-Leg Trousers",
+        "bottomwear_fabric": "Structured Italian Crepe with Satin Piping",
+        "bottomwear_type": "Wide-Leg Trousers",
+        "bottomwear_tip": "Vertical satin tux stripes elongate leg line seamlessly into pointed pumps.",
+        "bottomwear_price": 1499,
+        "bottomwear_image": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Architectural ear cuff mirrors the sharp modern lines of the tuxedo lapel.",
         "shoe_heel": "Pointed-Toe Pumps with Metallic Stiletto Accent",
         "bag_desc": "Structured top-handle minaudiere clutch."
@@ -386,6 +434,12 @@ SILHOUETTES_PARTY = [
         "base_price": 3299,
         "image": "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Wear with hair pinned cleanly behind ears to accentuate the fluid cowl neckline.",
+        "bottomwear_title": "{color} Seamless High-Rise Silhouette Shaper",
+        "bottomwear_fabric": "Microfiber Anti-Chafing Comfort Shaper",
+        "bottomwear_type": "Inner Silhouette Shaper",
+        "bottomwear_tip": "Guarantees a clean, flawless silhouette under fluid high-sheen satin drape.",
+        "bottomwear_price": 799,
+        "bottomwear_image": "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Diamond/Solitaire drop earrings provide radiant sparkle under ambient party lights.",
         "shoe_heel": "3-Inch Sleek Stiletto Block Heels",
         "bag_desc": "Metallic rhinestone clutch with delicate shoulder chain."
@@ -400,6 +454,12 @@ SILHOUETTES_PARTY = [
         "base_price": 2999,
         "image": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Drape blazer effortlessly over shoulders for relaxed cocktail sophistication.",
+        "bottomwear_title": "{color} Tailored High-Waist Pleated Crepe Trousers",
+        "bottomwear_fabric": "Fluid Suiting Crepe with Pressed Front Creases",
+        "bottomwear_type": "Tailored Trousers",
+        "bottomwear_tip": "Sharp tailored creases balance the high-octane shimmer of the sequin cocktail slip.",
+        "bottomwear_price": 1499,
+        "bottomwear_image": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Layered crystal choker bridges the blazer collar and slip neckline.",
         "shoe_heel": "Pointed Toe Metallic Pumps with Padded Insoles",
         "bag_desc": "Textured metallic hardcase box clutch."
@@ -414,6 +474,12 @@ SILHOUETTES_PARTY = [
         "base_price": 3199,
         "image": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Cinch the waist with a satin tie to create clean architectural proportions.",
+        "bottomwear_title": "{color} Tailored Wide-Leg Italian Crepe Trousers",
+        "bottomwear_fabric": "Heavyweight Crepe with Concealed Waistband Hook",
+        "bottomwear_type": "Wide-Leg Trousers",
+        "bottomwear_tip": "Wide straight cut falls fluidly over pointed heels for towering cocktail presence.",
+        "bottomwear_price": 1699,
+        "bottomwear_image": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Sculptural metallic ear cuffs give a bold, runway-ready finish.",
         "shoe_heel": "Pointed-Toe Stilettos for an elongated silhouette",
         "bag_desc": "Architectural top-handle evening minaudiere."
@@ -428,6 +494,12 @@ SILHOUETTES_PARTY = [
         "base_price": 2799,
         "image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Pair with high heels so the pleated pallu falls cleanly to the floor.",
+        "bottomwear_title": "{color} Mermaid Contour Satin Saree Shaper",
+        "bottomwear_fabric": "High-Density Spandex Satin with Walking Slit",
+        "bottomwear_type": "Saree Shaper Skirt",
+        "bottomwear_tip": "Anchors the pre-stitched pleats firmly at the waist while preserving swift dance mobility.",
+        "bottomwear_price": 899,
+        "bottomwear_image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Geometric collar necklace complements the structured neckline.",
         "shoe_heel": "Strappy Metallic Block Heels (2.5 inches)",
         "bag_desc": "Velvet evening clutch with magnetic crystal lock."
@@ -442,6 +514,12 @@ SILHOUETTES_PARTY = [
         "base_price": 2699,
         "image": "https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Pair with warm metallic jewellery to illuminate deep velvet textures.",
+        "bottomwear_title": "{color} High-Waist Comfort Microfiber Silhouette Shaper",
+        "bottomwear_fabric": "Seamless Targeted Tummy Smoothing Microfiber",
+        "bottomwear_type": "Sculpting Inner Shaper",
+        "bottomwear_tip": "Ensures plush stretch velvet skims gracefully over natural curves without cling.",
+        "bottomwear_price": 799,
+        "bottomwear_image": "https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Dainty tennis necklace and matching studs keep focus on the neckline.",
         "shoe_heel": "Velvet Finish Pointed Block Heels",
         "bag_desc": "Compact quilted evening clutch with metallic chain."
@@ -456,6 +534,12 @@ SILHOUETTES_PARTY = [
         "base_price": 2499,
         "image": "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Keep one shoulder completely bare to let the asymmetric pleating shine.",
+        "bottomwear_title": "{color} Clean Cut Seamless Anti-Static Underskirt",
+        "bottomwear_fabric": "Ultra-Lightweight Anti-Static Satin Jersey",
+        "bottomwear_type": "Inner Slip Skirt",
+        "bottomwear_tip": "Prevents static cling so asymmetric accordion pleats flutter naturally.",
+        "bottomwear_price": 699,
+        "bottomwear_image": "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Single statement sculptural earring on the exposed side.",
         "shoe_heel": "Minimalist Ankle Strap Stilettos",
         "bag_desc": "Glossy acrylic box clutch with metal clasp."
@@ -473,6 +557,12 @@ SILHOUETTES_CASUAL = [
         "base_price": 1499,
         "image": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Roll sleeves to three-quarters for crisp campus or casual mobility.",
+        "bottomwear_title": "{color} Ankle-Length Slub Cotton Cigarette Trousers",
+        "bottomwear_fabric": "100% Breathable Cotton with Elasticated Back Band",
+        "bottomwear_type": "Cotton Trousers",
+        "bottomwear_tip": "Tapered ankle cut pairs effortlessly with flats and mojaris for all-day comfort.",
+        "bottomwear_price": 799,
+        "bottomwear_image": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Minimalist oxidized silver studs and dual stack rings.",
         "shoe_heel": "Flat Cushioned Leather Loafers / Mojaris",
         "bag_desc": "Structured canvas tote bag with inner laptop compartment."
@@ -487,6 +577,12 @@ SILHOUETTES_CASUAL = [
         "base_price": 1699,
         "image": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Half-tuck shirt into trousers to balance proportions effortlessly.",
+        "bottomwear_title": "{color} High-Rise Pleated Wide-Leg Twill Trousers",
+        "bottomwear_fabric": "Structured Cotton Twill with Front Deep Pleats",
+        "bottomwear_type": "Wide-Leg Trousers",
+        "bottomwear_tip": "High rise flatters the waistline and pairs smartly with tucked linen tops.",
+        "bottomwear_price": 1199,
+        "bottomwear_image": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Dainty layered silver chain and geometric ear huggies.",
         "shoe_heel": "Clean White Canvas Retro Sneakers",
         "bag_desc": "Minimalist vegan leather crossbody sling."
@@ -501,6 +597,12 @@ SILHOUETTES_CASUAL = [
         "base_price": 1399,
         "image": "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Pair with flat sandals for all-day campus walking comfort.",
+        "bottomwear_title": "{color} Cotton Tiered Flared Maxi Underskirt",
+        "bottomwear_fabric": "Soft Crinkled Mulmul Cotton",
+        "bottomwear_type": "Boho Inner Skirt",
+        "bottomwear_tip": "Adds gentle volume and opacity for breezy daytime festival styling.",
+        "bottomwear_price": 699,
+        "bottomwear_image": "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Boho beaded hoop earrings and stacked cord bracelets.",
         "shoe_heel": "Flat Strappy Kolhapuri Slides with Padded Insole",
         "bag_desc": "Woven cotton slouchy hobo bag."
@@ -515,6 +617,12 @@ SILHOUETTES_CASUAL = [
         "base_price": 1599,
         "image": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Tuck top cleanly into high-rise jeans and accent with a sleek belt.",
+        "bottomwear_title": "{color} Vintage Wash High-Rise Straight Jeans",
+        "bottomwear_fabric": "Rigid Organic Cotton Denim with 1% Comfort Stretch",
+        "bottomwear_type": "Straight-Leg Denim",
+        "bottomwear_tip": "Clean straight fit balances ribbed knit tops and chunkier everyday sneakers.",
+        "bottomwear_price": 1499,
+        "bottomwear_image": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Minimalist gold coin pendant and dainty studs.",
         "shoe_heel": "Cushioned Platform Everyday Sneakers",
         "bag_desc": "Water-resistant nylon commuter backpack."
@@ -529,6 +637,12 @@ SILHOUETTES_CASUAL = [
         "base_price": 1799,
         "image": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Monochrome co-ord styling gives an instant chic and put-together aesthetic.",
+        "bottomwear_title": "{color} High-Waisted Relaxed Slub Linen Culottes",
+        "bottomwear_fabric": "Pure Breathable Slub Linen with Side Pockets",
+        "bottomwear_type": "Linen Culottes",
+        "bottomwear_tip": "Cropped ankle length keeps you cool while showcasing sandals and platform slides.",
+        "bottomwear_price": 1299,
+        "bottomwear_image": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Sculptural resin studs and matte link bracelet.",
         "shoe_heel": "Chunky Sole Espadrille Platform Slides",
         "bag_desc": "Structured raffia crossbody bag."
@@ -543,6 +657,12 @@ SILHOUETTES_CASUAL = [
         "base_price": 1499,
         "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=700&q=80",
         "styling_tip": "Let the breezy flared hem drape freely without bulky layering.",
+        "bottomwear_title": "{color} Flared Rayon Ankle Palazzos",
+        "bottomwear_fabric": "Ultra-Soft Fluid Rayon with Elasticated Drawstring",
+        "bottomwear_type": "Flared Palazzos",
+        "bottomwear_tip": "Wide leg flare creates an airy, graceful drape under calf-length cotton anarkalis.",
+        "bottomwear_price": 799,
+        "bottomwear_image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=600&q=80",
         "jewel_rule": "Traditional silver oxidized jhumkas.",
         "shoe_heel": "Handcrafted Embroidered Leather Mojaris",
         "bag_desc": "Printed cotton canvas tote."
@@ -603,19 +723,27 @@ class OccasionEnsembleRecommender:
 
         from backend.services.shopping_service import search_live_myntra_products
 
-        # Query batch pools from Myntra once for the whole ensemble set (4 requests instead of 32)
+        # Query batch pools from Myntra once for the whole ensemble set (5 requests instead of 40)
         if any(k in occ_lower for k in ["college", "casual", "streetwear", "daily"]):
             dress_cat_query = "kurta dress top"
+            bottom_cat_query = "trousers palazzos culottes jeans pants"
         elif any(k in occ_lower for k in ["party", "cocktail", "club", "gala", "date"]):
             dress_cat_query = "gown dress cocktail"
+            bottom_cat_query = "trousers pants skirt shapewear"
         else:
             dress_cat_query = "lehenga saree anarkali"
+            bottom_cat_query = "sharara churidar palazzos skirt petticoat"
 
         live_dresses = search_live_myntra_products(
             query=f"women {target_color} {dress_cat_query}",
             limit=10,
             min_price=min_price,
             max_price=max_price
+        )
+
+        live_bottoms = search_live_myntra_products(
+            query=f"women {target_color} {bottom_cat_query}",
+            limit=8
         )
 
         live_jewels = search_live_myntra_products(
@@ -685,6 +813,54 @@ class OccasionEnsembleRecommender:
                 "styling_tip": tmpl["styling_tip"],
                 "details": tmpl["details"],
                 "retailer_links": dress_links
+            }
+
+            # Select from live bottomwear pool or template
+            if live_bottoms:
+                picked_bottom = live_bottoms[idx % len(live_bottoms)]
+                bottom_name = picked_bottom["name"]
+                bottom_price = picked_bottom["price"]
+                bottom_mrp = picked_bottom["mrp"]
+                bottom_img = picked_bottom["image"]
+                bottom_buy_url = picked_bottom["buy_url"]
+            else:
+                bottom_name = tmpl.get("bottomwear_title", f"{sub_shade} Coordinated Trousers / Palazzos").replace("{color}", sub_shade)
+                bottom_price = tmpl.get("bottomwear_price", 999)
+                bottom_mrp = tmpl.get("bottomwear_mrp", round(bottom_price * 1.5))
+                bottom_img = tmpl.get("bottomwear_image", "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=700&q=80")
+                bottom_buy_url = f"https://www.myntra.com/women-{target_color.lower()}-bottomwear"
+
+            if bottom_price < 2000:
+                if bottom_price <= 800:
+                    bot_retailer = "Meesho"
+                    bottom_buy_url = f"https://www.meesho.com/search?q={quote_plus(bottom_name)}"
+                elif bottom_price <= 1400:
+                    bot_retailer = "Flipkart"
+                    bottom_buy_url = f"https://www.flipkart.com/search?q={quote_plus(bottom_name)}&otracker=search"
+                else:
+                    bot_retailer = "Amazon"
+                    bottom_buy_url = f"https://www.amazon.in/s?k={quote_plus(bottom_name)}+women"
+            else:
+                bot_retailer = "Myntra"
+
+            bottom_links = generate_retailer_links(bottom_name, bottom_price, "bottomwear")
+            if bot_retailer == "Myntra" and bottom_buy_url:
+                bottom_links["myntra"]["url"] = bottom_buy_url
+
+            bottom_obj = {
+                "name": bottom_name,
+                "category": tmpl.get("bottomwear_type", "Bottomwear"),
+                "fabric": tmpl.get("bottomwear_fabric", "High-Grade Tailored Fabric"),
+                "color": sub_shade,
+                "price": bottom_price,
+                "base_price": bottom_price,
+                "mrp": bottom_mrp,
+                "image": bottom_img,
+                "retailer": bot_retailer,
+                "buy_url": bottom_buy_url,
+                "styling_tip": tmpl.get("bottomwear_tip", f"Pairs seamlessly with the {tmpl['silhouette']} to balance proportions."),
+                "details": tmpl.get("bottomwear_fabric", "High-grade tailored fabric"),
+                "retailer_links": bottom_links
             }
 
             # Select from live jewellery pool
@@ -830,7 +1006,7 @@ class OccasionEnsembleRecommender:
                 "retailer_links": bag_links
             }
 
-            total_ensemble_price = dress_obj["base_price"] + jewel_obj["base_price"] + shoe_obj["base_price"] + bag_obj["base_price"]
+            total_ensemble_price = dress_obj["base_price"] + bottom_obj["base_price"] + jewel_obj["base_price"] + shoe_obj["base_price"] + bag_obj["base_price"]
             outfit_id = f"ens-{target_color}-{tmpl['id_suffix']}-{idx+1}"
 
             candidate_ens = {
@@ -843,12 +1019,13 @@ class OccasionEnsembleRecommender:
                 "season": "All Seasons",
                 "formality": "Elevated Occasion Wear",
                 "silhouette": tmpl["silhouette"],
-                "description": f"Curated {target_style.lower()} ensemble coordinating {dress_name} with {jewel_name} and {shoe_name}.",
+                "description": f"Curated {target_style.lower()} ensemble coordinating {dress_name} with {bottom_name}, {jewel_name}, and {shoe_name}.",
                 "total_price": total_ensemble_price,
                 "color_harmony": theme["harmony_note"],
                 "pairing_rationale": f"Every piece is color-harmonized with {sub_shade} and balanced in formality for {target_occasion}.",
                 "heroImage": dress_obj["image"],
                 "dress": dress_obj,
+                "bottomwear": bottom_obj,
                 "jewellery": jewel_obj,
                 "footwear": shoe_obj,
                 "handbag": bag_obj
@@ -915,6 +1092,31 @@ class OccasionEnsembleRecommender:
                         })
                         total_savings += ens["dress"]["base_price"]
 
+            # Bottomwear Match
+            if "bottomwear" in ens:
+                b_name_target = ens["bottomwear"].get("name", "").lower()
+                b_col_target = ens["bottomwear"].get("color", "").lower()
+                if any(k in w_cat or k in w_name for k in ["pant", "trouser", "palazzo", "churidar", "sharara", "skirt", "bottom", "jeans", "salwar", "legging"]):
+                    if not any(m["slot"] == "Bottomwear" for m in matches):
+                        col_match_b = (
+                            (w_col in b_col_target or b_col_target in w_col) or
+                            (w_col in ["gold", "white", "black", "beige", "cream"]) or
+                            (w_col in ["yellow", "mustard"] and any(k in b_col_target for k in ["yellow", "mustard"])) or
+                            (w_col in ["red", "maroon", "crimson"] and any(k in b_col_target for k in ["red", "maroon", "crimson"])) or
+                            (w_col in ["blue", "navy"] and any(k in b_col_target for k in ["blue", "navy"])) or
+                            (w_col in ["green", "emerald"] and any(k in b_col_target for k in ["green", "emerald"]))
+                        )
+                        if col_match_b:
+                            matches.append({
+                                "slot": "Bottomwear",
+                                "name": w.get("name", "Owned Bottomwear"),
+                                "owned_item_name": w.get("name", "Owned Bottomwear"),
+                                "owned_item_image": w.get("image", ""),
+                                "saves_amount": ens["bottomwear"]["base_price"],
+                                "message": f"Pair with your existing {w.get('name', 'bottomwear')} to save Rs. {ens['bottomwear']['base_price']:,}!"
+                            })
+                            total_savings += ens["bottomwear"]["base_price"]
+
             # Footwear Match
             if any(k in w_cat or k in w_name for k in ["shoe", "sandal", "heel", "juttis", "mojaris", "flats", "sneaker"]):
                 if not any(m["slot"] == "Footwear" for m in matches):
@@ -928,7 +1130,7 @@ class OccasionEnsembleRecommender:
                     })
                     total_savings += ens["footwear"]["base_price"]
 
-        synergy_score = min(1.0, len(matches) / 2.0)
+        synergy_score = min(1.0, len(matches) / 2.5)
         return synergy_score, matches, total_savings
 
     def _enrich_ensemble_with_retailers(
@@ -946,7 +1148,7 @@ class OccasionEnsembleRecommender:
         """
         Deep-enriches ensemble pieces with direct shopping links across Myntra, Amazon, Meesho, Flipkart, and Ajio.
         Integrates wardrobe reuse, money saved, and compatibility scoring.
-        Notice: Hairstyle dimension is completely excluded.
+        Notice: Hairstyle dimension is completely excluded; includes suitable bottomwear.
         """
         dress = dict(ens["dress"])
         dress["is_owned"] = any(m["slot"] == "Dress" for m in wardrobe_matches)
@@ -958,6 +1160,17 @@ class OccasionEnsembleRecommender:
             dress["money_saved"] = matching_dress.get("saves_amount", dress["base_price"])
             if matching_dress.get("matched_item_image"):
                 dress["image"] = matching_dress.get("matched_item_image")
+
+        bottomwear = dict(ens.get("bottomwear", {}))
+        bottomwear["is_owned"] = any(m["slot"] == "Bottomwear" for m in wardrobe_matches)
+        bottomwear["matched_item_name"] = None
+        bottomwear["money_saved"] = 0
+        if bottomwear["is_owned"]:
+            matching_bottom = next(m for m in wardrobe_matches if m["slot"] == "Bottomwear")
+            bottomwear["matched_item_name"] = matching_bottom.get("matched_item_name", matching_bottom.get("name"))
+            bottomwear["money_saved"] = matching_bottom.get("saves_amount", bottomwear["base_price"])
+            if matching_bottom.get("matched_item_image"):
+                bottomwear["image"] = matching_bottom.get("matched_item_image")
 
         jewellery = dict(ens["jewellery"])
         jewellery["is_owned"] = any(m["slot"] in ["Jewellery", "Jewelry"] for m in wardrobe_matches)
@@ -1006,6 +1219,22 @@ class OccasionEnsembleRecommender:
                 "inWardrobe": dress["is_owned"],
                 "owned": dress["is_owned"],
                 "buy_url": dress.get("buy_url") or (dress.get("retailer_links", {}).get("myntra", {}).get("url") if isinstance(dress.get("retailer_links"), dict) else None)
+            },
+            {
+                "id": f"{ens['id']}-bottomwear",
+                "slot": "Bottomwear",
+                "name": bottomwear.get("name", "Suitable Bottomwear"),
+                "category": bottomwear.get("category", "Bottomwear"),
+                "colour": bottomwear.get("color", dress["color"]),
+                "price": 0 if bottomwear["is_owned"] else bottomwear["base_price"],
+                "base_price": bottomwear["base_price"],
+                "mrp": bottomwear.get("mrp", round(bottomwear["base_price"] * 1.5)),
+                "retailer": "Wardrobe" if bottomwear["is_owned"] else bottomwear.get("retailer", "Flipkart"),
+                "retailer_links": bottomwear.get("retailer_links", {}),
+                "image": bottomwear["image"],
+                "inWardrobe": bottomwear["is_owned"],
+                "owned": bottomwear["is_owned"],
+                "buy_url": bottomwear.get("buy_url") or (bottomwear.get("retailer_links", {}).get("myntra", {}).get("url") if isinstance(bottomwear.get("retailer_links"), dict) else None)
             },
             {
                 "id": f"{ens['id']}-jewellery",
@@ -1057,7 +1286,7 @@ class OccasionEnsembleRecommender:
             }
         ]
 
-        total_ensemble_price = dress["base_price"] + jewellery["base_price"] + footwear["base_price"] + handbag["base_price"]
+        total_ensemble_price = dress["base_price"] + bottomwear["base_price"] + jewellery["base_price"] + footwear["base_price"] + handbag["base_price"]
         actual_net_cost = sum(i["price"] for i in items_list) if net_cost is None else net_cost
 
         matched_cnt = len(wardrobe_matches)
@@ -1075,7 +1304,7 @@ class OccasionEnsembleRecommender:
             f"Compatibility Rating: {score}% based on mathematical color harmony & silhouette pairing",
             ens["color_harmony"],
             f"Curated strictly for your preferred {req_occasion or ens['occasion']} styling",
-            f"Hyper-Consumerism Protection: {'Reusing ' + str(matched_cnt) + ' item(s) from closet saves Rs. ' + str(total_savings) + '!' if matched_cnt > 0 else 'Full 4-piece coordinated ensemble with zero fast-fashion waste'}",
+            f"Hyper-Consumerism Protection: {'Reusing ' + str(matched_cnt) + ' item(s) from closet saves Rs. ' + str(total_savings) + '!' if matched_cnt > 0 else 'Full 5-piece coordinated ensemble with zero fast-fashion waste'}",
             "Multi-Retailer Price Comparison across Myntra, Amazon, Meesho, Flipkart, and Ajio"
         ]
         if passes_constraints:
@@ -1117,9 +1346,10 @@ class OccasionEnsembleRecommender:
                 "wardrobe_synergy": float(pct)
             },
             
-            # The 4 Core Preference-Driven Components (Hairstyle completely removed)
+            # The 5 Core Preference-Driven Components (Dress, Bottomwear, Jewellery, Footwear, Handbag)
             "ensemble_breakdown": {
                 "dress": dress,
+                "bottomwear": bottomwear,
                 "jewellery": jewellery,
                 "footwear": footwear,
                 "handbag": handbag
@@ -1276,7 +1506,7 @@ class OccasionEnsembleRecommender:
                     "Hard Constraints Filtering (Budget & Excluded Colours)"
                 ],
                 "retailers_supported": ["Myntra", "Amazon India", "Meesho", "Flipkart", "Ajio"],
-                "categories_curated": ["Dress/Outfit", "Jewellery", "Footwear", "Handbag"]
+                "categories_curated": ["Dress/Outfit", "Bottomwear", "Jewellery", "Footwear", "Handbag"]
             }
         }
 

@@ -221,6 +221,8 @@ class OutfitCompatibilityLayer:
                         slot_match = any(k in w_cat or k in w_sub or k in w_name for k in ["shirt", "top", "tee"])
                     else:
                         slot_match = any(k in w_cat or k in w_sub or k in w_name for k in ["dress", "saree", "kurta"])
+                elif slot in ["bottomwear", "bottom"]:
+                    slot_match = any(k in w_cat or k in w_sub or k in w_name for k in ["pant", "trouser", "palazzo", "churidar", "sharara", "skirt", "bottom", "jeans", "salwar", "legging"])
                 elif slot in ["shoes", "footwear"]:
                     slot_match = any(k in w_cat or k in w_sub or k in w_name for k in ["shoe", "footwear", "sandal", "heel", "mojaris", "juttis", "sneaker", "flats"])
                 elif slot in ["handbag", "bag"]:
@@ -327,6 +329,7 @@ class OutfitCompatibilityLayer:
                 bd = ensemble["ensemble_breakdown"]
                 pieces = [
                     {"slot": "Dress", **bd.get("dress", {})},
+                    {"slot": "Bottomwear", **bd.get("bottomwear", {})},
                     {"slot": "Jewellery", **bd.get("jewellery", {})},
                     {"slot": "Footwear", **bd.get("footwear", {})},
                     {"slot": "Handbag", **bd.get("handbag", {})}
@@ -334,6 +337,7 @@ class OutfitCompatibilityLayer:
             elif "dress" in ensemble:
                 pieces = [
                     {"slot": "Dress", **ensemble.get("dress", {})},
+                    {"slot": "Bottomwear", **ensemble.get("bottomwear", {})},
                     {"slot": "Jewellery", **ensemble.get("jewellery", {})},
                     {"slot": "Footwear", **ensemble.get("footwear", {})},
                     {"slot": "Handbag", **ensemble.get("handbag", {})}

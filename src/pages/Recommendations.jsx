@@ -54,16 +54,6 @@ const COLOR_PRESETS = [
   { id: 'Purple', name: 'Royal Purple', hex: '#7C3AED' }
 ];
 
-// Pre-defined Hard Budget Constraint Presets
-const BUDGET_PRESETS = [
-  { id: 'all', label: 'All Budgets', value: null },
-  { id: '2000', label: 'Under ₹2,000 (Meesho/Amazon/Flipkart)', value: 2000 },
-  { id: '3000', label: 'Under ₹3,000', value: 3000 },
-  { id: '5000', label: 'Under ₹5,000', value: 5000 },
-  { id: '8000', label: 'Under ₹8,000', value: 8000 },
-  { id: '12000', label: 'Under ₹12,000', value: 12000 }
-];
-
 // Pre-defined Excluded Colours Filter Presets
 const EXCLUDED_COLOR_PRESETS = [
   { id: 'Black', name: 'Black', hex: '#18181B' },
@@ -74,10 +64,10 @@ const EXCLUDED_COLOR_PRESETS = [
   { id: 'Orange', name: 'Orange', hex: '#EA580C' }
 ];
 
-// Pre-defined Live Price Range Filter Presets
+// Pre-defined Unified Budget & Price Range Filter Presets
 const PRICE_RANGE_PRESETS = [
-  { id: 'all', label: 'All Price Ranges', min: null, max: null },
-  { id: 'under-2000', label: 'Under ₹2,000 (Meesho / Amazon / Flipkart)', min: null, max: 2000 },
+  { id: 'all', label: 'All Budgets', min: null, max: null },
+  { id: 'under-2000', label: 'Under ₹2,000 (Meesho / Flipkart / Amazon)', min: null, max: 2000 },
   { id: '2000-4000', label: '₹2,000 - ₹4,000 (Myntra)', min: 2000, max: 4000 },
   { id: '4000-8000', label: '₹4,000 - ₹8,000 (Myntra)', min: 4000, max: 8000 },
   { id: '8000-plus', label: '₹8,000+ (Myntra Luxury)', min: 8000, max: null }
@@ -248,7 +238,7 @@ export const Recommendations = () => {
   } = useFashion();
 
   const [viewMode, setViewMode] = useState('detail'); // 'detail' | 'all'
-  const [activeTab, setActiveTab] = useState('all-slots'); // 'all-slots' | 'dress' | 'jewellery' | 'footwear' | 'handbag'
+  const [activeTab, setActiveTab] = useState('all-slots'); // 'all-slots' | 'dress' | 'bottomwear' | 'jewellery' | 'footwear' | 'handbag'
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Safe fallback preferences
@@ -303,7 +293,7 @@ export const Recommendations = () => {
     retailer_links = []
   } = activeOutfit || {};
 
-  // Extract or synthesize the 4 core slots strictly based on preferences (no hairstyle)
+  // Extract or synthesize the 5 core slots strictly based on preferences (no hairstyle)
   const dressSlot = {
     name: ensemble_breakdown?.dress?.name || items.find(i => ['dress', 'traditional', 'top'].includes(String(i.slot || i.category).toLowerCase()))?.name || name,
     category: ensemble_breakdown?.dress?.category || silhouette || 'Dress / Silhouette',
@@ -320,6 +310,24 @@ export const Recommendations = () => {
     money_saved: ensemble_breakdown?.dress?.is_owned ? (ensemble_breakdown?.dress?.base_price || 3899) : (has_wardrobe_reuse ? total_savings : 0),
     styling_tip: ensemble_breakdown?.dress?.styling_tip || 'Structured drape calibrated specifically for the occasion proportions.',
     retailer_links: ensemble_breakdown?.dress?.retailer_links || []
+  };
+
+  const bottomwearSlot = {
+    name: ensemble_breakdown?.bottomwear?.name || items.find(i => ['bottomwear', 'bottom', 'palazzo', 'pants', 'trousers', 'churidar', 'sharara', 'skirt'].includes(String(i.slot || i.category).toLowerCase()))?.name || `${safePrefs.colour || 'Coordinated'} Flared Bottomwear`,
+    type: ensemble_breakdown?.bottomwear?.category || ensemble_breakdown?.bottomwear?.type || 'Bottomwear / Palazzos',
+    fabric: ensemble_breakdown?.bottomwear?.fabric || 'Pure Silk Blend / High-Grade Tailored Fabric',
+    color: ensemble_breakdown?.bottomwear?.color || safePrefs.colour || 'Coordinated',
+    image: ensemble_breakdown?.bottomwear?.image || items.find(i => ['bottomwear', 'bottom', 'palazzo', 'pants', 'trousers', 'churidar', 'sharara', 'skirt'].includes(String(i.slot || i.category).toLowerCase()))?.image || 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=800&q=80',
+    base_price: ensemble_breakdown?.bottomwear?.base_price || 999,
+    price: ensemble_breakdown?.bottomwear?.price ?? (ensemble_breakdown?.bottomwear?.is_owned ? 0 : 999),
+    mrp: ensemble_breakdown?.bottomwear?.mrp || Math.round((ensemble_breakdown?.bottomwear?.base_price || 999) * 1.5),
+    retailer: ensemble_breakdown?.bottomwear?.retailer || ((ensemble_breakdown?.bottomwear?.price || 999) < 2000 ? 'Flipkart' : 'Myntra'),
+    buy_url: ensemble_breakdown?.bottomwear?.buy_url || (Array.isArray(ensemble_breakdown?.bottomwear?.retailer_links) ? ensemble_breakdown?.bottomwear?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.bottomwear?.retailer_links?.myntra?.url) || null,
+    is_wardrobe_match: Boolean(ensemble_breakdown?.bottomwear?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => String(m.slot || '').toLowerCase() === 'bottomwear'))),
+    matched_item_name: ensemble_breakdown?.bottomwear?.matched_wardrobe_name || null,
+    money_saved: ensemble_breakdown?.bottomwear?.is_owned ? (ensemble_breakdown?.bottomwear?.base_price || 999) : 0,
+    styling_tip: ensemble_breakdown?.bottomwear?.styling_tip || 'Pairs seamlessly with the top silhouette to balance proportions.',
+    retailer_links: ensemble_breakdown?.bottomwear?.retailer_links || []
   };
 
   const jewellerySlot = {
@@ -418,7 +426,8 @@ export const Recommendations = () => {
       ...safePrefs,
       price_range: preset.id,
       min_price: preset.min,
-      max_price: preset.max
+      max_price: preset.max,
+      budget: preset.max || null
     };
     setPreferences(updated);
     try {
@@ -486,7 +495,7 @@ export const Recommendations = () => {
             COMPLETE OCCASION BLUEPRINTS
           </h1>
           <p className="text-sm sm:text-base text-charcoal-600 mt-2 font-medium max-w-3xl">
-            Tailored strictly to your preferences across 4 core styling dimensions: <strong className="text-charcoal-900">Dress, Jewellery, Footwear & Handbag</strong> with direct product buy links from <strong className="text-charcoal-900">Meesho, Amazon, Flipkart (under ₹1,500)</strong> and <strong className="text-charcoal-900">Myntra (₹1,500+)</strong>.
+            Tailored strictly to your preferences across 5 core styling dimensions: <strong className="text-charcoal-900">Dress/Top, Suitable Bottomwear, Jewellery, Footwear & Handbag</strong> with direct product buy links from <strong className="text-charcoal-900">Meesho, Flipkart, Amazon (under ₹2,000)</strong> and <strong className="text-charcoal-900">Myntra (₹2,000+)</strong>.
           </p>
         </div>
 
@@ -514,7 +523,7 @@ export const Recommendations = () => {
         </div>
       </div>
 
-      {/* Interactive Preference Controllers: Occasion & Color Switchers */}
+      {/* Interactive Preference Controllers: Occasion, Color, Budget & Constraints */}
       <div className="bg-[#FAF8F5] rounded-3xl p-5 border border-taupe-200 shadow-2xs space-y-4">
         
         {/* Row 1: Occasion Switcher */}
@@ -555,7 +564,7 @@ export const Recommendations = () => {
           <div className="flex items-center justify-between pb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-charcoal-700 flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-red-600 inline-block shadow-2xs" />
-              2. Select Target Color (All 4 Pieces Strictly Harmonized):
+              2. Select Target Color (All 5 Pieces Strictly Harmonized):
             </span>
             <span className="text-[11px] text-charcoal-500 font-semibold">
               Current: <strong className="text-charcoal-900">{safePrefs.colour || 'Red'}</strong>
@@ -583,20 +592,20 @@ export const Recommendations = () => {
           </div>
         </div>
 
-        {/* Row 3: Live Price Range Filter (Direct Product Matching) */}
+        {/* Row 3: Unified Budget & Live Price Range Filter (Direct Product Matching) */}
         <div className="pt-3 border-t border-taupe-200">
           <div className="flex items-center justify-between pb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-charcoal-700 flex items-center gap-1.5">
               <Tag className="w-4 h-4 text-charcoal-900" />
-              3. Filter by Price Range (Live Retailer Prices):
+              3. Filter by Budget / Price Range (Live Retailer Sourcing):
             </span>
             <span className="text-[11px] text-charcoal-500 font-semibold">
-              Current: <strong className="text-charcoal-900">{PRICE_RANGE_PRESETS.find(p => p.id === (safePrefs.price_range || 'all'))?.label || 'All Price Ranges'}</strong>
+              Current: <strong className="text-charcoal-900">{PRICE_RANGE_PRESETS.find(p => p.id === (safePrefs.price_range || 'all'))?.label || (safePrefs.budget ? `Under ₹${Number(safePrefs.budget).toLocaleString('en-IN')}` : 'All Budgets')}</strong>
             </span>
           </div>
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {PRICE_RANGE_PRESETS.map((p) => {
-              const isSelected = (safePrefs.price_range || 'all') === p.id;
+              const isSelected = (safePrefs.price_range || 'all') === p.id || (p.max && safePrefs.budget === p.max);
               return (
                 <button
                   key={p.id}
@@ -615,44 +624,12 @@ export const Recommendations = () => {
           </div>
         </div>
 
-        {/* Row 4: Hard Budget Constraint Selector */}
-        <div className="pt-3 border-t border-taupe-200">
-          <div className="flex items-center justify-between pb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-charcoal-700 flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-charcoal-900" />
-              4. Hard Budget Limit (Missing Items Purchase Cap):
-            </span>
-            <span className="text-[11px] text-charcoal-500 font-semibold">
-              Current: <strong className="text-charcoal-900">{safePrefs.budget ? `Under ₹${Number(safePrefs.budget).toLocaleString('en-IN')}` : 'No Limit'}</strong>
-            </span>
-          </div>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {BUDGET_PRESETS.map((b) => {
-              const isSelected = safePrefs.budget === b.value || (!safePrefs.budget && b.value === null);
-              return (
-                <button
-                  key={b.id}
-                  onClick={() => handleBudgetChange(b.value)}
-                  disabled={isGenerating}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
-                    isSelected
-                      ? 'bg-charcoal-900 text-cream-50 border-charcoal-900 shadow-sm ring-2 ring-charcoal-900/20'
-                      : 'bg-white text-charcoal-700 border-taupe-200 hover:border-charcoal-700 hover:bg-taupe-50'
-                  }`}
-                >
-                  <span>{b.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Row 5: Excluded Colours Constraint Filter */}
+        {/* Row 4: Excluded Colours Constraint Filter */}
         <div className="pt-3 border-t border-taupe-200">
           <div className="flex items-center justify-between pb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-charcoal-700 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-charcoal-900" />
-              5. Excluded Colours (Hard Constraint Filter):
+              4. Excluded Colours (Hard Constraint Filter):
             </span>
             <span className="text-[11px] text-charcoal-500 font-semibold">
               Excluded: <strong className="text-rose-700">{Array.isArray(safePrefs.excluded_colours) && safePrefs.excluded_colours.length > 0 ? safePrefs.excluded_colours.join(', ') : (safePrefs.excluded_colour || 'None')}</strong>
@@ -862,11 +839,15 @@ export const Recommendations = () => {
                       </p>
                     </div>
 
-                    {/* 4-Slot Mini Pill List (Dress, Jewellery, Footwear, Handbag) */}
+                    {/* 5-Slot Mini Pill List (Dress, Bottomwear, Jewellery, Footwear, Handbag) */}
                     <div className="p-3 rounded-2xl bg-[#FAF8F5] border border-taupe-200 space-y-1.5 text-xs">
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-semibold text-charcoal-500">👗 Dress:</span>
+                        <span className="font-semibold text-charcoal-500">👗 Dress/Top:</span>
                         <span className="font-bold text-charcoal-900 truncate max-w-[180px]">{outfit.ensemble_breakdown?.dress?.name || 'Curated Attire'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold text-charcoal-500">👖 Bottomwear:</span>
+                        <span className="font-bold text-charcoal-900 truncate max-w-[180px]">{outfit.ensemble_breakdown?.bottomwear?.name || 'Suitable Bottomwear'}</span>
                       </div>
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-semibold text-charcoal-500">💎 Jewellery:</span>
@@ -890,7 +871,7 @@ export const Recommendations = () => {
                       </div>
                     ) : (
                       <div className="p-2.5 rounded-xl bg-taupe-100 border border-taupe-200 text-xs font-medium text-charcoal-600 flex items-center justify-between">
-                        <span>Complete 4-Piece Ensemble</span>
+                        <span>Complete 5-Piece Ensemble</span>
                         <span className="font-bold text-charcoal-900">₹{(outfit.total_price || 4800).toLocaleString('en-IN')}</span>
                       </div>
                     )}
@@ -1018,7 +999,7 @@ export const Recommendations = () => {
               </div>
               <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-charcoal-500 block">Dimensions Curated</span>
-                <span className="text-xs sm:text-sm font-bold text-charcoal-900 mt-1 block">4 / 4 Complete Ensemble</span>
+                <span className="text-xs sm:text-sm font-bold text-charcoal-900 mt-1 block">5 / 5 Complete Ensemble</span>
               </div>
             </div>
           </section>
@@ -1128,19 +1109,19 @@ export const Recommendations = () => {
             </div>
           </section>
 
-          {/* THE 4 DIMENSIONS OF OCCASION STYLING (Dress, Jewellery, Footwear, Handbag) */}
+          {/* THE 5 DIMENSIONS OF OCCASION STYLING (Dress/Top, Bottomwear, Jewellery, Footwear, Handbag) */}
           <section className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-taupe-200">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-charcoal-900 text-cream-50 flex items-center justify-center font-bold text-xs">
-                  4★
+                  5★
                 </div>
                 <div>
                   <h3 className="editorial-heading text-xl sm:text-2xl font-bold text-charcoal-900">
-                    The 4 Core Ensemble Components
+                    The 5 Core Ensemble Components
                   </h3>
                   <p className="text-xs text-charcoal-500">
-                    Curated across Dress, Jewellery, Footwear & Handbag with verified direct product links from Meesho, Amazon, Flipkart (&lt; ₹1,500) and Myntra (₹1,500+)
+                    Curated across Dress/Top, Suitable Bottomwear, Jewellery, Footwear & Handbag with verified direct product links from Meesho, Flipkart, Amazon (under ₹2,000) and Myntra (₹2,000+)
                   </p>
                 </div>
               </div>
@@ -1153,7 +1134,7 @@ export const Recommendations = () => {
                     activeTab === 'all-slots' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
                   }`}
                 >
-                  All 4 Slots
+                  All 5 Slots
                 </button>
                 <button
                   onClick={() => setActiveTab('dress')}
@@ -1161,7 +1142,15 @@ export const Recommendations = () => {
                     activeTab === 'dress' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
                   }`}
                 >
-                  👗 Dress
+                  👗 Dress / Top
+                </button>
+                <button
+                  onClick={() => setActiveTab('bottomwear')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'bottomwear' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
+                  }`}
+                >
+                  👖 Bottomwear
                 </button>
                 <button
                   onClick={() => setActiveTab('jewellery')}
@@ -1275,7 +1264,90 @@ export const Recommendations = () => {
               </div>
             )}
 
-            {/* CARD 2: 💎 JEWELLERY */}
+            {/* CARD 2: 👖 BOTTOMWEAR */}
+            {(activeTab === 'all-slots' || activeTab === 'bottomwear') && (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-taupe-300 shadow-card space-y-6">
+                <div className="flex flex-col lg:flex-row gap-8 items-start">
+                  <div className="w-full lg:w-72 shrink-0 rounded-2xl overflow-hidden bg-taupe-100 border border-taupe-200 aspect-[3/4] relative shadow-subtle group">
+                    <img
+                      src={bottomwearSlot.image}
+                      alt={bottomwearSlot.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=800&q=80';
+                      }}
+                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                    />
+                    <div className="absolute top-3 left-3 bg-charcoal-900/85 backdrop-blur-xs text-cream-50 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      👖 Bottomwear Pairing
+                    </div>
+                    {bottomwearSlot.is_wardrobe_match && (
+                      <div className="absolute bottom-3 left-3 right-3 bg-emerald-800/90 backdrop-blur-xs text-white px-3 py-1.5 rounded-xl text-xs font-bold text-center">
+                        ✓ In Your Wardrobe (Saved ₹{bottomwearSlot.money_saved})
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-charcoal-900 text-cream-50 px-2.5 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
+                          DIMENSION 02: SUITABLE BOTTOMWEAR
+                        </span>
+                        <span className="text-xs font-semibold text-charcoal-600">
+                          {bottomwearSlot.type}
+                        </span>
+                      </div>
+                      {bottomwearSlot.is_wardrobe_match ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          ALREADY IN WARDROBE (₹0)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                          <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                          PURCHASE TO COMPLETE
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 className="editorial-heading text-2xl sm:text-3xl font-bold text-charcoal-900">
+                        {bottomwearSlot.name}
+                      </h4>
+                      <p className="text-xs text-charcoal-500 mt-1 font-medium">
+                        Silhouette: <strong className="text-charcoal-800">{bottomwearSlot.type}</strong> • Fabric: <strong className="text-charcoal-800">{bottomwearSlot.fabric}</strong>
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 text-xs sm:text-sm text-charcoal-700 leading-relaxed">
+                      <strong className="text-charcoal-900 block mb-1 font-bold">Proportion & Pairing Harmony:</strong>
+                      {bottomwearSlot.styling_tip}
+                    </div>
+
+                    {/* Direct Product Buying Card for Bottomwear or Wardrobe Reuse Banner */}
+                    {bottomwearSlot.is_wardrobe_match ? (
+                      <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                          <span className="font-bold text-emerald-900">
+                            Reusing your owned "{bottomwearSlot.matched_item_name || bottomwearSlot.name}"
+                          </span>
+                        </div>
+                        <span className="font-extrabold text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-emerald-200">
+                          Saved ₹{bottomwearSlot.money_saved.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    ) : (
+                      <DirectProductBuyCard item={bottomwearSlot} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CARD 3: 💎 JEWELLERY */}
             {(activeTab === 'all-slots' || activeTab === 'jewellery') && (
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-taupe-300 shadow-card space-y-6">
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -1305,7 +1377,7 @@ export const Recommendations = () => {
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
                       <div className="flex items-center gap-2">
                         <span className="bg-charcoal-900 text-cream-50 px-2.5 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
-                          DIMENSION 02: JEWELLERY
+                          DIMENSION 03: JEWELLERY
                         </span>
                         <span className="text-xs font-semibold text-charcoal-600">
                           {jewellerySlot.type}
@@ -1359,7 +1431,7 @@ export const Recommendations = () => {
               </div>
             )}
 
-            {/* CARD 3: 👠 FOOTWEAR */}
+            {/* CARD 4: 👠 FOOTWEAR */}
             {(activeTab === 'all-slots' || activeTab === 'footwear') && (
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-taupe-300 shadow-card space-y-6">
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -1388,7 +1460,7 @@ export const Recommendations = () => {
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
                       <div className="flex items-center gap-2">
                         <span className="bg-charcoal-900 text-cream-50 px-2.5 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
-                          DIMENSION 03: FOOTWEAR
+                          DIMENSION 04: FOOTWEAR
                         </span>
                         <span className="text-xs font-semibold text-charcoal-600">
                           {footwearSlot.type}
@@ -1442,7 +1514,7 @@ export const Recommendations = () => {
               </div>
             )}
 
-            {/* CARD 4: 👜 HANDBAG & CLUTCHES */}
+            {/* CARD 5: 👜 HANDBAG & CLUTCHES */}
             {(activeTab === 'all-slots' || activeTab === 'handbag') && (
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-taupe-300 shadow-card space-y-6">
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -1472,7 +1544,7 @@ export const Recommendations = () => {
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
                       <div className="flex items-center gap-2">
                         <span className="bg-charcoal-900 text-cream-50 px-2.5 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
-                          DIMENSION 04: HANDBAG & ACCENTS
+                          DIMENSION 05: HANDBAG & ACCENTS
                         </span>
                         <span className="text-xs font-semibold text-charcoal-600">
                           {handbagSlot.type}
@@ -1541,7 +1613,7 @@ export const Recommendations = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
               <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 space-y-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-charcoal-500">Cross-Slot Affinity Score</span>
-                <p className="text-xs font-semibold text-charcoal-900">{compatibility_score}% compatibility across Dress, Jewellery, Footwear & Handbag</p>
+                <p className="text-xs font-semibold text-charcoal-900">{compatibility_score}% compatibility across Dress/Top, Bottomwear, Jewellery, Footwear & Handbag</p>
               </div>
               <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 space-y-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-charcoal-500">Wardrobe Synergy Evaluation</span>
@@ -1564,10 +1636,10 @@ export const Recommendations = () => {
           <section>
             <WardrobeMatch
               ownedCount={has_wardrobe_reuse ? wardrobe_matches.length : 0}
-              totalCount={4}
+              totalCount={5}
               percentage={wardrobe_synergy_score}
-              statusText={has_wardrobe_reuse ? `Curbing fast fashion: Reusing your wardrobe saves ₹${total_savings}` : "Full 4-Piece Coordinated Ensemble"}
-              subtext={has_wardrobe_reuse ? `Reused: ${wardrobe_matches.map(w => w.name).join(', ')}` : "All pieces curated with direct product buy links on Myntra"}
+              statusText={has_wardrobe_reuse ? `Curbing fast fashion: Reusing your wardrobe saves ₹${total_savings}` : "Full 5-Piece Coordinated Ensemble"}
+              subtext={has_wardrobe_reuse ? `Reused: ${wardrobe_matches.map(w => w.name).join(', ')}` : "All pieces curated with direct product buy links from Meesho/Flipkart/Amazon (< ₹2,000) or Myntra (₹2,000+)"}
               items={items}
             />
           </section>
