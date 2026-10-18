@@ -7,13 +7,11 @@ export const JourneyProgress = () => {
 
   // Workflow steps mapping
   const steps = [
-    { path: '/stylist', label: 'Stylist', number: '01' },
-    { path: '/recommendations', label: 'Recommendation', number: '02' },
-    { path: '/try-existing', label: 'Wardrobe Pick', number: '03' },
-    { path: '/shop-new', label: 'Missing Item', number: '03b', optional: true },
-    { path: '/try-on/upload', label: 'Upload Photo', number: '04' },
-    { path: '/try-on', label: 'Try-On', number: '05' },
-    { path: '/analysis', label: 'Analysis', number: '06' }
+    { path: '/stylist', label: 'AI Stylist', number: '01' },
+    { path: '/recommendations', label: 'Occasion Ensemble', number: '02' },
+    { path: '/try-existing', label: 'Wardrobe Synergy', number: '03' },
+    { path: '/shop-new', label: 'Missing Item', number: '04', optional: true },
+    { path: '/analysis', label: 'Decision Analysis', number: '05' }
   ];
 
   // Only display on workflow routes

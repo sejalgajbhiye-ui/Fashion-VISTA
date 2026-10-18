@@ -233,30 +233,32 @@ class VirtualTryOnEngine:
         # Resize mask back to original image size
         person_mask_orig = cv2.resize(person_mask, (w, h), interpolation=cv2.INTER_LINEAR)
 
-        # Pose-guided anatomical fusion if MobileNet under-segments (e.g. patterned ethnic wear, ornate backgrounds)
+        # Pose-guided anatomical fusion ONLY if MobileNet completely under-segments
         if pose_info is not None and pose_info.get("detected"):
-            sh_w = pose_info.get("shoulder_width", w * 0.3)
-            l_sh = pose_info["left_shoulder"]
-            r_sh = pose_info["right_shoulder"]
-            l_hip = pose_info["left_hip"]
-            r_hip = pose_info["right_hip"]
-            l_ank = pose_info.get("left_ankle", l_hip + np.array([0, 250]))
-            r_ank = pose_info.get("right_ankle", r_hip + np.array([0, 250]))
-            neck = pose_info["neck"]
-            nose = pose_info.get("nose", neck - np.array([0, sh_w * 0.5]))
+            if np.mean(person_mask_orig > 0.2) < 0.05:
+                sh_w = pose_info.get("shoulder_width", w * 0.3)
+                l_sh = pose_info["left_shoulder"]
+                r_sh = pose_info["right_shoulder"]
+                l_hip = pose_info["left_hip"]
+                r_hip = pose_info["right_hip"]
+                l_ank = pose_info.get("left_ankle", l_hip + np.array([0, 250]))
+                r_ank = pose_info.get("right_ankle", r_hip + np.array([0, 250]))
+                neck = pose_info["neck"]
+                nose = pose_info.get("nose", neck - np.array([0, sh_w * 0.5]))
 
-            anat_canvas = np.zeros((h, w), dtype=np.float32)
-            cv2.circle(anat_canvas, (int(nose[0]), int(nose[1])), int(sh_w * 0.45), 1.0, -1)
-            pts = np.array([
-                r_sh + np.array([-sh_w * 0.20, 0]),
-                l_sh + np.array([sh_w * 0.20, 0]),
-                l_hip + np.array([sh_w * 0.40, 0]),
-                l_ank + np.array([sh_w * 0.45, 0]),
-                r_ank + np.array([-sh_w * 0.45, 0]),
-                r_hip + np.array([-sh_w * 0.40, 0])
-            ], dtype=np.int32)
-            cv2.fillPoly(anat_canvas, [pts], 1.0)
-            person_mask_orig = np.maximum(person_mask_orig, anat_canvas)
+                anat_canvas = np.zeros((h, w), dtype=np.float32)
+                cv2.circle(anat_canvas, (int(nose[0]), int(nose[1])), int(sh_w * 0.45), 1.0, -1)
+                pts = np.array([
+                    r_sh + np.array([-sh_w * 0.15, 0]),
+                    l_sh + np.array([sh_w * 0.15, 0]),
+                    l_hip + np.array([sh_w * 0.30, 0]),
+                    l_ank + np.array([sh_w * 0.35, 0]),
+                    r_ank + np.array([-sh_w * 0.35, 0]),
+                    r_hip + np.array([-sh_w * 0.30, 0])
+                ], dtype=np.int32)
+                cv2.fillPoly(anat_canvas, [pts], 1.0)
+                anat_canvas = cv2.GaussianBlur(anat_canvas, (15, 15), 0)
+                person_mask_orig = np.maximum(person_mask_orig, anat_canvas)
 
         # Apply gentle gaussian blur for soft transitions
         person_mask_orig = cv2.GaussianBlur(person_mask_orig, (7, 7), 0)

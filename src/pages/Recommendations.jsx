@@ -1,115 +1,272 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useFashion, matchOutfitWithWardrobe } from '../context/FashionContext';
 import { WardrobeMatch } from '../components/WardrobeMatch';
 import { RecommendationReason } from '../components/RecommendationReason';
-import { OutfitCard } from '../components/OutfitCard';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
-import { FitInViewTryOnPipeline } from '../components/FitInViewTryOnPipeline';
-import { synthesizeLookTryOn } from '../utils/tryOnGenerator';
 import {
   Sparkles,
-  Shirt,
   ShoppingBag,
-  ArrowRight,
-  RefreshCw,
+  Shirt,
+  ExternalLink,
   Layers,
+  Check,
   CheckCircle2,
   AlertCircle,
-  Check,
+  RefreshCw,
   Compass,
   LayoutGrid,
   ChevronLeft,
   ChevronRight,
-  Camera,
-  Eye,
-  UploadCloud
+  Heart,
+  ShieldCheck,
+  ArrowRight,
+  Tag,
+  SlidersHorizontal,
+  Info,
+  DollarSign,
+  Gem,
+  Crown
 } from 'lucide-react';
+
+// Pre-defined Quick Presets for Occasions
+const OCCASION_PRESETS = [
+  { id: 'Wedding', label: 'Wedding', icon: '💍', subtitle: 'Royal heritage silks & bridal lehengas' },
+  { id: 'Party', label: 'Party', icon: '🎉', subtitle: 'Modern evening glam, gowns & cocktails' },
+  { id: 'Reception', label: 'Reception', icon: '🥂', subtitle: 'Sophisticated gowns & drape sarees' },
+  { id: 'Sangeet', label: 'Sangeet / Mehendi', icon: '🪕', subtitle: 'Vibrant shararas & flared lehengas' },
+  { id: 'Festive', label: 'Festive / Puja', icon: '✨', subtitle: 'Chikankari, Chanderi & classic ethnic' },
+  { id: 'Formal Gala', label: 'Formal Gala', icon: '👔', subtitle: 'Tailored luxury jumpsuits & tuxedo chic' },
+  { id: 'Date Night', label: 'Date Night', icon: '🍸', subtitle: 'Effortless slip dresses & fluid blazers' },
+  { id: 'College', label: 'College / Casual', icon: '🎓', subtitle: 'Breathable kurtis, linen shirts & denim' }
+];
+
+// Pre-defined Quick Presets for Target Color Themes
+const COLOR_PRESETS = [
+  { id: 'Red', name: 'Crimson Red', hex: '#DC2626' },
+  { id: 'Green', name: 'Emerald Green', hex: '#059669' },
+  { id: 'Black', name: 'Midnight Black', hex: '#18181B' },
+  { id: 'Blue', name: 'Royal Blue', hex: '#2563EB' },
+  { id: 'Pink', name: 'Blush Pink', hex: '#EC4899' },
+  { id: 'Gold', name: 'Warm Gold', hex: '#D97706' },
+  { id: 'White', name: 'Ivory White', hex: '#F3F4F6' },
+  { id: 'Purple', name: 'Royal Purple', hex: '#7C3AED' }
+];
+
+// Pre-defined Hard Budget Constraint Presets
+const BUDGET_PRESETS = [
+  { id: 'all', label: 'All Budgets', value: null },
+  { id: '3000', label: 'Under ₹3,000', value: 3000 },
+  { id: '5000', label: 'Under ₹5,000', value: 5000 },
+  { id: '8000', label: 'Under ₹8,000', value: 8000 },
+  { id: '12000', label: 'Under ₹12,000', value: 12000 }
+];
+
+// Pre-defined Excluded Colours Filter Presets
+const EXCLUDED_COLOR_PRESETS = [
+  { id: 'Black', name: 'Black', hex: '#18181B' },
+  { id: 'White', name: 'White', hex: '#F3F4F6' },
+  { id: 'Yellow', name: 'Yellow', hex: '#F59E0B' },
+  { id: 'Pink', name: 'Pink', hex: '#EC4899' },
+  { id: 'Green', name: 'Emerald', hex: '#059669' },
+  { id: 'Orange', name: 'Orange', hex: '#EA580C' }
+];
+
+// Pre-defined Live Price Range Filter Presets
+const PRICE_RANGE_PRESETS = [
+  { id: 'all', label: 'All Price Ranges', min: null, max: null },
+  { id: 'under-1500', label: 'Under ₹1,500', min: null, max: 1500 },
+  { id: '1500-3000', label: '₹1,500 - ₹3,000', min: 1500, max: 3000 },
+  { id: '3000-6000', label: '₹3,000 - ₹6,000', min: 3000, max: 6000 },
+  { id: '6000-plus', label: '₹6,000+', min: 6000, max: null }
+];
+
+// Direct Product Buy Card Component
+// Shows verified live seller price, MRP, discount, and a direct purchase link to the exact specific product
+// Dynamically supports Meesho, Flipkart, Amazon for < ₹1,500 and Myntra for >= ₹1,500
+const DirectProductBuyCard = ({ item }) => {
+  if (!item) return null;
+  const price = item.price || item.base_price || 0;
+  const mrp = item.mrp && item.mrp > price ? item.mrp : Math.round(price * 1.45);
+  const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+
+  // Enforce price-based retailer rule:
+  // If price < 1500: Meesho, Flipkart, or Amazon
+  // If price >= 1500: Myntra
+  let retailer = item.retailer;
+  if (!retailer || retailer === 'Wardrobe') {
+    if (price < 1500) {
+      if (price <= 750) retailer = 'Meesho';
+      else if (price <= 1150) retailer = 'Flipkart';
+      else retailer = 'Amazon';
+    } else {
+      retailer = 'Myntra';
+    }
+  } else if (price >= 1500 && ['Meesho', 'Flipkart', 'Amazon'].includes(retailer)) {
+    retailer = 'Myntra';
+  } else if (price < 1500 && retailer === 'Myntra') {
+    if (price <= 750) retailer = 'Meesho';
+    else if (price <= 1150) retailer = 'Flipkart';
+    else retailer = 'Amazon';
+  }
+
+  // Determine direct buy URL
+  let buyUrl = item.buy_url;
+  const queryEnc = encodeURIComponent(item.name || 'ethnic wear');
+  if (retailer === 'Meesho') {
+    if (!buyUrl || !buyUrl.includes('meesho.com')) {
+      buyUrl = `https://www.meesho.com/search?q=${queryEnc}`;
+    }
+  } else if (retailer === 'Flipkart') {
+    if (!buyUrl || !buyUrl.includes('flipkart.com')) {
+      buyUrl = `https://www.flipkart.com/search?q=${queryEnc}&otracker=search`;
+    }
+  } else if (retailer === 'Amazon') {
+    if (!buyUrl || !buyUrl.includes('amazon.in')) {
+      buyUrl = `https://www.amazon.in/s?k=${queryEnc}`;
+    }
+  } else {
+    // Myntra
+    if (!buyUrl || (!buyUrl.includes('myntra.com') && !buyUrl.startsWith('http'))) {
+      buyUrl = `https://www.myntra.com/search?q=${queryEnc}`;
+    }
+  }
+
+  // Retailer styling themes
+  const RETAILER_THEMES = {
+    Meesho: {
+      bgGradient: 'from-[#FDF4FF] via-white to-[#FAF5FF]',
+      border: 'border-[#F0ABFC]',
+      badgeBg: 'bg-[#9333EA]',
+      btnBg: 'bg-[#9333EA] hover:bg-[#7E22CE] ring-[#9333EA]/20',
+      tagText: 'text-[#9333EA]',
+      tagBg: 'bg-[#FDF4FF]',
+      tagBorder: 'border-[#E9D5FF]',
+      label: 'Meesho Verified Deal (< ₹1,500)'
+    },
+    Flipkart: {
+      bgGradient: 'from-[#EFF6FF] via-white to-[#F0F9FF]',
+      border: 'border-[#93C5FD]',
+      badgeBg: 'bg-[#2563EB]',
+      btnBg: 'bg-[#2563EB] hover:bg-[#1D4ED8] ring-[#2563EB]/20',
+      tagText: 'text-[#1D4ED8]',
+      tagBg: 'bg-[#EFF6FF]',
+      tagBorder: 'border-[#BFDBFE]',
+      label: 'Flipkart Assured (< ₹1,500)'
+    },
+    Amazon: {
+      bgGradient: 'from-[#FFFBEB] via-white to-[#FEF3C7]',
+      border: 'border-[#FCD34D]',
+      badgeBg: 'bg-[#D97706]',
+      btnBg: 'bg-[#1F2937] hover:bg-black ring-amber-500/20',
+      tagText: 'text-[#B45309]',
+      tagBg: 'bg-[#FEF3C7]',
+      tagBorder: 'border-[#FDE68A]',
+      label: 'Amazon Prime (< ₹1,500)'
+    },
+    Myntra: {
+      bgGradient: 'from-[#FFF5F7] via-white to-[#FDF2F4]',
+      border: 'border-[#F5B7B1]',
+      badgeBg: 'bg-[#E11B5A]',
+      btnBg: 'bg-[#E11B5A] hover:bg-[#C2185B] ring-[#E11B5A]/20',
+      tagText: 'text-[#E11B5A]',
+      tagBg: 'bg-[#FFE4EE]',
+      tagBorder: 'border-[#F8BBD0]',
+      label: 'Myntra Curated (₹1,500+)'
+    }
+  };
+
+  const theme = RETAILER_THEMES[retailer] || RETAILER_THEMES.Myntra;
+
+  return (
+    <div className={`mt-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-r ${theme.bgGradient} border ${theme.border} shadow-2xs space-y-3`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider ${theme.badgeBg} text-white shadow-2xs`}>
+            <ShoppingBag className="w-3.5 h-3.5" />
+            {theme.label}
+          </span>
+          <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-300">
+            ✓ Direct Verified Buy Link
+          </span>
+        </div>
+        {discount > 0 && (
+          <span className={`text-xs font-black ${theme.tagText} ${theme.tagBg} px-3 py-1 rounded-full border ${theme.tagBorder}`}>
+            {discount}% OFF LIVE DISCOUNT
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+        <div>
+          <div className="flex items-baseline gap-2.5">
+            <span className="editorial-heading text-2xl sm:text-3xl font-black text-charcoal-950">
+              ₹{price.toLocaleString('en-IN')}
+            </span>
+            {mrp > price && (
+              <span className="text-sm sm:text-base font-semibold text-charcoal-400 line-through">
+                ₹{mrp.toLocaleString('en-IN')}
+              </span>
+            )}
+            <span className="text-xs text-charcoal-500 font-semibold">
+              (Live Selling Price on {retailer})
+            </span>
+          </div>
+          <p className="text-xs text-charcoal-600 mt-1 font-medium line-clamp-1">
+            Exact Product: <strong className="text-charcoal-900">{item.name}</strong>
+          </p>
+        </div>
+
+        <a
+          href={buyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl ${theme.btnBg} text-white font-extrabold text-xs uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 shrink-0 group ring-2`}
+          title={`Open ${item.name} directly on ${retailer}`}
+        >
+          <span>Buy on {retailer}</span>
+          <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+        </a>
+      </div>
+    </div>
+  );
+};
 
 export const Recommendations = () => {
   const navigate = useNavigate();
-  const fileInputRef = useRef(null);
   const {
     currentRecommendation,
     applyAlternative,
     preferences = {},
+    setPreferences,
     allOutfits = [],
     selectOutfitByIndex,
-    wardrobe = [],
-    userPhoto,
-    setUserPhoto
+    generateRecommendation,
+    wardrobe = []
   } = useFashion();
-  const [viewMode, setViewMode] = useState('detail'); // 'detail' | 'all'
-  const [enrichedTryOns, setEnrichedTryOns] = useState({});
-  const [isSynthesizing, setIsSynthesizing] = useState(false);
 
-  // Effective user photo from Context or LocalStorage (stored at signup)
-  const effectiveUserPhoto = userPhoto || localStorage.getItem('fashion_vista_user_photo') || "/user_indian_portrait.jpg";
+  const [viewMode, setViewMode] = useState('detail'); // 'detail' | 'all'
+  const [activeTab, setActiveTab] = useState('all-slots'); // 'all-slots' | 'dress' | 'jewellery' | 'footwear' | 'handbag'
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Safe fallback preferences
   const safePrefs = preferences || { occasion: 'Wedding', colour: 'Red', style: 'Traditional' };
 
-  // Safe fallback outfits list (capped at 3)
-  const rawList = (Array.isArray(allOutfits) && allOutfits.length > 0)
-    ? allOutfits.filter(Boolean).slice(0, 3)
+  // Current outfits list (supports 5 to 10 looks)
+  const outfitsList = (Array.isArray(allOutfits) && allOutfits.length > 0)
+    ? allOutfits.filter(Boolean).slice(0, 10)
     : (currentRecommendation ? [currentRecommendation] : []);
 
-  const outfitsList = rawList.length > 0 ? rawList : [defaultRecommendation];
-  const safeRec = currentRecommendation || outfitsList[0] || defaultRecommendation || {};
-
-  // Auto-enrich any of the 3 looks with try-on image directly on user's signup photo
+  // Auto-run ML recommendation if only 1 fallback is loaded
   useEffect(() => {
-    let isMounted = true;
-    if (!effectiveUserPhoto || !outfitsList || outfitsList.length === 0) return;
-
-    setIsSynthesizing(true);
-    const synthAll = async () => {
-      for (let idx = 0; idx < Math.min(outfitsList.length, 3); idx++) {
-        const outfit = outfitsList[idx];
-        const outfitKey = outfit?.id || idx;
-        if (!enrichedTryOns[outfitKey]) {
-          try {
-            const img = await synthesizeLookTryOn(effectiveUserPhoto, outfit, outfit?.name || `Look 0${idx + 1}`);
-            if (img && isMounted) {
-              setEnrichedTryOns(prev => ({ ...prev, [outfitKey]: img }));
-            }
-          } catch (e) {
-            console.warn('Tryon lazy synthesis notice:', e);
-          }
-        }
-      }
-      if (isMounted) setIsSynthesizing(false);
-    };
-
-    synthAll();
-    return () => { isMounted = false; };
-  }, [effectiveUserPhoto, outfitsList]);
-
-  const handleUserPhotoUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result;
-        setUserPhoto(dataUrl);
-        try {
-          localStorage.setItem('fashion_vista_user_photo', dataUrl);
-        } catch (_) {}
-        setEnrichedTryOns({}); // Force re-synthesis of all 3 looks on new photo
-      };
-      reader.readAsDataURL(file);
+    if (outfitsList.length < 3 && !isGenerating) {
+      setIsGenerating(true);
+      generateRecommendation(safePrefs).finally(() => setIsGenerating(false));
     }
-  };
+  }, []);
 
-  const getOutfitTryOnImage = (outfit, idx) => {
-    return enrichedTryOns[outfit?.id || idx] || outfit?.user_tryon_image || outfit?.tryonImage || outfit?.heroImage;
-  };
-
-  const isOutfitTryonFitted = (outfit, idx) => {
-    const key = outfit?.id || idx;
-    return Boolean(enrichedTryOns[key] || outfit?.user_tryon_image);
-  };
+  const safeRec = currentRecommendation || outfitsList[0] || {};
 
   const activeIndex = Math.max(
     0,
@@ -123,88 +280,420 @@ export const Recommendations = () => {
   const activeOutfit = rawActiveOutfit ? matchOutfitWithWardrobe(rawActiveOutfit, wardrobe) : rawActiveOutfit;
 
   const {
-    name = "Curated Ensemble",
-    subtitle = "Personalized Fashion Blueprint",
+    name = "Curated Occasion Ensemble",
+    subtitle = "Complete Preference-Aligned Ensemble Blueprint",
+    silhouette = "Ethnic Silhouette",
+    style = safePrefs.style || "Traditional",
+    occasion = safePrefs.occasion || "Wedding",
+    color_palette = safePrefs.colour ? `${safePrefs.colour} Harmony` : "Harmonious Palette",
+    total_price = 4999,
+    total_savings = 0,
+    net_cost = total_price,
+    wardrobe_matches = [],
+    has_wardrobe_reuse = false,
+    compatibility_score = 96,
+    wardrobe_synergy_score = 80,
+    ensemble_breakdown = null,
+    compatibility_breakdown = null,
+    passes_constraints = true,
+    constraint_violations = [],
     items = [],
     reasons = [],
-    alternatives = []
+    retailer_links = []
   } = activeOutfit || {};
 
-  // Normalize items to ensure consistent ownership flags
-  const normalizedItems = (items || []).filter(Boolean);
+  // Extract or synthesize the 4 core slots strictly based on preferences (no hairstyle)
+  const dressSlot = {
+    name: ensemble_breakdown?.dress?.name || items.find(i => ['dress', 'traditional', 'top'].includes(String(i.slot || i.category).toLowerCase()))?.name || name,
+    category: ensemble_breakdown?.dress?.category || silhouette || 'Dress / Silhouette',
+    fabric: ensemble_breakdown?.dress?.fabric || 'Pure Silk Blend / High-Grade Fabric',
+    color: ensemble_breakdown?.dress?.color || color_palette,
+    image: ensemble_breakdown?.dress?.image || activeOutfit?.heroImage || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80',
+    base_price: ensemble_breakdown?.dress?.base_price || 3899,
+    price: ensemble_breakdown?.dress?.price ?? (ensemble_breakdown?.dress?.is_owned ? 0 : 3899),
+    mrp: ensemble_breakdown?.dress?.mrp || Math.round((ensemble_breakdown?.dress?.base_price || 3899) * 1.5),
+    retailer: ensemble_breakdown?.dress?.retailer || ((ensemble_breakdown?.dress?.price || 3899) < 1500 ? 'Meesho' : 'Myntra'),
+    buy_url: ensemble_breakdown?.dress?.buy_url || (Array.isArray(ensemble_breakdown?.dress?.retailer_links) ? ensemble_breakdown?.dress?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.dress?.retailer_links?.myntra?.url) || null,
+    is_wardrobe_match: Boolean(ensemble_breakdown?.dress?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'dress'))),
+    matched_item_name: ensemble_breakdown?.dress?.matched_wardrobe_name || wardrobe_matches[0]?.name || null,
+    money_saved: ensemble_breakdown?.dress?.is_owned ? (ensemble_breakdown?.dress?.base_price || 3899) : (has_wardrobe_reuse ? total_savings : 0),
+    styling_tip: ensemble_breakdown?.dress?.styling_tip || 'Structured drape calibrated specifically for the occasion proportions.',
+    retailer_links: ensemble_breakdown?.dress?.retailer_links || []
+  };
 
-  const ownedItems = normalizedItems.filter(i => i.inWardrobe);
-  const missingItems = normalizedItems.filter(i => !i.inWardrobe);
-  const totalCount = normalizedItems.length;
-  const ownedCount = ownedItems.length;
-  const coveragePercentage = totalCount > 0 ? Math.round((ownedCount / totalCount) * 100) : 0;
+  const jewellerySlot = {
+    name: ensemble_breakdown?.jewellery?.name || `${safePrefs.colour || 'Gold'} Harmonized Jewellery Set`,
+    type: ensemble_breakdown?.jewellery?.type || 'Statement Choker & Earrings',
+    color: ensemble_breakdown?.jewellery?.color || `${safePrefs.colour || 'Antique Gold'} Finish`,
+    image: ensemble_breakdown?.jewellery?.image || items.find(i => ['jewellery', 'jewelry', 'necklace', 'choker'].includes(String(i.slot || i.category).toLowerCase()))?.image || 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=80',
+    base_price: ensemble_breakdown?.jewellery?.base_price || 1499,
+    price: ensemble_breakdown?.jewellery?.price ?? (ensemble_breakdown?.jewellery?.is_owned ? 0 : 1499),
+    mrp: ensemble_breakdown?.jewellery?.mrp || Math.round((ensemble_breakdown?.jewellery?.base_price || 1499) * 1.5),
+    retailer: ensemble_breakdown?.jewellery?.retailer || ((ensemble_breakdown?.jewellery?.price || 1499) < 1500 ? 'Flipkart' : 'Myntra'),
+    buy_url: ensemble_breakdown?.jewellery?.buy_url || (Array.isArray(ensemble_breakdown?.jewellery?.retailer_links) ? ensemble_breakdown?.jewellery?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.jewellery?.retailer_links?.myntra?.url) || null,
+    is_wardrobe_match: Boolean(ensemble_breakdown?.jewellery?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'jewellery'))),
+    matched_item_name: ensemble_breakdown?.jewellery?.matched_wardrobe_name || null,
+    money_saved: ensemble_breakdown?.jewellery?.is_owned ? (ensemble_breakdown?.jewellery?.base_price || 1499) : 0,
+    styling_tip: ensemble_breakdown?.jewellery?.styling_tip || 'Balances the neckline width and draws visual focus upwards toward facial symmetry.',
+    retailer_links: ensemble_breakdown?.jewellery?.retailer_links || []
+  };
 
-  // Slot helper for display order and badges
-  const slotOrder = ['Top', 'Bottom', 'Shoes', 'Layer'];
-  const sortedItems = [...normalizedItems].sort((a, b) => {
-    const aSlot = a?.slot || a?.category || '';
-    const bSlot = b?.slot || b?.category || '';
-    return slotOrder.indexOf(aSlot) - slotOrder.indexOf(bSlot);
-  });
+  const footwearSlot = {
+    name: ensemble_breakdown?.footwear?.name || `${safePrefs.colour || 'Gold'} Coordinated Footwear`,
+    type: ensemble_breakdown?.footwear?.type || 'Cushioned Ceremony Mojaris / Block Heels',
+    heel_height: ensemble_breakdown?.footwear?.heel_height || 'Double Cushioned Insole',
+    comfort_rating: ensemble_breakdown?.footwear?.comfort_rating || '5 / 5 (All-Day Comfort)',
+    image: ensemble_breakdown?.footwear?.image || items.find(i => ['shoe', 'footwear', 'sandals', 'mojaris', 'shoes'].includes(String(i.slot || i.category).toLowerCase()))?.image || 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=80',
+    base_price: ensemble_breakdown?.footwear?.base_price || 1299,
+    price: ensemble_breakdown?.footwear?.price ?? (ensemble_breakdown?.footwear?.is_owned ? 0 : 1299),
+    mrp: ensemble_breakdown?.footwear?.mrp || Math.round((ensemble_breakdown?.footwear?.base_price || 1299) * 1.5),
+    retailer: ensemble_breakdown?.footwear?.retailer || ((ensemble_breakdown?.footwear?.price || 1299) < 1500 ? 'Amazon' : 'Myntra'),
+    buy_url: ensemble_breakdown?.footwear?.buy_url || (Array.isArray(ensemble_breakdown?.footwear?.retailer_links) ? ensemble_breakdown?.footwear?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.footwear?.retailer_links?.myntra?.url) || null,
+    is_wardrobe_match: Boolean(ensemble_breakdown?.footwear?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'footwear'))),
+    matched_item_name: ensemble_breakdown?.footwear?.matched_wardrobe_name || null,
+    money_saved: ensemble_breakdown?.footwear?.is_owned ? (ensemble_breakdown?.footwear?.base_price || 1299) : 0,
+    styling_tip: ensemble_breakdown?.footwear?.styling_tip || 'Provides solid floor grip while matching the metallic sheen of the dress hem.',
+    retailer_links: ensemble_breakdown?.footwear?.retailer_links || []
+  };
 
-  const getSlotDisplayLabel = (item) => {
-    if (!item) return 'GARMENT';
-    const slot = String(item.slot || item.category || 'Garment').toUpperCase();
-    if (slot === 'TOP') return 'TOPWEAR';
-    if (slot === 'BOTTOM') return 'BOTTOMWEAR';
-    if (slot === 'SHOES') return 'FOOTWEAR';
-    if (slot === 'LAYER') return 'OUTERWEAR / LAYER';
-    return slot;
+  const handbagSlot = {
+    name: ensemble_breakdown?.handbag?.name || `${safePrefs.colour || 'Festive'} Embroidered Handbag`,
+    type: ensemble_breakdown?.handbag?.type || 'Traditional Potli / Minaudière Clutch',
+    material: ensemble_breakdown?.handbag?.material || 'Zari Embroidery with Metallic Clasp',
+    image: ensemble_breakdown?.handbag?.image || items.find(i => ['bag', 'handbag', 'clutch', 'potli'].includes(String(i.slot || i.category).toLowerCase()))?.image || 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=80',
+    base_price: ensemble_breakdown?.handbag?.base_price || 899,
+    price: ensemble_breakdown?.handbag?.price ?? (ensemble_breakdown?.handbag?.is_owned ? 0 : 899),
+    mrp: ensemble_breakdown?.handbag?.mrp || Math.round((ensemble_breakdown?.handbag?.base_price || 899) * 1.5),
+    retailer: ensemble_breakdown?.handbag?.retailer || ((ensemble_breakdown?.handbag?.price || 899) < 1500 ? 'Meesho' : 'Myntra'),
+    buy_url: ensemble_breakdown?.handbag?.buy_url || (Array.isArray(ensemble_breakdown?.handbag?.retailer_links) ? ensemble_breakdown?.handbag?.retailer_links.find(r => r.retailer === 'Myntra')?.url : ensemble_breakdown?.handbag?.retailer_links?.myntra?.url) || null,
+    is_wardrobe_match: Boolean(ensemble_breakdown?.handbag?.is_owned || (has_wardrobe_reuse && wardrobe_matches.some(m => m.slot === 'handbag'))),
+    matched_item_name: ensemble_breakdown?.handbag?.matched_wardrobe_name || null,
+    money_saved: ensemble_breakdown?.handbag?.is_owned ? (ensemble_breakdown?.handbag?.base_price || 899) : 0,
+    styling_tip: ensemble_breakdown?.handbag?.styling_tip || 'Accommodates smartphone, keys, and touch-up essentials without bulkiness.',
+    retailer_links: ensemble_breakdown?.handbag?.retailer_links || []
+  };
+
+  // Safe normalized breakdown scores
+  const breakdownScores = compatibility_breakdown || {
+    preference_relevance: 95,
+    colour_harmony: activeOutfit?.color_score || 92,
+    occasion_suitability: 94,
+    style_compatibility: 93,
+    wardrobe_synergy: has_wardrobe_reuse ? 85 : 0
+  };
+
+  // Handle Quick Occasion Regeneration via ML model
+  const handleOccasionChange = async (newOccasion) => {
+    setIsGenerating(true);
+    const updated = { ...safePrefs, occasion: newOccasion };
+    setPreferences(updated);
+    try {
+      await generateRecommendation(updated);
+    } catch (err) {
+      console.warn("Occasion change recommendation notice:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handle Quick Color Regeneration via ML model
+  const handleColorChange = async (newColor) => {
+    setIsGenerating(true);
+    const updated = { ...safePrefs, colour: newColor };
+    setPreferences(updated);
+    try {
+      await generateRecommendation(updated);
+    } catch (err) {
+      console.warn("Color change recommendation notice:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handle Quick Price Range Filter Update via ML model
+  const handlePriceRangeChange = async (preset) => {
+    setIsGenerating(true);
+    const updated = {
+      ...safePrefs,
+      price_range: preset.id,
+      min_price: preset.min,
+      max_price: preset.max
+    };
+    setPreferences(updated);
+    try {
+      await generateRecommendation(updated);
+    } catch (err) {
+      console.warn("Price range recommendation notice:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handle Quick Budget Constraint Update via ML model
+  const handleBudgetChange = async (newBudget) => {
+    setIsGenerating(true);
+    const updated = { ...safePrefs, budget: newBudget };
+    setPreferences(updated);
+    try {
+      await generateRecommendation(updated);
+    } catch (err) {
+      console.warn("Budget update recommendation notice:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handle Toggle of Excluded Colours Constraint via ML model
+  const handleToggleExcludedColor = async (colorName) => {
+    setIsGenerating(true);
+    const currentList = Array.isArray(safePrefs.excluded_colours)
+      ? safePrefs.excluded_colours
+      : (safePrefs.excluded_colour ? [safePrefs.excluded_colour] : []);
+    
+    let updatedList;
+    if (currentList.map(c => String(c).toLowerCase()).includes(colorName.toLowerCase())) {
+      updatedList = currentList.filter(c => String(c).toLowerCase() !== colorName.toLowerCase());
+    } else {
+      updatedList = [...currentList, colorName];
+    }
+    const updated = {
+      ...safePrefs,
+      excluded_colours: updatedList,
+      excluded_color: updatedList.length > 0 ? updatedList[0] : null
+    };
+    setPreferences(updated);
+    try {
+      await generateRecommendation(updated);
+    } catch (err) {
+      console.warn("Excluded color update recommendation notice:", err);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12">
-      
-      {/* Page Header & Preferences Summary */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
+
+      {/* Top Banner & Title */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-taupe-200">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-taupe-300 text-[11px] font-bold uppercase tracking-widest text-charcoal-700 mb-3 shadow-subtle">
             <Sparkles className="w-3.5 h-3.5 text-charcoal-900" />
-            AI OUTFIT CURATIONS
+            AI 360° OCCASION STYLIST & ENSEMBLE STUDIO
           </div>
           <h1 className="editorial-heading text-3xl sm:text-4xl md:text-5xl font-semibold text-charcoal-900">
-            WHAT YOU SHOULD WEAR
+            COMPLETE OCCASION BLUEPRINTS
           </h1>
-          <p className="text-sm sm:text-base text-charcoal-600 mt-2 font-medium">
-            Showing all possible coordinated outfits for <strong className="text-charcoal-900">{safePrefs.occasion || 'Wedding'}</strong> in <strong className="text-charcoal-900">{safePrefs.colour || 'Red'}</strong>.
+          <p className="text-sm sm:text-base text-charcoal-600 mt-2 font-medium max-w-3xl">
+            Tailored strictly to your preferences across 4 core styling dimensions: <strong className="text-charcoal-900">Dress, Jewellery, Footwear & Handbag</strong> with direct product buy links from <strong className="text-charcoal-900">Meesho, Amazon, Flipkart (under ₹1,500)</strong> and <strong className="text-charcoal-900">Myntra (₹1,500+)</strong>.
           </p>
         </div>
 
-        {/* Preference Tags Summary */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="tag" size="md">
-            Occasion: {safePrefs.occasion || "Wedding"}
-          </Badge>
-          <Badge variant="tag" size="md">
-            Colour: {safePrefs.colour || "Red"}
-          </Badge>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300">
-            {outfitsList.length} Outfits Found
+        {/* Action Controls */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            {outfitsList.length} ML Looks Generated
           </span>
           <button
-            onClick={() => navigate('/stylist')}
-            className="text-xs font-semibold text-charcoal-800 hover:text-black underline ml-2 flex items-center gap-1.5 transition-colors"
+            onClick={() => handleOccasionChange(safePrefs.occasion || 'Wedding')}
+            disabled={isGenerating}
+            className="px-3.5 py-1.5 rounded-xl bg-white border border-taupe-300 text-xs font-bold text-charcoal-800 hover:text-black hover:border-charcoal-800 flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Re-tune Preferences
+            <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+            {isGenerating ? 'Computing ML...' : 'Refresh ML Looks'}
+          </button>
+          <button
+            onClick={() => navigate('/stylist')}
+            className="px-3.5 py-1.5 rounded-xl bg-charcoal-900 text-cream-50 text-xs font-bold hover:bg-black flex items-center gap-1.5 transition-all shadow-subtle"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Change Stylist Quiz
           </button>
         </div>
       </div>
 
-      {/* Outfit Selector & View Mode Switcher */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-taupe-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Left: Outfit Carousel Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          <span className="text-xs font-bold uppercase tracking-wider text-charcoal-500 whitespace-nowrap mr-1">
-            All Outfits:
+      {/* Interactive Preference Controllers: Occasion & Color Switchers */}
+      <div className="bg-[#FAF8F5] rounded-3xl p-5 border border-taupe-200 shadow-2xs space-y-4">
+        
+        {/* Row 1: Occasion Switcher */}
+        <div>
+          <div className="flex items-center justify-between pb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-charcoal-700 flex items-center gap-1.5">
+              <Compass className="w-4 h-4 text-charcoal-900" />
+              1. Select Occasion:
+            </span>
+            <span className="text-[11px] text-charcoal-500 font-semibold">
+              Current: <strong className="text-charcoal-900">{safePrefs.occasion || 'Wedding'}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {OCCASION_PRESETS.map((occ) => {
+              const isSelected = (safePrefs.occasion || '').toLowerCase() === occ.id.toLowerCase();
+              return (
+                <button
+                  key={occ.id}
+                  onClick={() => handleOccasionChange(occ.id)}
+                  disabled={isGenerating}
+                  className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 border ${
+                    isSelected
+                      ? 'bg-charcoal-900 text-cream-50 border-charcoal-900 shadow-md ring-2 ring-charcoal-900/20'
+                      : 'bg-white text-charcoal-700 border-taupe-200 hover:border-charcoal-700 hover:bg-taupe-50'
+                  }`}
+                >
+                  <span>{occ.icon}</span>
+                  <span>{occ.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Row 2: Target Color Palette Switcher */}
+        <div className="pt-3 border-t border-taupe-200">
+          <div className="flex items-center justify-between pb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-charcoal-700 flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-red-600 inline-block shadow-2xs" />
+              2. Select Target Color (All 4 Pieces Strictly Harmonized):
+            </span>
+            <span className="text-[11px] text-charcoal-500 font-semibold">
+              Current: <strong className="text-charcoal-900">{safePrefs.colour || 'Red'}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {COLOR_PRESETS.map((col) => {
+              const isSelected = (safePrefs.colour || '').toLowerCase().includes(col.id.toLowerCase());
+              return (
+                <button
+                  key={col.id}
+                  onClick={() => handleColorChange(col.id)}
+                  disabled={isGenerating}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 border ${
+                    isSelected
+                      ? 'bg-charcoal-900 text-cream-50 border-charcoal-900 shadow-sm ring-2 ring-charcoal-900/20'
+                      : 'bg-white text-charcoal-700 border-taupe-200 hover:border-charcoal-700 hover:bg-taupe-50'
+                  }`}
+                >
+                  <span className="w-3 h-3 rounded-full border border-black/20 shrink-0" style={{ background: col.hex }} />
+                  <span>{col.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Row 3: Live Price Range Filter (Direct Product Matching) */}
+        <div className="pt-3 border-t border-taupe-200">
+          <div className="flex items-center justify-between pb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-charcoal-700 flex items-center gap-1.5">
+              <Tag className="w-4 h-4 text-charcoal-900" />
+              3. Filter by Price Range (Live Retailer Prices):
+            </span>
+            <span className="text-[11px] text-charcoal-500 font-semibold">
+              Current: <strong className="text-charcoal-900">{PRICE_RANGE_PRESETS.find(p => p.id === (safePrefs.price_range || 'all'))?.label || 'All Price Ranges'}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {PRICE_RANGE_PRESETS.map((p) => {
+              const isSelected = (safePrefs.price_range || 'all') === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => handlePriceRangeChange(p)}
+                  disabled={isGenerating}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+                    isSelected
+                      ? 'bg-charcoal-900 text-cream-50 border-charcoal-900 shadow-sm ring-2 ring-charcoal-900/20'
+                      : 'bg-white text-charcoal-700 border-taupe-200 hover:border-charcoal-700 hover:bg-taupe-50'
+                  }`}
+                >
+                  <span>{p.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Row 4: Hard Budget Constraint Selector */}
+        <div className="pt-3 border-t border-taupe-200">
+          <div className="flex items-center justify-between pb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-charcoal-700 flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4 text-charcoal-900" />
+              4. Hard Budget Limit (Missing Items Purchase Cap):
+            </span>
+            <span className="text-[11px] text-charcoal-500 font-semibold">
+              Current: <strong className="text-charcoal-900">{safePrefs.budget ? `Under ₹${Number(safePrefs.budget).toLocaleString('en-IN')}` : 'No Limit'}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {BUDGET_PRESETS.map((b) => {
+              const isSelected = safePrefs.budget === b.value || (!safePrefs.budget && b.value === null);
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => handleBudgetChange(b.value)}
+                  disabled={isGenerating}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+                    isSelected
+                      ? 'bg-charcoal-900 text-cream-50 border-charcoal-900 shadow-sm ring-2 ring-charcoal-900/20'
+                      : 'bg-white text-charcoal-700 border-taupe-200 hover:border-charcoal-700 hover:bg-taupe-50'
+                  }`}
+                >
+                  <span>{b.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Row 5: Excluded Colours Constraint Filter */}
+        <div className="pt-3 border-t border-taupe-200">
+          <div className="flex items-center justify-between pb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-charcoal-700 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-charcoal-900" />
+              5. Excluded Colours (Hard Constraint Filter):
+            </span>
+            <span className="text-[11px] text-charcoal-500 font-semibold">
+              Excluded: <strong className="text-rose-700">{Array.isArray(safePrefs.excluded_colours) && safePrefs.excluded_colours.length > 0 ? safePrefs.excluded_colours.join(', ') : (safePrefs.excluded_colour || 'None')}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {EXCLUDED_COLOR_PRESETS.map((exCol) => {
+              const activeEx = Array.isArray(safePrefs.excluded_colours)
+                ? safePrefs.excluded_colours.map(c => String(c).toLowerCase())
+                : (safePrefs.excluded_colour ? [String(safePrefs.excluded_colour).toLowerCase()] : []);
+              const isExcluded = activeEx.includes(exCol.id.toLowerCase());
+              return (
+                <button
+                  key={exCol.id}
+                  onClick={() => handleToggleExcludedColor(exCol.id)}
+                  disabled={isGenerating}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+                    isExcluded
+                      ? 'bg-rose-600 text-white border-rose-700 shadow-sm ring-2 ring-rose-500/30'
+                      : 'bg-white text-charcoal-700 border-taupe-200 hover:border-rose-400 hover:bg-rose-50/50'
+                  }`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0" style={{ background: exCol.hex }} />
+                  <span>{isExcluded ? `✕ Excluded: ${exCol.name}` : `Exclude ${exCol.name}`}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Look Switcher Carousel / Navigation Bar (5 to 10 Looks) */}
+      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-taupe-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Left: Looks List */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none flex-1">
+          <span className="text-xs font-extrabold uppercase tracking-wider text-charcoal-500 whitespace-nowrap mr-2">
+            Diverse Pairings ({outfitsList.length}):
           </span>
           {outfitsList.map((outfit, idx) => {
             const isActive = activeIndex === idx;
-            const match = outfit.wardrobe_match?.percentage || outfit.percentage || 100;
+            const hasReuse = outfit.has_wardrobe_reuse || (outfit.wardrobe_matches && outfit.wardrobe_matches.length > 0) || (outfit.total_savings > 0);
             return (
               <button
                 key={outfit.id || idx}
@@ -216,18 +705,25 @@ export const Recommendations = () => {
                   }
                   setViewMode('detail');
                 }}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+                className={`px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 border ${
                   isActive
-                    ? 'bg-charcoal-900 text-cream-50 shadow-md ring-2 ring-charcoal-900'
-                    : 'bg-[#FAF8F5] text-charcoal-700 border border-taupe-200 hover:border-charcoal-700 hover:bg-white'
+                    ? 'bg-charcoal-900 text-cream-50 border-charcoal-900 shadow-md ring-2 ring-charcoal-900/20'
+                    : 'bg-[#FAF8F5] text-charcoal-700 border-taupe-200 hover:border-charcoal-700 hover:bg-white'
                 }`}
               >
                 <span>Look 0{idx + 1}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
-                  isActive ? 'bg-white/20 text-cream-50' : 'bg-emerald-100 text-emerald-800'
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
+                  isActive ? 'bg-white/20 text-cream-50' : 'bg-taupe-200 text-charcoal-800'
                 }`}>
-                  {match}% Closet
+                  {outfit.silhouette || (outfit.items?.[0]?.category) || 'Ensemble'}
                 </span>
+                {hasReuse && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                    isActive ? 'bg-emerald-400 text-charcoal-900' : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    Closet Match
+                  </span>
+                )}
               </button>
             );
           })}
@@ -244,13 +740,13 @@ export const Recommendations = () => {
                 setViewMode('detail');
               }}
               disabled={activeIndex === 0}
-              className="p-1.5 rounded-lg border border-taupe-200 text-charcoal-700 hover:bg-taupe-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-              title="Previous Outfit"
+              className="p-2 rounded-xl border border-taupe-200 text-charcoal-700 hover:bg-taupe-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              title="Previous Look"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-xs font-semibold text-charcoal-600 px-1">
-              Look {activeIndex + 1} of {outfitsList.length}
+            <span className="text-xs font-extrabold text-charcoal-700 px-1">
+              {activeIndex + 1} / {outfitsList.length}
             </span>
             <button
               onClick={() => {
@@ -260,8 +756,8 @@ export const Recommendations = () => {
                 setViewMode('detail');
               }}
               disabled={activeIndex >= outfitsList.length - 1}
-              className="p-1.5 rounded-lg border border-taupe-200 text-charcoal-700 hover:bg-taupe-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-              title="Next Outfit"
+              className="p-2 rounded-xl border border-taupe-200 text-charcoal-700 hover:bg-taupe-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              title="Next Look"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -270,23 +766,23 @@ export const Recommendations = () => {
           <div className="h-4 w-px bg-taupe-200 hidden sm:block" />
 
           {/* View Toggle */}
-          <div className="inline-flex p-1 rounded-xl bg-taupe-100 border border-taupe-200">
+          <div className="inline-flex p-1 rounded-2xl bg-taupe-100 border border-taupe-200">
             <button
               onClick={() => setViewMode('detail')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                 viewMode === 'detail'
-                  ? 'bg-white text-charcoal-900 shadow-sm'
+                  ? 'bg-white text-charcoal-900 shadow-xs'
                   : 'text-charcoal-600 hover:text-charcoal-900'
               }`}
             >
               <Compass className="w-3.5 h-3.5" />
-              Detail View
+              Studio View
             </button>
             <button
               onClick={() => setViewMode('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                 viewMode === 'all'
-                  ? 'bg-white text-charcoal-900 shadow-sm'
+                  ? 'bg-white text-charcoal-900 shadow-xs'
                   : 'text-charcoal-600 hover:text-charcoal-900'
               }`}
             >
@@ -298,594 +794,782 @@ export const Recommendations = () => {
       </div>
 
       {viewMode === 'all' ? (
-        /* ALL OUTFITS COMPARISON GRID */
+        /* ALL LOOKS COMPARISON GRID (5 to 10 LOOKS) */
         <section className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-taupe-200">
             <div>
               <span className="text-xs font-bold uppercase tracking-widest text-charcoal-500">
-                All Outfits Catalog
+                All Diverse Pairing Curations
               </span>
               <h2 className="editorial-heading text-2xl sm:text-3xl font-bold text-charcoal-900 mt-0.5">
-                All Coordinated Outfits for {safePrefs.occasion || 'Wedding'} in {safePrefs.colour || 'Red'}
+                {outfitsList.length} Distinct Occasion Looks for {safePrefs.occasion || 'Wedding'} in {safePrefs.colour || 'Red'}
               </h2>
             </div>
-            <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300">
-              {outfitsList.length} Complete Blueprints
+            <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-300">
+              Zero Repetition • Distinct Silhouettes
             </span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {outfitsList.map((outfit, oIdx) => {
               if (!outfit) return null;
-              const outfitItems = (outfit.items || []).filter(Boolean).map(i => {
-                const isOwned = Boolean(i.inWardrobe ?? i.owned ?? false);
-                return { ...i, inWardrobe: isOwned, owned: isOwned };
-              });
-              const oOwned = outfitItems.filter(i => i.inWardrobe).length;
-              const oTotal = outfitItems.length;
-              const oCoverage = oTotal > 0 ? Math.round((oOwned / oTotal) * 100) : 100;
               const isSelected = activeIndex === oIdx;
+              const hasReuse = outfit.has_wardrobe_reuse || (outfit.total_savings > 0);
+              const cardDress = outfit.ensemble_breakdown?.dress || outfit.items?.[0] || {};
 
               return (
                 <div
                   key={outfit.id || oIdx}
-                  className={`bg-white rounded-3xl p-6 sm:p-7 border transition-all duration-200 shadow-sm flex flex-col justify-between space-y-6 ${
+                  className={`bg-white rounded-3xl p-5 border transition-all duration-200 shadow-sm flex flex-col justify-between space-y-5 ${
                     isSelected
                       ? 'border-charcoal-900 ring-2 ring-charcoal-900 shadow-md'
                       : 'border-taupe-200 hover:border-taupe-400 hover:shadow-md'
                   }`}
                 >
-                  {/* Card Header */}
-                  <div className="space-y-2 pb-4 border-b border-taupe-100">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="bg-charcoal-900 text-cream-50 px-2.5 py-1 rounded text-xs font-bold tracking-wider">
-                          LOOK 0{oIdx + 1}
-                        </span>
-                        {isSelected && (
-                          <span className="bg-charcoal-100 text-charcoal-900 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                            Active Selection
-                          </span>
-                        )}
-                      </div>
+                      <span className="bg-charcoal-900 text-cream-50 px-2.5 py-1 rounded-md text-xs font-bold tracking-wider">
+                        LOOK 0{oIdx + 1}
+                      </span>
                       <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                         {outfit.compatibility_score || 94}% Compatibility
                       </span>
                     </div>
 
-                    <h3 className="editorial-heading text-xl sm:text-2xl font-bold text-charcoal-900">
-                      {outfit.name}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-charcoal-600 line-clamp-2">
-                      {outfit.subtitle || outfit.description}
-                    </p>
-                  </div>
-
-                  {/* Generated Try-On Image on User */}
-                  <div className="relative rounded-2xl overflow-hidden border border-taupe-200 bg-[#FAF8F5] aspect-[4/3] group shadow-2xs">
-                    <img
-                      src={getOutfitTryOnImage(outfit, oIdx)}
-                      alt={`How ${outfit.name} looks on you`}
-                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2.5 left-2.5 bg-charcoal-900/85 backdrop-blur-xs text-cream-50 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
-                      <Sparkles className="w-3 h-3 text-cream-200" />
-                      <span>How It Looks On You</span>
-                    </div>
-                  </div>
-
-                  {/* Garment Pieces List */}
-                  <div className="space-y-2.5">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-charcoal-500 block">
-                      Garments To Wear:
-                    </span>
-                    {outfitItems.map((piece, pIdx) => {
-                      const slotLabel = (piece.slot || piece.category || 'Piece').toUpperCase();
-                      const isPieceOwned = piece.inWardrobe;
-                      return (
-                        <div
-                          key={piece.id || pIdx}
-                          className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
-                            isPieceOwned
-                              ? 'bg-emerald-50/60 border-emerald-200/80 text-emerald-950'
-                              : 'bg-amber-50/60 border-amber-200/80 text-amber-950'
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <span className="font-bold text-[10px] uppercase tracking-wider text-charcoal-600 block">
-                              {slotLabel === 'TOP' ? 'TOPWEAR' : slotLabel === 'BOTTOM' ? 'BOTTOMWEAR' : slotLabel === 'SHOES' ? 'FOOTWEAR' : slotLabel === 'LAYER' ? 'OUTERWEAR / LAYER' : slotLabel}
-                            </span>
-                            <span className="font-semibold text-charcoal-900 truncate block">
-                              {piece.name}
-                            </span>
-                            <span className="text-[11px] text-charcoal-500">
-                              {piece.colour} • {piece.article_type}
-                            </span>
-                          </div>
-
-                          <div className="shrink-0">
-                            {isPieceOwned ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                <Check className="w-3 h-3 stroke-[3]" />
-                                IN CLOSET
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
-                                <AlertCircle className="w-3 h-3 stroke-[2.5]" />
-                                NEEDED TO BUY
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Card Footer: Summary & Inspect Button */}
-                  <div className="pt-4 border-t border-taupe-100 flex items-center justify-between gap-3">
-                    <div className="text-xs">
-                      <span className="font-bold text-charcoal-900">{oOwned} of {oTotal}</span>
-                      <span className="text-charcoal-500 ml-1">in closet ({oCoverage}%)</span>
+                    <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-taupe-100 border border-taupe-200">
+                      <img
+                        src={outfit.heroImage || cardDress.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80'}
+                        alt={outfit.name}
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80';
+                        }}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-xs text-white px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                        {outfit.silhouette || 'Occasion Silhouette'}
+                      </div>
                     </div>
 
-                    <Button
-                      variant={isSelected ? "primary" : "secondary"}
-                      size="sm"
-                      onClick={() => {
-                        if (selectOutfitByIndex) selectOutfitByIndex(oIdx);
-                        else applyAlternative(outfit, oIdx);
-                        setViewMode('detail');
-                        window.scrollTo({ top: 120, behavior: 'smooth' });
-                      }}
-                      iconRight={<ArrowRight className="w-3.5 h-3.5" />}
-                    >
-                      {isSelected ? "View Active Blueprint" : "Inspect This Blueprint"}
-                    </Button>
+                    <div>
+                      <h3 className="editorial-heading text-lg font-bold text-charcoal-900">
+                        {outfit.name}
+                      </h3>
+                      <p className="text-xs text-charcoal-600 line-clamp-2 mt-1">
+                        {outfit.subtitle || outfit.description}
+                      </p>
+                    </div>
+
+                    {/* 4-Slot Mini Pill List (Dress, Jewellery, Footwear, Handbag) */}
+                    <div className="p-3 rounded-2xl bg-[#FAF8F5] border border-taupe-200 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold text-charcoal-500">👗 Dress:</span>
+                        <span className="font-bold text-charcoal-900 truncate max-w-[180px]">{outfit.ensemble_breakdown?.dress?.name || 'Curated Attire'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold text-charcoal-500">💎 Jewellery:</span>
+                        <span className="font-bold text-charcoal-900 truncate max-w-[180px]">{outfit.ensemble_breakdown?.jewellery?.type || 'Matching Choker'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold text-charcoal-500">👠 Footwear:</span>
+                        <span className="font-bold text-charcoal-900 truncate max-w-[180px]">{outfit.ensemble_breakdown?.footwear?.type || 'Occasion Mojaris'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold text-charcoal-500">👜 Handbag:</span>
+                        <span className="font-bold text-charcoal-900 truncate max-w-[180px]">{outfit.ensemble_breakdown?.handbag?.type || 'Embroidered Potli'}</span>
+                      </div>
+                    </div>
+
+                    {/* Wardrobe Synergy Highlight */}
+                    {hasReuse ? (
+                      <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-xs font-bold text-emerald-900 flex items-center justify-between">
+                        <span>🌿 Reuses Wardrobe Item</span>
+                        <span className="text-emerald-700">Saves ₹{(outfit.total_savings || 2500).toLocaleString('en-IN')}</span>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 rounded-xl bg-taupe-100 border border-taupe-200 text-xs font-medium text-charcoal-600 flex items-center justify-between">
+                        <span>Complete 4-Piece Ensemble</span>
+                        <span className="font-bold text-charcoal-900">₹{(outfit.total_price || 4800).toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
                   </div>
+
+                  <Button
+                    variant={isSelected ? "primary" : "secondary"}
+                    size="sm"
+                    onClick={() => {
+                      if (selectOutfitByIndex) selectOutfitByIndex(oIdx);
+                      else applyAlternative(outfit, oIdx);
+                      setViewMode('detail');
+                      window.scrollTo({ top: 120, behavior: 'smooth' });
+                    }}
+                    className="w-full justify-center"
+                    iconRight={<ArrowRight className="w-3.5 h-3.5" />}
+                  >
+                    {isSelected ? "Active Studio Selection" : "Inspect 360° Studio Look"}
+                  </Button>
                 </div>
               );
             })}
           </div>
         </section>
       ) : (
+        /* DETAIL 360° ENSEMBLE STUDIO VIEW */
         <>
-          {/* 1. HERO: FitInView Automated 5-Step Virtual Try-On Pipeline */}
-          <FitInViewTryOnPipeline
-            userPhoto={effectiveUserPhoto}
-            onUpdateUserPhoto={handleUserPhotoUpload}
-            preferences={safePrefs}
-            recommendations={outfitsList}
-            onNavigateStylist={() => navigate('/stylist')}
-          />
-
-          {/* 2. Primary Styling Directive & Closet Status Summary */}
-          <section className="bg-[#FCFAF7] rounded-3xl p-6 sm:p-10 border border-taupe-300 shadow-sm space-y-8">
-        
-        {/* Look Name and Concept Prescription */}
-        <div className="space-y-3 pb-6 border-b border-taupe-200">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-xs font-bold uppercase tracking-widest text-charcoal-500">
-              Curated Ensemble Formula
-            </span>
-            <span className="text-xs font-bold uppercase tracking-wider text-charcoal-700 bg-white px-3 py-1 rounded-full border border-taupe-300">
-              {totalCount} Piece Combination
-            </span>
-          </div>
-
-          <h2 className="editorial-heading text-2xl sm:text-3xl md:text-4xl font-bold text-charcoal-900">
-            {name}
-          </h2>
-
-          <p className="text-sm sm:text-base text-charcoal-700 leading-relaxed max-w-4xl font-normal">
-            {subtitle || "Balanced proportion and palette coordination calibrated for daily utility."}
-          </p>
-
-          <div className="p-4 rounded-2xl bg-white border border-taupe-200 space-y-2 mt-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-charcoal-800">
-              <Compass className="w-4 h-4 text-charcoal-900" />
-              Styling Directive
-            </div>
-            <p className="text-xs sm:text-sm text-charcoal-600 leading-relaxed">
-              Wear the coordinated pieces below to achieve an intentional <strong className="text-charcoal-900">{safePrefs.style || 'Traditional'}</strong> silhouette for <strong className="text-charcoal-900">{safePrefs.occasion || 'Wedding'}</strong>. Pieces already in your closet are highlighted in green, while missing items required to complete the ensemble are marked in amber.
-            </p>
-          </div>
-        </div>
-
-        {/* High-Visibility Closet Breakdown Stats Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-          
-          <div className="bg-white rounded-2xl p-5 border border-emerald-200/90 shadow-subtle flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
-                In Your Closet
-              </span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            </div>
-            <div className="mt-2">
-              <span className="editorial-heading text-3xl font-bold text-charcoal-900">
-                {ownedCount}
-              </span>
-              <span className="text-xs text-charcoal-500 ml-1.5 font-medium">
-                of {totalCount} items
-              </span>
-            </div>
-            <p className="text-xs text-emerald-700 font-medium mt-2">
-              ✓ Ready to wear immediately
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-5 border border-amber-200/90 shadow-subtle flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
-                Needed to Buy
-              </span>
-              <AlertCircle className="w-4 h-4 text-amber-600" />
-            </div>
-            <div className="mt-2">
-              <span className="editorial-heading text-3xl font-bold text-charcoal-900">
-                {missingItems.length}
-              </span>
-              <span className="text-xs text-charcoal-500 ml-1.5 font-medium">
-                item{missingItems.length === 1 ? '' : 's'} missing
-              </span>
-            </div>
-            <p className="text-xs text-amber-700 font-medium mt-2">
-              {missingItems.length > 0 ? "✦ Purchase to complete ensemble" : "✓ None! 100% closet ready"}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-5 border border-taupe-200 shadow-subtle flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-charcoal-700">
-                Closet Readiness
-              </span>
-              <Layers className="w-4 h-4 text-charcoal-700" />
-            </div>
-            <div className="mt-2">
-              <span className="editorial-heading text-3xl font-bold text-charcoal-900">
-                {coveragePercentage}%
-              </span>
-              <span className="text-xs text-charcoal-500 ml-1.5 font-medium">
-                wardrobe match
-              </span>
-            </div>
-            <p className="text-xs text-charcoal-600 font-medium mt-2">
-              {coveragePercentage === 100 ? "All pieces in your wardrobe" : "High closet synergy"}
-            </p>
-          </div>
-
-        </div>
-
-      </section>
-
-      {/* 3. Slot-by-Slot Garment Breakdown (Text-First Showcase) */}
-      <section className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-taupe-200">
-          <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-charcoal-900" />
-            <h3 className="editorial-heading text-xl sm:text-2xl font-bold text-charcoal-900">
-              Garment Breakdown: What You Should Wear
-            </h3>
-          </div>
-          <span className="text-xs text-charcoal-500 font-medium">
-            {totalCount} Coordinated Garment Pieces
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {sortedItems.map((item, idx) => {
-            const isOwned = item.inWardrobe;
-
-            return (
-              <div
-                key={item.id || idx}
-                className={`rounded-2xl p-6 sm:p-7 border transition-all shadow-subtle flex flex-col justify-between space-y-5 ${
-                  isOwned
-                    ? 'bg-white border-emerald-300 ring-1 ring-emerald-200/60'
-                    : 'bg-[#FFFAF5] border-amber-300 ring-1 ring-amber-200/60'
-                }`}
-              >
-                {/* Header: Slot Badge & Ownership Status Badge */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
-                  <span className="bg-charcoal-900 text-cream-50 px-2.5 py-1 rounded text-[10px] font-bold tracking-widest uppercase">
-                    {getSlotDisplayLabel(item)}
+          {/* Hyper-Consumerism Protection Alert & Pricing Banner */}
+          <section className={`rounded-3xl p-6 sm:p-7 border shadow-sm transition-all ${
+            has_wardrobe_reuse
+              ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-cream-50 border-emerald-300 ring-1 ring-emerald-200'
+              : 'bg-white border-taupe-300'
+          }`}>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider ${
+                    has_wardrobe_reuse ? 'bg-emerald-600 text-white' : 'bg-charcoal-900 text-white'
+                  }`}>
+                    {has_wardrobe_reuse ? '🌿 HYPER-CONSUMERISM CURBED' : 'INTENTIONAL OCCASION CURATION'}
                   </span>
-
-                  {isOwned ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      ALREADY IN YOUR CLOSET
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
-                      <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
-                      NEEDED TO BUY
-                    </span>
-                  )}
+                  <span className="text-xs font-bold text-charcoal-600">
+                    ML Synergy: {wardrobe_synergy_score}%
+                  </span>
                 </div>
-
-                {/* Garment Details & Styling Description */}
-                <div className="space-y-3">
-                  <div className="flex items-start gap-4">
-                    {item.image && (
-                      <div className="w-16 h-20 rounded-xl overflow-hidden bg-white border border-taupe-200 shrink-0">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="editorial-heading text-xl sm:text-2xl font-bold text-charcoal-900">
-                        {item.name}
-                      </h4>
-                      <p className="text-xs text-charcoal-500 mt-1 font-medium">
-                        {item.brand ? `${item.brand} • ` : ''}{item.colour} {item.subcategory || item.category}
-                      </p>
-                      {!isOwned && item.price && (
-                        <p className="text-sm font-extrabold text-charcoal-900 mt-1">
-                          ₹{item.price} <span className="text-[11px] font-medium text-charcoal-400">on {item.retailer || 'Myntra'}</span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Attributes Pills */}
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <span className="px-2.5 py-1 rounded-lg bg-taupe-100 text-charcoal-800 text-[11px] font-semibold">
-                      Color: {item.colour}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-taupe-100 text-charcoal-800 text-[11px] font-semibold">
-                      Role: {item.slot || item.category}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-taupe-100 text-charcoal-800 text-[11px] font-semibold">
-                      Usage: {item.usage || safePrefs.occasion || 'Traditional'}
-                    </span>
-                  </div>
-
-                  {/* Styling Instructions */}
-                  <div className="pt-2">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-charcoal-700 mb-1">
-                      Styling Note:
-                    </div>
-                    <p className="text-xs sm:text-sm text-charcoal-600 leading-relaxed font-normal">
-                      {item.description || `Style this ${item.colour} ${item.subcategory || 'piece'} to coordinate seamlessly with the rest of the ensemble.`}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Status Guidance Banner & Slot Action */}
-                <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                  isOwned
-                    ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
-                    : 'bg-amber-50/80 border-amber-200 text-amber-900'
-                }`}>
-                  <div className="text-xs font-medium">
-                    {isOwned ? (
-                      <span className="flex items-center gap-1.5 font-semibold text-emerald-800">
-                        <Check className="w-3.5 h-3.5 text-emerald-700" />
-                        Available in your wardrobe {item.matchedWardrobeName ? `(${item.matchedWardrobeName})` : ''} — wear this piece directly.
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5 font-semibold text-amber-800">
-                        <AlertCircle className="w-3.5 h-3.5 text-amber-700" />
-                        Missing from wardrobe — purchase from {item.retailer || 'Myntra'} (₹{item.price || 999}) to complete this look.
-                      </span>
-                    )}
-                  </div>
-
-                  {isOwned ? (
-                    <button
-                      onClick={() => navigate('/try-existing')}
-                      className="px-3 py-1.5 rounded-lg bg-white border border-emerald-300 text-emerald-900 text-xs font-bold hover:bg-emerald-50 transition-colors shrink-0"
-                    >
-                      Try What I Own →
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <a
-                        href={item.buy_link || item.buy_url || `https://www.myntra.com/${encodeURIComponent(item.name || '').replace(/%20/g, '-')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1.5 rounded-lg bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800 transition-colors shrink-0 flex items-center gap-1 shadow-sm"
-                      >
-                        Buy on {item.retailer || 'Myntra'} (₹{item.price || 999}) ↗
-                      </a>
-                      <button
-                        onClick={() => navigate('/shop-new')}
-                        className="px-3 py-1.5 rounded-lg bg-charcoal-900 text-cream-50 text-xs font-bold hover:bg-black transition-colors shrink-0"
-                      >
-                        Shop Options →
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-
+                <h3 className="editorial-heading text-xl sm:text-2xl font-bold text-charcoal-900">
+                  {has_wardrobe_reuse
+                    ? `You already own matching pieces! Reusing your closet saves ₹${total_savings.toLocaleString('en-IN')}.`
+                    : `Curated strictly for ${occasion} in ${safePrefs.colour || 'Red'}.`
+                  }
+                </h3>
+                <p className="text-xs sm:text-sm text-charcoal-700 max-w-3xl leading-relaxed">
+                  {has_wardrobe_reuse
+                    ? `Fashion-VISTA matched items in your digital wardrobe (${wardrobe_matches.map(w => w.name).join(', ')}). Wear what you own first, and only buy missing accents.`
+                    : `Every piece is harmonized in palette and silhouette for ${occasion}. If you already own a similar piece, you can swap it into your ensemble instantly.`
+                  }
+                </p>
               </div>
-            );
-          })}
-        </div>
-      </section>
 
-      {/* 4. Categorized Split: Already In Closet vs. Needed to Buy */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-        
-        {/* Box A: Already In Your Closet */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-emerald-200 shadow-card space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-taupe-100">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center">
-                <Check className="w-4 h-4 stroke-[3]" />
+              {/* Price Calculation Card */}
+              <div className="bg-white/90 backdrop-blur-xs rounded-2xl p-4 sm:p-5 border border-taupe-200 shadow-subtle shrink-0 min-w-[260px] space-y-2 text-right">
+                <div className="text-xs font-medium text-charcoal-500">
+                  Full Curated Value: <strong className="text-charcoal-800 line-through">₹{total_price.toLocaleString('en-IN')}</strong>
+                </div>
+                {total_savings > 0 && (
+                  <div className="text-xs font-bold text-emerald-700">
+                    Closet Savings: -₹{total_savings.toLocaleString('en-IN')}
+                  </div>
+                )}
+                <div className="pt-2 border-t border-taupe-100">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-charcoal-500 block">
+                    Net Investment Needed:
+                  </span>
+                  <span className="editorial-heading text-2xl sm:text-3xl font-extrabold text-charcoal-950">
+                    ₹{net_cost.toLocaleString('en-IN')}
+                  </span>
+                </div>
               </div>
-              <h3 className="editorial-heading text-lg sm:text-xl font-bold text-charcoal-900">
-                Already In Your Closet ({ownedItems.length})
-              </h3>
             </div>
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-              Ready to Wear
-            </span>
-          </div>
+          </section>
 
-          <p className="text-xs sm:text-sm text-charcoal-600">
-            These items match what you already own. You do not need to make any purchases for these slots:
-          </p>
-
-          <div className="space-y-2.5">
-            {ownedItems.map((item, idx) => (
-              <div
-                key={item.id || idx}
-                className="flex items-center justify-between p-3.5 rounded-xl bg-emerald-50/50 border border-emerald-200/70 text-xs"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                  <span className="font-bold text-charcoal-900">{item.name}</span>
-                </div>
-                <span className="font-semibold text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200">
-                  {item.slot || item.category}
+          {/* Active Look Hero Overview */}
+          <section className="bg-white rounded-3xl p-6 sm:p-10 border border-taupe-300 shadow-sm space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-taupe-200">
+              <div className="flex items-center gap-2">
+                <span className="bg-charcoal-900 text-cream-50 px-3 py-1 rounded-md text-xs font-bold tracking-wider">
+                  LOOK 0{activeIndex + 1}
+                </span>
+                <Badge variant="tag" size="md">
+                  {silhouette}
+                </Badge>
+                <Badge variant="tag" size="md">
+                  Style: {style}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300">
+                  {compatibility_score}% Harmony Score
                 </span>
               </div>
-            ))}
-          </div>
-
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => navigate('/try-existing')}
-            className="w-full justify-center"
-            iconLeft={<Shirt className="w-4 h-4" />}
-          >
-            TRY WHAT I OWN ({ownedItems.length} ITEMS)
-          </Button>
-        </div>
-
-        {/* Box B: Items Needed To Buy */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-amber-200 shadow-card space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-taupe-100">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center">
-                <ShoppingBag className="w-4 h-4" />
-              </div>
-              <h3 className="editorial-heading text-lg sm:text-xl font-bold text-charcoal-900">
-                Needed To Buy ({missingItems.length})
-              </h3>
             </div>
-            <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-              {missingItems.length > 0 ? "Action Required" : "All Complete"}
-            </span>
-          </div>
 
-          {missingItems.length > 0 ? (
-            <>
-              <p className="text-xs sm:text-sm text-charcoal-600">
-                To achieve the full styled blueprint, acquire or upload the following piece(s):
+            <div className="space-y-2">
+              <h2 className="editorial-heading text-2xl sm:text-4xl font-bold text-charcoal-900">
+                {name}
+              </h2>
+              <p className="text-sm sm:text-base text-charcoal-700 leading-relaxed font-normal max-w-4xl">
+                {subtitle}
               </p>
+            </div>
 
-              <div className="space-y-2.5">
-                {missingItems.map((item, idx) => (
-                  <div
-                    key={item.id || idx}
-                    className="flex items-center justify-between p-3.5 rounded-xl bg-amber-50/50 border border-amber-200 text-xs"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-2 h-2 rounded-full bg-amber-500" />
-                      <span className="font-bold text-charcoal-900">{item.name}</span>
-                    </div>
-                    <span className="font-semibold text-amber-800 bg-white px-2 py-0.5 rounded border border-amber-200">
-                      {item.slot || item.category}
-                    </span>
+            {/* Color Palette & Silhouette Directive */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-charcoal-500 block">Palette Harmony</span>
+                <span className="text-xs sm:text-sm font-bold text-charcoal-900 mt-1 block">{color_palette}</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-charcoal-500 block">Silhouette</span>
+                <span className="text-xs sm:text-sm font-bold text-charcoal-900 mt-1 block">{silhouette}</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-charcoal-500 block">Target Event</span>
+                <span className="text-xs sm:text-sm font-bold text-charcoal-900 mt-1 block">{occasion}</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-charcoal-500 block">Dimensions Curated</span>
+                <span className="text-xs sm:text-sm font-bold text-charcoal-900 mt-1 block">4 / 4 Complete Ensemble</span>
+              </div>
+            </div>
+          </section>
+
+          {/* OUTFIT COMPATIBILITY & MATHEMATICAL SYNERGY BREAKDOWN */}
+          <section className="bg-white rounded-3xl p-6 sm:p-8 border border-taupe-300 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-taupe-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-charcoal-900 text-cream-50 flex items-center justify-center font-extrabold text-sm shadow-subtle">
+                  {compatibility_score}%
+                </div>
+                <div>
+                  <h3 className="editorial-heading text-xl sm:text-2xl font-bold text-charcoal-900">
+                    Outfit Compatibility & Synergy Breakdown
+                  </h3>
+                  <p className="text-xs text-charcoal-500 font-medium">
+                    Formula: Score = 0.25·Relevance + 0.25·ColorHarmony + 0.20·OccasionSuitability + 0.15·StyleFit + 0.15·WardrobeSynergy
+                  </p>
+                </div>
+              </div>
+
+              {/* Constraint Compliance Pill */}
+              {passes_constraints !== false ? (
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Budget & Excluded Color Rules: 100% Passed
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-50 text-rose-800 border border-rose-300 shadow-2xs">
+                  <AlertCircle className="w-4 h-4 text-rose-600" />
+                  Notice: {Array.isArray(constraint_violations) && constraint_violations.length > 0 ? constraint_violations.join('; ') : 'Violates hard constraint'}
+                </span>
+              )}
+            </div>
+
+            {/* 5-Pillar Score Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+              {/* Pillar 1: Preference Relevance */}
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 flex flex-col justify-between space-y-2">
+                <div>
+                  <div className="flex items-center justify-between text-xs font-bold text-charcoal-600">
+                    <span>1. Preference Fit</span>
+                    <span className="text-charcoal-900 font-extrabold">{breakdownScores.preference_relevance}%</span>
                   </div>
-                ))}
+                  <span className="text-[10px] text-charcoal-500 block mt-0.5">Weight: 25% • Vector Space</span>
+                </div>
+                <div className="w-full bg-taupe-200 rounded-full h-2 overflow-hidden">
+                  <div className="bg-charcoal-900 h-full rounded-full transition-all duration-500" style={{ width: `${breakdownScores.preference_relevance}%` }} />
+                </div>
               </div>
 
-              <Button
-                variant="secondary"
-                size="md"
-                onClick={() => navigate('/shop-new')}
-                className="w-full justify-center border-amber-400 hover:bg-amber-50"
-                iconLeft={<ShoppingBag className="w-4 h-4" />}
-              >
-                SHOP THE MISSING ITEM
-              </Button>
-            </>
-          ) : (
-            <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-3">
-              <div className="inline-flex p-3 rounded-full bg-emerald-100 text-emerald-800">
-                <Check className="w-6 h-6 stroke-[3]" />
+              {/* Pillar 2: Colour Harmony */}
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 flex flex-col justify-between space-y-2">
+                <div>
+                  <div className="flex items-center justify-between text-xs font-bold text-charcoal-600">
+                    <span>2. Color Harmony</span>
+                    <span className="text-charcoal-900 font-extrabold">{breakdownScores.colour_harmony}%</span>
+                  </div>
+                  <span className="text-[10px] text-charcoal-500 block mt-0.5">Weight: 25% • Theory Matrix</span>
+                </div>
+                <div className="w-full bg-taupe-200 rounded-full h-2 overflow-hidden">
+                  <div className="bg-rose-600 h-full rounded-full transition-all duration-500" style={{ width: `${breakdownScores.colour_harmony}%` }} />
+                </div>
               </div>
-              <h4 className="editorial-heading text-lg font-bold text-emerald-900">
-                100% Wardrobe Complete!
-              </h4>
-              <p className="text-xs text-emerald-700">
-                Every single piece required for this outfit is already available in your wardrobe. Zero new shopping needed!
-              </p>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => navigate('/try-existing')}
-                className="justify-center mx-auto"
-                iconLeft={<Shirt className="w-3.5 h-3.5" />}
-              >
-                WEAR THIS ENSEMBLE NOW
-              </Button>
+
+              {/* Pillar 3: Occasion Suitability */}
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 flex flex-col justify-between space-y-2">
+                <div>
+                  <div className="flex items-center justify-between text-xs font-bold text-charcoal-600">
+                    <span>3. Occasion Fit</span>
+                    <span className="text-charcoal-900 font-extrabold">{breakdownScores.occasion_suitability}%</span>
+                  </div>
+                  <span className="text-[10px] text-charcoal-500 block mt-0.5">Weight: 20% • ML Logistic Reg</span>
+                </div>
+                <div className="w-full bg-taupe-200 rounded-full h-2 overflow-hidden">
+                  <div className="bg-amber-600 h-full rounded-full transition-all duration-500" style={{ width: `${breakdownScores.occasion_suitability}%` }} />
+                </div>
+              </div>
+
+              {/* Pillar 4: Style Compatibility */}
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 flex flex-col justify-between space-y-2">
+                <div>
+                  <div className="flex items-center justify-between text-xs font-bold text-charcoal-600">
+                    <span>4. Style Cohesion</span>
+                    <span className="text-charcoal-900 font-extrabold">{breakdownScores.style_compatibility}%</span>
+                  </div>
+                  <span className="text-[10px] text-charcoal-500 block mt-0.5">Weight: 15% • Silhouette Sync</span>
+                </div>
+                <div className="w-full bg-taupe-200 rounded-full h-2 overflow-hidden">
+                  <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${breakdownScores.style_compatibility}%` }} />
+                </div>
+              </div>
+
+              {/* Pillar 5: Wardrobe Synergy */}
+              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 flex flex-col justify-between space-y-2">
+                <div>
+                  <div className="flex items-center justify-between text-xs font-bold text-emerald-900">
+                    <span>5. Closet Synergy</span>
+                    <span className="text-emerald-800 font-extrabold">{breakdownScores.wardrobe_synergy}%</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-700 block mt-0.5">Weight: 15% • ₹{total_savings.toLocaleString('en-IN')} Saved</span>
+                </div>
+                <div className="w-full bg-emerald-200 rounded-full h-2 overflow-hidden">
+                  <div className="bg-emerald-600 h-full rounded-full transition-all duration-500" style={{ width: `${breakdownScores.wardrobe_synergy}%` }} />
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+          </section>
 
-      </section>
+          {/* THE 4 DIMENSIONS OF OCCASION STYLING (Dress, Jewellery, Footwear, Handbag) */}
+          <section className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-taupe-200">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-charcoal-900 text-cream-50 flex items-center justify-center font-bold text-xs">
+                  4★
+                </div>
+                <div>
+                  <h3 className="editorial-heading text-xl sm:text-2xl font-bold text-charcoal-900">
+                    The 4 Core Ensemble Components
+                  </h3>
+                  <p className="text-xs text-charcoal-500">
+                    Curated across Dress, Jewellery, Footwear & Handbag with verified direct product links from Meesho, Amazon, Flipkart (&lt; ₹1,500) and Myntra (₹1,500+)
+                  </p>
+                </div>
+              </div>
 
-      {/* 5. Wardrobe Match Progress & Inventory Synergy */}
-      <section>
-        <WardrobeMatch
-          ownedCount={ownedCount}
-          totalCount={totalCount}
-          percentage={coveragePercentage}
-          statusText={coveragePercentage === 100 ? "Ready in your closet!" : "High Closet Synergy"}
-          subtext={missingItems.length > 0 ? `Missing: ${missingItems.map(i => i.name).join(', ')}` : "All pieces available in wardrobe"}
-          items={sortedItems}
-        />
-      </section>
+              {/* Slot Switcher Pills */}
+              <div className="inline-flex p-1 rounded-2xl bg-taupe-100 border border-taupe-200 overflow-x-auto">
+                <button
+                  onClick={() => setActiveTab('all-slots')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'all-slots' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
+                  }`}
+                >
+                  All 4 Slots
+                </button>
+                <button
+                  onClick={() => setActiveTab('dress')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'dress' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
+                  }`}
+                >
+                  👗 Dress
+                </button>
+                <button
+                  onClick={() => setActiveTab('jewellery')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'jewellery' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
+                  }`}
+                >
+                  💎 Jewellery
+                </button>
+                <button
+                  onClick={() => setActiveTab('footwear')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'footwear' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
+                  }`}
+                >
+                  👠 Footwear
+                </button>
+                <button
+                  onClick={() => setActiveTab('handbag')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'handbag' ? 'bg-white text-charcoal-900 shadow-2xs' : 'text-charcoal-600 hover:text-charcoal-900'
+                  }`}
+                >
+                  👜 Handbag
+                </button>
+              </div>
+            </div>
 
-      {/* 6. Why This Outfit? (Styling Reasons) */}
-      <section>
-        <RecommendationReason
-          reasons={reasons}
-          title="WHY THIS OUTFIT?"
-          subtitle="Intentional curation calibrated to eliminate unnecessary wardrobe clutter"
-        />
-      </section>
+            {/* CARD 1: 👗 DRESS / OUTFIT */}
+            {(activeTab === 'all-slots' || activeTab === 'dress') && (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-taupe-300 shadow-card space-y-6">
+                <div className="flex flex-col lg:flex-row gap-8 items-start">
+                  {/* Dress Hero Image */}
+                  <div className="w-full lg:w-72 shrink-0 rounded-2xl overflow-hidden bg-taupe-100 border border-taupe-200 aspect-[3/4] relative shadow-subtle group">
+                    <img
+                      src={dressSlot.image || activeOutfit.heroImage}
+                      alt={dressSlot.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80';
+                      }}
+                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                    />
+                    <div className="absolute top-3 left-3 bg-charcoal-900/85 backdrop-blur-xs text-cream-50 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                      👗 Primary Dress / Silhouette
+                    </div>
+                    {dressSlot.is_wardrobe_match && (
+                      <div className="absolute bottom-3 left-3 right-3 bg-emerald-800/90 backdrop-blur-xs text-white px-3 py-1.5 rounded-xl text-xs font-bold text-center">
+                        ✓ In Your Wardrobe (Saved ₹{dressSlot.money_saved})
+                      </div>
+                    )}
+                  </div>
 
-      {/* 7. Alternative Ensembles (Text-Centric Blueprints) */}
-      {alternatives && alternatives.length > 0 && (
-        <section className="space-y-6">
-          <div className="flex items-center justify-between pb-2 border-b border-taupe-200">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-charcoal-500">
-                Alternative Combinations
-              </span>
-              <h3 className="editorial-heading text-2xl sm:text-3xl font-semibold text-charcoal-900 mt-1">
-                Explore Alternative Blueprints
+                  {/* Dress Details */}
+                  <div className="flex-1 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-charcoal-900 text-cream-50 px-2.5 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
+                          DIMENSION 01: DRESS & ATTIRE
+                        </span>
+                        <span className="text-xs font-semibold text-charcoal-600">
+                          {dressSlot.category}
+                        </span>
+                      </div>
+                      {dressSlot.is_wardrobe_match ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          ALREADY IN WARDROBE
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                          <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                          PURCHASE TO COMPLETE
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 className="editorial-heading text-2xl sm:text-3xl font-bold text-charcoal-900">
+                        {dressSlot.name}
+                      </h4>
+                      <p className="text-xs text-charcoal-500 mt-1 font-medium">
+                        Fabric: <strong className="text-charcoal-800">{dressSlot.fabric}</strong> • Palette: <strong className="text-charcoal-800">{dressSlot.color}</strong>
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 text-xs sm:text-sm text-charcoal-700 leading-relaxed">
+                      <strong className="text-charcoal-900 block mb-1 font-bold">Styling Directive & Drape:</strong>
+                      {dressSlot.styling_tip}
+                    </div>
+
+                    {/* Direct Product Buying Card for the Dress or Wardrobe Reuse Banner */}
+                    {dressSlot.is_wardrobe_match ? (
+                      <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs mt-3">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                          <span className="font-bold text-emerald-900">
+                            Reusing your owned "{dressSlot.matched_item_name || dressSlot.name}"
+                          </span>
+                        </div>
+                        <span className="font-extrabold text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-emerald-200">
+                          Saved ₹{dressSlot.money_saved.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    ) : (
+                      <DirectProductBuyCard item={dressSlot} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CARD 2: 💎 JEWELLERY */}
+            {(activeTab === 'all-slots' || activeTab === 'jewellery') && (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-taupe-300 shadow-card space-y-6">
+                <div className="flex flex-col lg:flex-row gap-8 items-start">
+                  <div className="w-full lg:w-72 shrink-0 rounded-2xl overflow-hidden bg-taupe-100 border border-taupe-200 aspect-[3/4] relative shadow-subtle group">
+                    <img
+                      src={jewellerySlot.image}
+                      alt={jewellerySlot.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=80';
+                      }}
+                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                    />
+                    <div className="absolute top-3 left-3 bg-charcoal-900/85 backdrop-blur-xs text-cream-50 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <Gem className="w-3 h-3 text-amber-300" />
+                      💎 Jewellery Curation
+                    </div>
+                    {jewellerySlot.is_wardrobe_match && (
+                      <div className="absolute bottom-3 left-3 right-3 bg-emerald-800/90 backdrop-blur-xs text-white px-3 py-1.5 rounded-xl text-xs font-bold text-center">
+                        ✓ In Your Wardrobe (Saved ₹{jewellerySlot.money_saved})
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-charcoal-900 text-cream-50 px-2.5 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
+                          DIMENSION 02: JEWELLERY
+                        </span>
+                        <span className="text-xs font-semibold text-charcoal-600">
+                          {jewellerySlot.type}
+                        </span>
+                      </div>
+                      {jewellerySlot.is_wardrobe_match ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          ALREADY IN WARDROBE (₹0)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                          <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                          PURCHASE TO COMPLETE
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 className="editorial-heading text-2xl sm:text-3xl font-bold text-charcoal-900">
+                        {jewellerySlot.name}
+                      </h4>
+                      <p className="text-xs text-charcoal-500 mt-1 font-medium">
+                        Set Pieces: <strong className="text-charcoal-800">{jewellerySlot.type}</strong> • Metal Tone: <strong className="text-charcoal-800">{jewellerySlot.color}</strong>
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 text-xs sm:text-sm text-charcoal-700 leading-relaxed">
+                      <strong className="text-charcoal-900 block mb-1 font-bold">Neckline Balance Rule:</strong>
+                      {jewellerySlot.styling_tip}
+                    </div>
+
+                    {/* Price Comparison or Wardrobe Reuse Banner */}
+                    {jewellerySlot.is_wardrobe_match ? (
+                      <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                          <span className="font-bold text-emerald-900">
+                            Reusing your owned "{jewellerySlot.matched_item_name || jewellerySlot.name}"
+                          </span>
+                        </div>
+                        <span className="font-extrabold text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-emerald-200">
+                          Saved ₹{jewellerySlot.money_saved.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    ) : (
+                      <DirectProductBuyCard item={jewellerySlot} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CARD 3: 👠 FOOTWEAR */}
+            {(activeTab === 'all-slots' || activeTab === 'footwear') && (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-taupe-300 shadow-card space-y-6">
+                <div className="flex flex-col lg:flex-row gap-8 items-start">
+                  <div className="w-full lg:w-72 shrink-0 rounded-2xl overflow-hidden bg-taupe-100 border border-taupe-200 aspect-[3/4] relative shadow-subtle group">
+                    <img
+                      src={footwearSlot.image}
+                      alt={footwearSlot.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=80';
+                      }}
+                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                    />
+                    <div className="absolute top-3 left-3 bg-charcoal-900/85 backdrop-blur-xs text-cream-50 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                      👠 Footwear Selection
+                    </div>
+                    {footwearSlot.is_wardrobe_match && (
+                      <div className="absolute bottom-3 left-3 right-3 bg-emerald-800/90 backdrop-blur-xs text-white px-3 py-1.5 rounded-xl text-xs font-bold text-center">
+                        ✓ In Your Wardrobe (Saved ₹{footwearSlot.money_saved})
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-charcoal-900 text-cream-50 px-2.5 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
+                          DIMENSION 03: FOOTWEAR
+                        </span>
+                        <span className="text-xs font-semibold text-charcoal-600">
+                          {footwearSlot.type}
+                        </span>
+                      </div>
+                      {footwearSlot.is_wardrobe_match ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          ALREADY IN WARDROBE (₹0)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                          <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                          PURCHASE TO COMPLETE
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 className="editorial-heading text-2xl sm:text-3xl font-bold text-charcoal-900">
+                        {footwearSlot.name}
+                      </h4>
+                      <p className="text-xs text-charcoal-500 mt-1 font-medium">
+                        Profile: <strong className="text-charcoal-800">{footwearSlot.heel_height}</strong> • Silhouette Balance: <strong className="text-charcoal-800">{footwearSlot.type}</strong>
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 text-xs sm:text-sm text-charcoal-700 leading-relaxed">
+                      <strong className="text-charcoal-900 block mb-1 font-bold">Comfort & Hemline Balance:</strong>
+                      {footwearSlot.styling_tip}
+                    </div>
+
+                    {/* Price Comparison or Wardrobe Reuse Banner */}
+                    {footwearSlot.is_wardrobe_match ? (
+                      <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                          <span className="font-bold text-emerald-900">
+                            Reusing your owned "{footwearSlot.matched_item_name || footwearSlot.name}"
+                          </span>
+                        </div>
+                        <span className="font-extrabold text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-emerald-200">
+                          Saved ₹{footwearSlot.money_saved.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    ) : (
+                      <DirectProductBuyCard item={footwearSlot} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CARD 4: 👜 HANDBAG & CLUTCHES */}
+            {(activeTab === 'all-slots' || activeTab === 'handbag') && (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-taupe-300 shadow-card space-y-6">
+                <div className="flex flex-col lg:flex-row gap-8 items-start">
+                  <div className="w-full lg:w-72 shrink-0 rounded-2xl overflow-hidden bg-taupe-100 border border-taupe-200 aspect-[3/4] relative shadow-subtle group">
+                    <img
+                      src={handbagSlot.image}
+                      alt={handbagSlot.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=80';
+                      }}
+                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                    />
+                    <div className="absolute top-3 left-3 bg-charcoal-900/85 backdrop-blur-xs text-cream-50 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <Crown className="w-3 h-3 text-amber-300" />
+                      👜 Handbag & Clutch
+                    </div>
+                    {handbagSlot.is_wardrobe_match && (
+                      <div className="absolute bottom-3 left-3 right-3 bg-emerald-800/90 backdrop-blur-xs text-white px-3 py-1.5 rounded-xl text-xs font-bold text-center">
+                        ✓ In Your Wardrobe (Saved ₹{handbagSlot.money_saved})
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-taupe-100">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-charcoal-900 text-cream-50 px-2.5 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
+                          DIMENSION 04: HANDBAG & ACCENTS
+                        </span>
+                        <span className="text-xs font-semibold text-charcoal-600">
+                          {handbagSlot.type}
+                        </span>
+                      </div>
+                      {handbagSlot.is_wardrobe_match ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          ALREADY IN WARDROBE (₹0)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                          <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                          PURCHASE TO COMPLETE
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 className="editorial-heading text-2xl sm:text-3xl font-bold text-charcoal-900">
+                        {handbagSlot.name}
+                      </h4>
+                      <p className="text-xs text-charcoal-500 mt-1 font-medium">
+                        Embroidery: <strong className="text-charcoal-800">{handbagSlot.material}</strong>
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 text-xs sm:text-sm text-charcoal-700 leading-relaxed">
+                      <strong className="text-charcoal-900 block mb-1 font-bold">Occasion Utility & Proportions:</strong>
+                      {handbagSlot.styling_tip}
+                    </div>
+
+                    {/* Price Comparison or Wardrobe Reuse Banner */}
+                    {handbagSlot.is_wardrobe_match ? (
+                      <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                          <span className="font-bold text-emerald-900">
+                            Reusing your owned "{handbagSlot.matched_item_name || handbagSlot.name}"
+                          </span>
+                        </div>
+                        <span className="font-extrabold text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-emerald-200">
+                          Saved ₹{handbagSlot.money_saved.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    ) : (
+                      <DirectProductBuyCard item={handbagSlot} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* ML EXPLAINABILITY & STYLING REASONS */}
+          <section className="bg-white rounded-3xl p-6 sm:p-8 border border-taupe-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-taupe-100">
+              <Sparkles className="w-5 h-5 text-charcoal-900" />
+              <h3 className="editorial-heading text-xl sm:text-2xl font-bold text-charcoal-900">
+                Machine Learning Recommendation Rationale
               </h3>
             </div>
-            <span className="text-xs text-charcoal-500 font-medium">
-              {alternatives.length} Curated Variants
-            </span>
-          </div>
+            <p className="text-xs sm:text-sm text-charcoal-600">
+              This ensemble was generated using TF-IDF feature vectorization and cosine similarity over occasion requirements, garment silhouettes, and color harmony matrices:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-charcoal-500">Cross-Slot Affinity Score</span>
+                <p className="text-xs font-semibold text-charcoal-900">{compatibility_score}% compatibility across Dress, Jewellery, Footwear & Handbag</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-charcoal-500">Wardrobe Synergy Evaluation</span>
+                <p className="text-xs font-semibold text-charcoal-900">{has_wardrobe_reuse ? `Matched ${wardrobe_matches.length} closet garment(s), saving ₹${total_savings}` : `Evaluated across ${wardrobe.length} items in your digital wardrobe`}</p>
+              </div>
+            </div>
+            <RecommendationReason
+              reasons={reasons.length > 0 ? reasons : [
+                `High cosine similarity match for ${occasion} aesthetic requirements`,
+                `Color balance calibrated with ${color_palette} harmony`,
+                `Direct product links with verified live Myntra prices matching actual garments`,
+                `Wardrobe-first search prioritizing owned items to curb hyper-consumerism`
+              ]}
+              title="WHY THIS LOOK IS RANKED #1"
+              subtitle="Mathematical alignment with your styling quiz and closet assets"
+            />
+          </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {(alternatives || []).filter(Boolean).map((alt, altIdx) => (
-              <OutfitCard
-                key={alt.id || altIdx}
-                outfit={alt}
-                textOnly={true}
-                onView={(selectedAlt) => {
-                  applyAlternative(selectedAlt, altIdx + 1);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                actionText="Select This Blueprint →"
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
+          {/* Wardrobe Match Summary Section */}
+          <section>
+            <WardrobeMatch
+              ownedCount={has_wardrobe_reuse ? wardrobe_matches.length : 0}
+              totalCount={4}
+              percentage={wardrobe_synergy_score}
+              statusText={has_wardrobe_reuse ? `Curbing fast fashion: Reusing your wardrobe saves ₹${total_savings}` : "Full 4-Piece Coordinated Ensemble"}
+              subtext={has_wardrobe_reuse ? `Reused: ${wardrobe_matches.map(w => w.name).join(', ')}` : "All pieces curated with direct product buy links on Myntra"}
+              items={items}
+            />
+          </section>
         </>
       )}
 

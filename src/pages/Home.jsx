@@ -339,22 +339,22 @@ export const Home = () => {
             <div className="aspect-[4/3] bg-taupe-100 overflow-hidden">
               <img
                 src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=700&q=80"
-                alt="Virtual Try-On"
+                alt="360° Occasion Stylist"
                 className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
               />
             </div>
             <div className="p-6 sm:p-7 flex-1 flex flex-col justify-between">
               <div>
                 <h3 className="editorial-heading text-xl font-bold text-charcoal-900 mb-2">
-                  Virtual Try-On
+                  360° Occasion Stylist
                 </h3>
                 <p className="text-xs sm:text-sm text-charcoal-500 leading-relaxed">
-                  A dedicated try-on workspace that merges uploaded garments with your full-body photo, paired with honest compatibility analysis.
+                  5-slot ensemble blueprints (Dress, Jewellery, Hairstyle, Footwear, Handbag) with comparative price links across Myntra, Amazon, Meesho, Flipkart, and Ajio.
                 </p>
               </div>
               <div className="pt-6">
-                <Link to="/try-on" className="text-xs font-semibold text-charcoal-900 inline-flex items-center gap-1.5 hover:underline">
-                  Enter Try-On Studio <ArrowRight className="w-3.5 h-3.5" />
+                <Link to="/recommendations" className="text-xs font-semibold text-charcoal-900 inline-flex items-center gap-1.5 hover:underline">
+                  Enter Occasion Studio <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </div>

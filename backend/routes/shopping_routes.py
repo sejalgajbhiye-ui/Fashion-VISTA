@@ -29,9 +29,11 @@ def search_products():
         slot = request.args.get("slot", "").strip()
         colour = request.args.get("colour", "").strip()
         limit = int(request.args.get("limit", 6))
+        min_price = request.args.get("min_price", type=int)
+        max_price = request.args.get("max_price", type=int)
 
         if q:
-            products = search_live_myntra_products(q, limit=limit)
+            products = search_live_myntra_products(q, limit=limit, min_price=min_price, max_price=max_price)
         elif slot:
             prod = find_missing_product_online(slot=slot, colour=colour or "Black")
             products = [prod] if prod else []

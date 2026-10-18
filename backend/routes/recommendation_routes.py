@@ -1,4 +1,7 @@
 # Recommendation REST API Blueprint for Fashion VISTA
+# Generates 5 to 10 Complete 360° Occasion Ensembles (Dress, Jewellery, Hairstyle, Footwear, Handbag)
+# with multi-retailer store links (Myntra, Amazon, Meesho, Flipkart, Ajio) and wardrobe synergy.
+
 import os
 import sys
 from pathlib import Path
@@ -8,56 +11,48 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from ml.inference.recommender_engine import OutfitRecommender
+from ml.models.occasion_ensemble_recommender import get_occasion_recommender
 
 recommendation_bp = Blueprint('recommendation_bp', __name__)
-recommender = OutfitRecommender()
+occasion_recommender = get_occasion_recommender()
 
+
+@recommendation_bp.route('/recommend', methods=['POST'])
 @recommendation_bp.route('/recommendations', methods=['POST'])
+@recommendation_bp.route('/recommendations/occasion', methods=['POST'])
 def get_recommendations():
+    """
+    360° Occasion Ensemble ML Recommendation Endpoint.
+    Accepts:
+    - preferences: { occasion, style, colour, season, budget }
+    - wardrobe: Array of user's digital wardrobe items
+    - limit: Desired number of distinct looks (5 to 10, default 8)
+    Returns:
+    - 5 to 10 complete head-to-toe curated looks with direct multi-retailer links across
+      Myntra, Amazon, Meesho, Flipkart, and Ajio.
+    """
     try:
-        data = request.get_json(silent=True)
-        if data is None:
-            data = {}
+        data = request.get_json(silent=True) or {}
 
         preferences = data.get('preferences') if isinstance(data.get('preferences'), dict) else data
-        user_photo = data.get('user_photo') or data.get('user_image')
-        wardrobe = data.get('wardrobe', [])
-        limit = 3  # Maximum 3 outfit looks
+        wardrobe = data.get('wardrobe', None)
+        limit = int(data.get('limit', 8))
+        # Enforce range of 5 to 10 looks
+        limit = max(5, min(10, limit))
 
-        result = recommender.recommend_outfits(preferences=preferences, wardrobe=wardrobe, limit=limit)
+        # Execute 360° ML Ensemble Recommender
+        result = occasion_recommender.recommend(
+            preferences=preferences,
+            wardrobe=wardrobe,
+            limit=limit
+        )
 
-        # Generate try-on image for each of the maximum 3 looks if user_photo is available
-        if user_photo and isinstance(result, dict) and result.get('recommendations'):
-            try:
-                from backend.services.tryon_service import execute_multi_garment_try_on
-                for outfit in result.get('recommendations', [])[:3]:
-                    items = outfit.get('items', [])
-                    if items:
-                        try:
-                            tryon_res = execute_multi_garment_try_on(
-                                user_image_path=user_photo,
-                                garments=items
-                            )
-                            if tryon_res.get('success') and tryon_res.get('result_image'):
-                                outfit['user_tryon_image'] = tryon_res['result_image']
-                                outfit['tryon_details'] = tryon_res.get('applied_garments')
-                        except Exception as tryon_err:
-                            print(f"[Try-on Route Note] Multi-garment look synthesis: {tryon_err}")
-                    outfit['user_photo'] = user_photo
-
-
-                # Ensure primary recommendation also reflects tryon image
-                if result.get('recommendations'):
-                    result['primary_recommendation'] = result['recommendations'][0]
-                    result['alternatives'] = result['recommendations'][1:]
-            except Exception as e:
-                print(f"[Try-on Batch Error] {e}")
-
+        result["status"] = "success"
         return jsonify(result), 200
 
     except Exception as e:
         return jsonify({
+            'success': False,
             'status': 'error',
-            'error': f'Recommendation failed: {str(e)}'
+            'error': f'Occasion recommendation failed: {str(e)}'
         }), 500

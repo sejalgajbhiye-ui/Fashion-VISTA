@@ -237,9 +237,9 @@ export async function predictProductAttributes(text) {
  * @param {Array} wardrobe
  * @param {number} limit
  */
-export async function fetchRecommendations(preferences, wardrobe = [], limit = 3, userPhoto = null) {
+export async function fetchRecommendations(preferences, wardrobe = [], limit = 8, userPhoto = null) {
   try {
-    const cappedLimit = Math.min(3, limit || 3);
+    const cappedLimit = Math.max(5, Math.min(10, limit || 8));
     const res = await fetch(`${API_BASE_URL}/recommendations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -254,20 +254,20 @@ export async function fetchRecommendations(preferences, wardrobe = [], limit = 3
 }
 
 /**
- * Generate outfit recommendation with personalized try-on
+ * Generate 360° Occasion Outfit recommendations (5 to 10 diverse looks)
  * @param {Object} preferences
  * @param {Array} wardrobe
- * @param {string|null} userPhoto
+ * @param {number} limit
  */
-export async function generateMLRecommendation(preferences, wardrobe = [], userPhoto = null) {
+export async function generateMLRecommendation(preferences, wardrobe = [], limit = 8) {
   try {
-    // Generate up to 3 outfit looks with try-on previews
-    const multiRes = await fetchRecommendations(preferences, wardrobe, 3, userPhoto);
+    const multiRes = await fetchRecommendations(preferences, wardrobe, limit);
     if (multiRes && multiRes.primary_recommendation) {
       return {
         ...multiRes.primary_recommendation,
-        alternatives: (multiRes.alternatives || []).slice(0, 2),
-        recommendations: (multiRes.recommendations || []).slice(0, 3)
+        total_looks: multiRes.total_looks,
+        alternatives: multiRes.alternatives || [],
+        recommendations: multiRes.recommendations || []
       };
     }
 

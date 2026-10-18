@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { FashionProvider } from './context/FashionContext';
 import { Navbar } from './components/Navbar';
@@ -81,8 +81,8 @@ function MainAppContent() {
               <Route path="/recommendations" element={<Recommendations />} />
               <Route path="/try-existing" element={<TryExisting />} />
               <Route path="/shop-new" element={<ShopNew />} />
-              <Route path="/try-on/upload" element={<UploadUserPhoto />} />
-              <Route path="/try-on" element={<VirtualTryOn />} />
+              <Route path="/try-on/upload" element={<Navigate to="/recommendations" replace />} />
+              <Route path="/try-on" element={<Navigate to="/recommendations" replace />} />
               <Route path="/analysis" element={<OutfitAnalysis />} />
               <Route path="/history" element={<History />} />
               <Route path="/profile" element={<Profile />} />

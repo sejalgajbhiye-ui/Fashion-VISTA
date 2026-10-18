@@ -22,7 +22,7 @@ export const Footer = () => {
               "Try what you own. Shop only what you need."
             </p>
             <p className="text-xs text-charcoal-500 max-w-md leading-relaxed">
-              AI-Based Personalized Fashion Decision Assistant with Virtual Wardrobe and Virtual Try-On. Designed to curb hyper-consumerism by analyzing what you already own before recommending intentional additions.
+              AI-Based Personalized Fashion Decision Assistant with Virtual Wardrobe and 360° Occasion Stylist. Designed to curb hyper-consumerism by analyzing what you already own before recommending intentional additions.
             </p>
             <div className="flex items-center gap-2 pt-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-taupe-300 text-[11px] font-semibold text-charcoal-700">
@@ -40,7 +40,7 @@ export const Footer = () => {
             <ul className="space-y-2 text-xs text-charcoal-600 font-medium">
               <li><Link to="/" className="hover:text-black transition-colors">Home Landing</Link></li>
               <li><Link to="/stylist" className="hover:text-black transition-colors">AI Stylist Multi-Step</Link></li>
-              <li><Link to="/recommendations" className="hover:text-black transition-colors">AI Recommendations</Link></li>
+              <li><Link to="/recommendations" className="hover:text-black transition-colors">360° Occasion Stylist</Link></li>
               <li><Link to="/wardrobe" className="hover:text-black transition-colors">Virtual Wardrobe</Link></li>
               <li><Link to="/try-existing" className="hover:text-black transition-colors">Try Existing Pieces</Link></li>
               <li><Link to="/shop-new" className="hover:text-black transition-colors">Shop Missing Item</Link></li>
@@ -50,11 +50,11 @@ export const Footer = () => {
           {/* Core Journey */}
           <div className="space-y-3">
             <h5 className="text-xs uppercase font-bold tracking-widest text-charcoal-900">
-              Virtual Try-On Suite
+              Occasion Studio Suite
             </h5>
             <ul className="space-y-2 text-xs text-charcoal-600 font-medium">
-              <li><Link to="/try-on/upload" className="hover:text-black transition-colors">Upload User Photo</Link></li>
-              <li><Link to="/try-on" className="hover:text-black transition-colors">Before/After Try-On</Link></li>
+              <li><Link to="/recommendations" className="hover:text-black transition-colors">360° Occasion Studio</Link></li>
+              <li><Link to="/recommendations" className="hover:text-black transition-colors">5-Retailer Price Compare</Link></li>
               <li><Link to="/analysis" className="hover:text-black transition-colors">Outfit Analysis</Link></li>
               <li><Link to="/history" className="hover:text-black transition-colors">Style History</Link></li>
               <li><Link to="/profile" className="hover:text-black transition-colors">User Profile & Capsule</Link></li>

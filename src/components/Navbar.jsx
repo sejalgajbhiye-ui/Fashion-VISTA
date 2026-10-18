@@ -19,8 +19,8 @@ export const Navbar = () => {
     { to: '/', label: 'Home' },
     { to: '/stylist', label: 'AI Stylist' },
     { to: '/wardrobe', label: 'My Wardrobe' },
-    { to: '/recommendations', label: 'Recommendations' },
-    { to: '/try-on', label: 'Try-On' },
+    { to: '/recommendations', label: 'Occasion Stylist' },
+    { to: '/try-existing', label: 'Try What I Own' },
     { to: '/history', label: 'History' },
   ];
 
@@ -47,7 +47,7 @@ export const Navbar = () => {
                   Fashion VISTA
                 </span>
                 <span className="text-[9px] uppercase tracking-widest text-taupe-600 -mt-1 font-semibold">
-                  AI Wardrobe & Try-On
+                  AI Wardrobe & Occasion Stylist
                 </span>
               </div>
             </Link>

@@ -171,7 +171,14 @@ CURATED_RETAIL_FALLBACKS: List[Dict[str, Any]] = [
 ]
 
 
-def search_live_myntra_products(query: str, limit: int = 6) -> List[Dict[str, Any]]:
+_PRODUCT_SEARCH_CACHE: Dict[str, List[Dict[str, Any]]] = {}
+
+def search_live_myntra_products(
+    query: str,
+    limit: int = 6,
+    min_price: Optional[int] = None,
+    max_price: Optional[int] = None
+) -> List[Dict[str, Any]]:
     """
     Dynamically searches Myntra web discovery pages without storing catalogs in a database.
     Extracts live products containing:
@@ -181,16 +188,29 @@ def search_live_myntra_products(query: str, limit: int = 6) -> List[Dict[str, An
     - genuine CDN product image URL
     - retailer name ("Myntra")
     - direct buy link
+    Filters strictly by [min_price, max_price] when provided.
     """
     clean_query = query.strip()
     if not clean_query:
         return []
 
+    cache_key = f"{clean_query.lower()}:{min_price}:{max_price}"
+    if cache_key in _PRODUCT_SEARCH_CACHE:
+        cached = _PRODUCT_SEARCH_CACHE[cache_key]
+        if cached:
+            return cached[:limit]
+
     slug = clean_query.replace(" ", "-").lower()
     url = f"https://www.myntra.com/{slug}?rawQuery={quote_plus(clean_query)}"
+    if min_price is not None and max_price is not None:
+        url += f"&f=Price%3A{min_price}.0_{max_price}.0"
+    elif min_price is not None:
+        url += f"&f=Price%3A{min_price}.0_100000.0"
+    elif max_price is not None:
+        url += f"&f=Price%3A0.0_{max_price}.0"
 
     try:
-        resp = requests.get(url, headers=REQUEST_HEADERS, timeout=6)
+        resp = requests.get(url, headers=REQUEST_HEADERS, timeout=3)
         if resp.status_code == 200:
             match = re.search(r"window\.__myx\s*=\s*(\{.*?\});?</script>", resp.text, re.DOTALL)
             if match:
@@ -199,19 +219,34 @@ def search_live_myntra_products(query: str, limit: int = 6) -> List[Dict[str, An
                 raw_products = search_data.get("results", {}).get("products", [])
 
                 products = []
-                for p in raw_products[:limit]:
+                for p in raw_products:
                     p_name = p.get("productName") or p.get("additionalInfo") or clean_query.title()
                     p_brand = p.get("brand") or "Myntra"
                     p_price = p.get("price") or p.get("discountedPrice") or 999
                     p_mrp = p.get("mrp") or p_price
+                    try:
+                        p_price = int(p_price)
+                        p_mrp = int(p_mrp)
+                    except (ValueError, TypeError):
+                        p_price = 999
+                        p_mrp = p_price
 
-                    # Extract primary image URL
+                    # Strict price range filtering
+                    if min_price is not None and p_price < min_price:
+                        continue
+                    if max_price is not None and p_price > max_price:
+                        continue
+
+                    # Extract primary image URL and ensure https
                     p_img = None
                     images = p.get("images", [])
                     if images and isinstance(images, list):
                         p_img = images[0].get("src")
                     if not p_img:
                         p_img = p.get("searchImage")
+
+                    if p_img and p_img.startswith("http://"):
+                        p_img = "https://" + p_img[7:]
 
                     # Extract direct landing page URL
                     landing = p.get("landingPageUrl", "")
@@ -226,8 +261,8 @@ def search_live_myntra_products(query: str, limit: int = 6) -> List[Dict[str, An
                         products.append({
                             "name": f"{p_brand} {p_name}".strip(),
                             "brand": p_brand,
-                            "price": int(p_price),
-                            "mrp": int(p_mrp),
+                            "price": p_price,
+                            "mrp": p_mrp,
                             "retailer": "Myntra",
                             "image": p_img,
                             "buy_url": buy_url,
@@ -235,8 +270,11 @@ def search_live_myntra_products(query: str, limit: int = 6) -> List[Dict[str, An
                             "inWardrobe": False,
                             "owned": False
                         })
+                        if len(products) >= limit:
+                            break
 
                 if products:
+                    _PRODUCT_SEARCH_CACHE[cache_key] = products
                     return products
 
     except Exception as e:

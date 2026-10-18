@@ -35,7 +35,7 @@ def normalize_color(color_name):
     if not color_name:
         return "neutral"
     c = str(color_name).strip().lower()
-    for n in ["black", "white", "grey", "gray", "blue", "navy", "beige", "red", "green", "yellow", "pink", "purple", "brown", "silver"]:
+    for n in ["black", "white", "grey", "gray", "blue", "navy", "beige", "red", "green", "yellow", "pink", "purple", "brown", "silver", "gold", "cream"]:
         if n in c:
             return n if n != "gray" else "grey"
     return c

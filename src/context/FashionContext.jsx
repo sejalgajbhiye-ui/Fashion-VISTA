@@ -16,7 +16,6 @@ import {
   updateSupabaseWardrobeItem,
   deleteSupabaseWardrobeItem
 } from '../services/supabaseWardrobe';
-import { synthesizeLookTryOn } from '../utils/tryOnGenerator';
 
 const FashionContext = createContext();
 
@@ -195,16 +194,22 @@ export const normalizeOutfitObject = (raw, idx = 0, defaultPrefs = {}, userWardr
     subtitle,
     description: subtitle,
     occasion: raw.occasion || defaultPrefs.occasion || 'Wedding',
+    sub_occasion: raw.sub_occasion || '',
     style: raw.style || defaultPrefs.style || 'Traditional',
     season: raw.season || defaultPrefs.season || 'All Season',
-    colour: raw.colour || (defaultPrefs.colour === 'Any' ? 'Balanced Palette' : `${defaultPrefs.colour || 'Red'} Harmony`),
+    colour: raw.colour || raw.palette || (defaultPrefs.colour === 'Any' ? 'Balanced Palette' : `${defaultPrefs.colour || 'Red'} Harmony`),
     budget: raw.budget || defaultPrefs.budget || '2500',
     heroImage: heroImg,
     image: heroImg,
-    composed_look_image: raw.composed_look_image || null,
-    user_tryon_image: raw.user_tryon_image || raw.tryonImage || null,
-    tryonImage: raw.user_tryon_image || raw.tryonImage || null,
-    user_photo: raw.user_photo || raw.userPhoto || null,
+    ensemble_breakdown: raw.ensemble_breakdown || null,
+    total_price: raw.total_price || null,
+    total_savings: raw.total_savings || 0,
+    wardrobe_matches: raw.wardrobe_matches || [],
+    has_wardrobe_reuse: Boolean(raw.has_wardrobe_reuse || (raw.wardrobe_matches && raw.wardrobe_matches.length > 0)),
+    pairing_rationale: raw.pairing_rationale || '',
+    color_harmony_explanation: raw.color_harmony_explanation || '',
+    reasons: raw.reasons || [],
+    retailer_links: raw.retailer_links || [],
     items: raw.items || [],
     compatibility_score: raw.compatibility_score || 92,
     color_score: raw.color_score || 90,
@@ -606,19 +611,20 @@ export const FashionProvider = ({ children }) => {
   const generateRecommendation = async (newPrefs) => {
     setPreferences(newPrefs);
 
-    // Attempt real ML recommendation from Flask backend with userPhoto
     let mlRec = null;
     try {
-      mlRec = await generateMLRecommendation(newPrefs, wardrobe, userPhoto);
+      mlRec = await generateMLRecommendation(newPrefs, wardrobe, 8);
     } catch (err) {
       console.warn("Backend ML recommendation unavailable, falling back to local curation:", err);
     }
 
     let rawOutfits = [];
     if (mlRec && Array.isArray(mlRec.recommendations) && mlRec.recommendations.length > 0) {
-      rawOutfits = mlRec.recommendations.slice(0, 3);
+      rawOutfits = mlRec.recommendations;
+    } else if (mlRec && Array.isArray(mlRec) && mlRec.length > 0) {
+      rawOutfits = mlRec;
     } else if (mlRec && mlRec.items && mlRec.items.length >= 3) {
-      rawOutfits = [mlRec, ...(mlRec.alternatives || [])].slice(0, 3);
+      rawOutfits = [mlRec, ...(mlRec.alternatives || [])];
     } else {
       // Dynamic fallback strictly matching user-selected colour and occasion
       const occ = newPrefs.occasion || 'College';
@@ -839,38 +845,12 @@ export const FashionProvider = ({ children }) => {
     }
 
     const cleanOutfits = rawOutfits
-      .slice(0, 3)
+      .slice(0, 10)
       .map((o, idx) => normalizeOutfitObject(o, idx, newPrefs, wardrobe))
       .filter(Boolean);
 
-    // Generate/enrich personalized try-on image for EACH of the maximum 3 looks on the user's photo
-    const outfitsWithTryOn = await Promise.all(
-      cleanOutfits.map(async (outfit, idx) => {
-        try {
-          if (userPhoto && !outfit.user_tryon_image) {
-            const tryonImg = await synthesizeLookTryOn(userPhoto, outfit, outfit.name || `Look 0${idx + 1}`);
-            if (tryonImg) {
-              return {
-                ...outfit,
-                user_tryon_image: tryonImg,
-                tryonImage: tryonImg,
-                user_photo: userPhoto
-              };
-            }
-          }
-          return {
-            ...outfit,
-            user_photo: userPhoto
-          };
-        } catch (tryonErr) {
-          console.warn(`Try-on synthesis note for look ${idx + 1}:`, tryonErr);
-          return outfit;
-        }
-      })
-    );
-
-    const finalOutfits = outfitsWithTryOn.length > 0
-      ? outfitsWithTryOn
+    const finalOutfits = cleanOutfits.length > 0
+      ? cleanOutfits
       : [normalizeOutfitObject(defaultRecommendation, 0, newPrefs, wardrobe)];
 
     const primaryOutfit = {
