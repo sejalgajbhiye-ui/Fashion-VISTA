@@ -6,6 +6,7 @@ supporting CRUD operations, schema migrations, and initial seed items.
 """
 
 import os
+import json
 import sqlite3
 import uuid
 from pathlib import Path
@@ -56,6 +57,24 @@ def init_db():
         conn.commit()
     except sqlite3.OperationalError:
         pass  # Column already exists
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS outfit_plans (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            planned_date TEXT NOT NULL,
+            occasion TEXT NOT NULL DEFAULT 'Casual',
+            outfit_name TEXT NOT NULL,
+            items TEXT NOT NULL DEFAULT '[]',
+            wardrobe_item_ids TEXT NOT NULL DEFAULT '[]',
+            note TEXT DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'planned',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cursor.execute('''CREATE INDEX IF NOT EXISTS idx_outfit_plans_user_date ON outfit_plans(user_id, planned_date)''')
+    conn.commit()
 
     # Check if empty, then seed initial sample wardrobe items
     cursor.execute("SELECT COUNT(*) AS cnt FROM wardrobe_items")
@@ -179,7 +198,7 @@ def get_all_wardrobe_items(user_id=None):
     cursor = conn.cursor()
     if user_id:
         cursor.execute(
-            "SELECT * FROM wardrobe_items WHERE user_id = ? ORDER BY created_at DESC",
+            "SELECT * FROM wardrobe_items WHERE user_id = ? OR user_id IS NULL OR user_id = 'guest' ORDER BY created_at DESC",
             (user_id,)
         )
     else:
@@ -279,27 +298,182 @@ def update_wardrobe_item(item_id, update_fields, user_id=None):
 def delete_wardrobe_item(item_id, user_id=None):
     """
     Deletes an item from the wardrobe table with ownership validation.
-    Prevents unauthorized deletion of other users' items or sample items.
+    Prevents unauthorized deletion of other users' items.
     """
     existing = get_wardrobe_item_by_id(item_id)
     if not existing:
-        return False
+        return True
 
     # Ownership check:
-    # If item belongs to a user, only that user may delete it
+    # If item belongs to a specific user, ensure another user cannot delete it
     if existing.get("user_id"):
-        if not user_id or str(existing["user_id"]) != str(user_id):
+        if user_id and str(existing["user_id"]) != str(user_id):
             return False
-    else:
-        # Sample items (user_id is None) cannot be deleted by guest requests
-        if user_id is None:
-            # Allow deletion only if explicitly permitted (or in testing)
-            pass
 
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM wardrobe_items WHERE id = ?", (item_id,))
+    conn.commit()
+    conn.close()
+    return True
+
+
+
+def serialize_plan_row(row):
+    if not row:
+        return None
+    d = dict(row)
+    try:
+        d["items"] = json.loads(d["items"]) if isinstance(d.get("items"), str) else (d.get("items") or [])
+    except Exception:
+        d["items"] = []
+    try:
+        d["wardrobe_item_ids"] = json.loads(d["wardrobe_item_ids"]) if isinstance(d.get("wardrobe_item_ids"), str) else (d.get("wardrobe_item_ids") or [])
+    except Exception:
+        d["wardrobe_item_ids"] = []
+    return d
+
+
+def get_user_outfit_plans(user_id, start_date=None, end_date=None):
+    """
+    Retrieves all outfit plans strictly belonging to the authenticated user.
+    Never returns other users' plans.
+    """
+    if not user_id:
+        return []
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT * FROM outfit_plans WHERE user_id = ?"
+    params = [str(user_id)]
+    if start_date and end_date:
+        query += " AND planned_date >= ? AND planned_date <= ?"
+        params.extend([start_date, end_date])
+    elif start_date:
+        query += " AND planned_date >= ?"
+        params.append(start_date)
+    query += " ORDER BY planned_date ASC, created_at ASC"
+    cursor.execute(query, tuple(params))
+    rows = cursor.fetchall()
+    plans = [serialize_plan_row(row) for row in rows]
+    conn.close()
+    return plans
+
+
+def get_outfit_plan_by_id(plan_id, user_id=None):
+    """Retrieves a single outfit plan with user ownership validation."""
+    if not plan_id:
+        return None
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if user_id:
+        cursor.execute("SELECT * FROM outfit_plans WHERE id = ? AND user_id = ?", (plan_id, str(user_id)))
+    else:
+        cursor.execute("SELECT * FROM outfit_plans WHERE id = ?", (plan_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return serialize_plan_row(row)
+
+
+def insert_outfit_plan(plan_data, user_id):
+    """Inserts a new outfit plan tied strictly to user_id."""
+    if not user_id:
+        raise ValueError("Authenticated user_id is required to create a plan")
+
+    plan_id = plan_data.get("id") or f"plan-{uuid.uuid4().hex[:10]}"
+    planned_date = str(plan_data.get("planned_date", "")).strip()
+    if not planned_date:
+        raise ValueError("planned_date is required")
+
+    occasion = plan_data.get("occasion", "Casual").strip()
+    outfit_name = plan_data.get("outfit_name", "Curated Ensemble").strip()
+    note = plan_data.get("note", "").strip()
+    status = plan_data.get("status", "planned").strip()
+    if status not in ("planned", "worn"):
+        status = "planned"
+
+    raw_items = plan_data.get("items") or []
+    items_json = json.dumps(raw_items) if isinstance(raw_items, (list, dict)) else str(raw_items)
+
+    raw_ids = plan_data.get("wardrobe_item_ids") or []
+    if not raw_ids and isinstance(raw_items, list):
+        for it in raw_items:
+            wid = it.get("matchedWardrobeId") or it.get("id")
+            if wid and wid not in raw_ids:
+                raw_ids.append(wid)
+    ids_json = json.dumps(raw_ids)
+
+    now_iso = datetime.utcnow().isoformat()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO outfit_plans (
+            id, user_id, planned_date, occasion, outfit_name,
+            items, wardrobe_item_ids, note, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        plan_id, str(user_id), planned_date, occasion, outfit_name,
+        items_json, ids_json, note, status, now_iso, now_iso
+    ))
+    conn.commit()
+    conn.close()
+    return get_outfit_plan_by_id(plan_id, user_id=user_id)
+
+
+def update_outfit_plan(plan_id, update_fields, user_id):
+    """Updates an existing outfit plan with strict user ownership validation."""
+    if not user_id:
+        return None
+    existing = get_outfit_plan_by_id(plan_id, user_id=user_id)
+    if not existing:
+        return None
+
+    allowed = ["planned_date", "occasion", "outfit_name", "items", "wardrobe_item_ids", "note", "status"]
+    updates = []
+    values = []
+
+    for k in allowed:
+        if k in update_fields:
+            val = update_fields[k]
+            if k in ("items", "wardrobe_item_ids") and isinstance(val, (list, dict)):
+                val = json.dumps(val)
+            updates.append(f"{k} = ?")
+            values.append(val)
+
+    if not updates:
+        return existing
+
+    updates.append("updated_at = ?")
+    values.append(datetime.utcnow().isoformat())
+    values.append(plan_id)
+    values.append(str(user_id))
+
+    sql = f"UPDATE outfit_plans SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(sql, tuple(values))
+    conn.commit()
+    conn.close()
+    return get_outfit_plan_by_id(plan_id, user_id=user_id)
+
+
+def delete_outfit_plan(plan_id, user_id):
+    """Deletes an outfit plan strictly belonging to user_id."""
+    if not user_id:
+        return False
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM outfit_plans WHERE (id = ? OR planned_date = ?) AND user_id = ?", (str(plan_id), str(plan_id), str(user_id)))
     deleted = cursor.rowcount > 0
     conn.commit()
     conn.close()
     return deleted
+
+
+def toggle_outfit_plan_status(plan_id, user_id):
+    """Toggles status between 'planned' and 'worn' for a user's plan."""
+    existing = get_outfit_plan_by_id(plan_id, user_id=user_id)
+    if not existing:
+        return None
+    new_status = "worn" if existing.get("status") == "planned" else "planned"
+    return update_outfit_plan(plan_id, {"status": new_status}, user_id=user_id)

@@ -26,6 +26,7 @@ export const Wardrobe = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   // Form State for Add / Edit
   const initialForm = {
@@ -295,7 +296,10 @@ export const Wardrobe = () => {
               key={item.id}
               item={item}
               onEdit={handleEditClick}
-              onDelete={deleteWardrobeItem}
+              onDelete={(target) => {
+                const it = typeof target === 'object' ? target : wardrobe.find(w => String(w.id) === String(target));
+                setItemToDelete(it || target);
+              }}
             />
           ))}
         </div>
@@ -703,6 +707,67 @@ export const Wardrobe = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Modal
+        isOpen={Boolean(itemToDelete)}
+        onClose={() => setItemToDelete(null)}
+        title="Remove Garment from Wardrobe?"
+        subtitle="This item will be deleted from your personal closet."
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4">
+          {itemToDelete && (
+            <div className="flex items-center gap-3 p-3 bg-taupe-100/60 border border-taupe-200 rounded-xl">
+              <div className="w-14 h-16 rounded-lg bg-taupe-200 overflow-hidden shrink-0 border border-taupe-300">
+                <img
+                  src={itemToDelete.image}
+                  alt={itemToDelete.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h5 className="font-bold text-sm text-charcoal-900 truncate">
+                  {itemToDelete.name}
+                </h5>
+                <div className="flex items-center gap-1.5 text-xs text-charcoal-500 mt-0.5">
+                  <span className="font-semibold text-charcoal-700">{itemToDelete.category}</span>
+                  {itemToDelete.colour && <span>• {itemToDelete.colour}</span>}
+                  {itemToDelete.style && <span>• {itemToDelete.style}</span>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-charcoal-600 leading-relaxed">
+            Are you sure you want to delete this piece? It will be removed from your wardrobe and will no longer be suggested in AI outfit combinations or weekly plans.
+          </p>
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-taupe-200">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setItemToDelete(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="accent"
+              size="sm"
+              onClick={async () => {
+                if (itemToDelete) {
+                  await deleteWardrobeItem(itemToDelete.id);
+                  setItemToDelete(null);
+                }
+              }}
+            >
+              Remove Garment
+            </Button>
+          </div>
+        </div>
       </Modal>
 
     </div>

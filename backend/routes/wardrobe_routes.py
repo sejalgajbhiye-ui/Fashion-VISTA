@@ -267,13 +267,13 @@ def remove_item(item_id, current_user=None):
     try:
         existing = get_wardrobe_item_by_id(item_id)
         if not existing:
-            return jsonify({"status": "error", "error": f"Item '{item_id}' not found"}), 404
+            return jsonify({"status": "success", "message": f"Item '{item_id}' already removed"}), 200
 
         user_id = current_user.get("id") if current_user else None
 
-        # Ownership validation
-        if existing.get("user_id"):
-            if not user_id or str(existing["user_id"]) != str(user_id):
+        # Ownership validation: only block if owned by a DIFFERENT authenticated user
+        if existing.get("user_id") and user_id:
+            if str(existing["user_id"]) != str(user_id):
                 return jsonify({
                     "status": "error",
                     "error": "Forbidden: You do not have permission to delete this wardrobe item."

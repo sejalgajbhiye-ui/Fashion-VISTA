@@ -15,15 +15,18 @@ export async function fetchSupabaseWardrobeItems(userId = null) {
   if (!isSupabaseConfigured) return null;
 
   try {
-    if (!userId) {
-      return []; // Never show dummy clothes to unauthenticated guests
-    }
-
-    const { data, error } = await supabase
+    let query = supabase
       .from('wardrobe_items')
       .select('*')
-      .eq('user_id', userId)
       .order('created_at', { ascending: false });
+
+    if (userId) {
+      query = query.or(`user_id.eq.${userId},is_sample.eq.true,user_id.is.null`);
+    } else {
+      query = query.or('is_sample.eq.true,user_id.is.null');
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.warn('Supabase wardrobe items fetch note:', error.message);

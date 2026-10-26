@@ -27,7 +27,10 @@ import {
   Info,
   DollarSign,
   Gem,
-  Crown
+  Crown,
+  Palette,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 // Pre-defined Quick Presets for Occasions
@@ -42,17 +45,77 @@ const OCCASION_PRESETS = [
   { id: 'College', label: 'College / Casual', icon: '🎓', subtitle: 'Breathable kurtis, linen shirts & denim' }
 ];
 
-// Pre-defined Quick Presets for Target Color Themes
+// Pre-defined Quick Presets for Target Color Themes (18 Refined Palettes)
 const COLOR_PRESETS = [
   { id: 'Red', name: 'Crimson Red', hex: '#DC2626' },
+  { id: 'Wine', name: 'Wine Burgundy', hex: '#881337' },
   { id: 'Green', name: 'Emerald Green', hex: '#059669' },
+  { id: 'Sage', name: 'Sage Olive', hex: '#65A30D' },
   { id: 'Black', name: 'Midnight Black', hex: '#18181B' },
   { id: 'Blue', name: 'Royal Blue', hex: '#2563EB' },
+  { id: 'Teal', name: 'Teal Turquoise', hex: '#0D9488' },
+  { id: 'Sky', name: 'Powder Sky', hex: '#38BDF8' },
+  { id: 'Navy', name: 'Navy Midnight', hex: '#1E3A8A' },
   { id: 'Pink', name: 'Blush Pink', hex: '#EC4899' },
+  { id: 'Rose', name: 'Dusty Rose', hex: '#E11D48' },
   { id: 'Gold', name: 'Warm Gold', hex: '#D97706' },
+  { id: 'Mustard', name: 'Mustard Haldi', hex: '#EAB308' },
+  { id: 'Rust', name: 'Terracotta Rust', hex: '#C2410C' },
+  { id: 'Purple', name: 'Royal Purple', hex: '#7C3AED' },
+  { id: 'Lavender', name: 'Lavender Lilac', hex: '#A855F7' },
   { id: 'White', name: 'Ivory White', hex: '#F3F4F6' },
-  { id: 'Purple', name: 'Royal Purple', hex: '#7C3AED' }
+  { id: 'Beige', name: 'Champagne Nude', hex: '#D4B996' }
 ];
+
+// Color Conversion & Identification Utilities
+const hslToHex = (h, s, l) => {
+  l /= 100;
+  const a = (s * Math.min(l, 1 - l)) / 100;
+  const f = n => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+};
+
+const hexToHsl = (hex) => {
+  let c = (hex || '#000000').replace('#', '');
+  if (c.length === 3) c = c.split('').map(x => x + x).join('');
+  const r = parseInt(c.substring(0, 2), 16) / 255;
+  const g = parseInt(c.substring(2, 4), 16) / 255;
+  const b = parseInt(c.substring(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+      default: break;
+    }
+    h = Math.round(h * 60);
+  }
+  return { h, s: Math.round(s * 100), l: Math.round(l * 100) };
+};
+
+const detectFamilyFromHsl = (h, s, l) => {
+  if (l <= 15) return { id: 'Black', name: 'Midnight Black' };
+  if (l >= 88 && s <= 20) return { id: 'White', name: 'Ivory White' };
+  if (s <= 18) return l > 60 ? { id: 'Beige', name: 'Champagne Nude' } : { id: 'Black', name: 'Charcoal Noir' };
+  if (h < 15 || h >= 345) return l < 35 ? { id: 'Wine', name: 'Wine Burgundy' } : { id: 'Red', name: 'Crimson Red' };
+  if (h >= 15 && h < 38) return { id: 'Rust', name: 'Terracotta Rust' };
+  if (h >= 38 && h < 68) return l > 60 ? { id: 'Gold', name: 'Warm Gold' } : { id: 'Mustard', name: 'Mustard Haldi' };
+  if (h >= 68 && h < 165) return (s < 45 || l > 65) ? { id: 'Sage', name: 'Sage Olive' } : { id: 'Green', name: 'Emerald Green' };
+  if (h >= 165 && h < 195) return { id: 'Teal', name: 'Teal Turquoise' };
+  if (h >= 195 && h < 215) return { id: 'Sky', name: 'Powder Sky' };
+  if (h >= 215 && h < 255) return l < 35 ? { id: 'Navy', name: 'Navy Midnight' } : { id: 'Blue', name: 'Royal Blue' };
+  if (h >= 255 && h < 290) return l > 60 ? { id: 'Lavender', name: 'Lavender Lilac' } : { id: 'Purple', name: 'Royal Purple' };
+  if (l < 35) return { id: 'Wine', name: 'Wine Burgundy' };
+  return (l < 50 || s > 70) ? { id: 'Rose', name: 'Dusty Rose' } : { id: 'Pink', name: 'Blush Pink' };
+};
 
 // Pre-defined Excluded Colours Filter Presets
 const EXCLUDED_COLOR_PRESETS = [
@@ -247,6 +310,40 @@ export const Recommendations = () => {
   const [viewMode, setViewMode] = useState('detail'); // 'detail' | 'all'
   const [activeTab, setActiveTab] = useState('all-slots'); // 'all-slots' | 'dress' | 'bottomwear' | 'jewellery' | 'footwear' | 'handbag'
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Custom Color Studio State
+  const [showCustomStudio, setShowCustomStudio] = useState(false);
+  const [customHue, setCustomHue] = useState(175); // 0 to 360
+  const [customSat, setCustomSat] = useState(85); // 0 to 100
+  const [customLightness, setCustomLightness] = useState(50); // 15 to 85 (Dark to Light)
+  const [customHex, setCustomHex] = useState('#0D9488');
+
+  const handleNativeColorInput = (hexVal) => {
+    setCustomHex(hexVal);
+    const hsl = hexToHsl(hexVal);
+    setCustomHue(hsl.h);
+    setCustomSat(hsl.s);
+    setCustomLightness(hsl.l);
+  };
+
+  const handleHueSlider = (newHue) => {
+    setCustomHue(newHue);
+    const newHex = hslToHex(newHue, customSat, customLightness);
+    setCustomHex(newHex);
+  };
+
+  const handleToneSlider = (newL) => {
+    setCustomLightness(newL);
+    const newHex = hslToHex(customHue, customSat, newL);
+    setCustomHex(newHex);
+  };
+
+  const handleApplyCustomColor = async () => {
+    const family = detectFamilyFromHsl(customHue, customSat, customLightness);
+    const tonePrefix = customLightness >= 70 ? 'Light' : (customLightness <= 30 ? 'Deep' : '');
+    const finalColorName = tonePrefix ? `${tonePrefix} ${family.id}` : family.id;
+    await handleColorChange(finalColorName);
+  };
 
   // Safe fallback preferences
   const safePrefs = preferences || { occasion: 'Wedding', colour: 'Red', style: 'Traditional' };
@@ -569,17 +666,33 @@ export const Recommendations = () => {
           </div>
         </div>
 
-        {/* Row 2: Target Color Palette Switcher */}
+        {/* Row 2: Target Color Palette Switcher with Custom Color Studio */}
         <div className="pt-3 border-t border-taupe-200">
-          <div className="flex items-center justify-between pb-2">
+          <div className="flex items-center justify-between pb-2 flex-wrap gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-charcoal-700 flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-red-600 inline-block shadow-2xs" />
-              2. Select Target Color (All 5 Pieces Strictly Harmonized):
+              <span className="w-3 h-3 rounded-full border border-black/20 inline-block shadow-2xs" style={{ background: COLOR_PRESETS.find(c => (safePrefs.colour || '').toLowerCase().includes(c.id.toLowerCase()))?.hex || '#DC2626' }} />
+              2. Select Target Outfit Color:
             </span>
-            <span className="text-[11px] text-charcoal-500 font-semibold">
-              Current: <strong className="text-charcoal-900">{safePrefs.colour || 'Red'}</strong>
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-charcoal-500 font-semibold">
+                Current: <strong className="text-charcoal-900">{safePrefs.colour || 'Red'}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowCustomStudio(!showCustomStudio)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 border shadow-2xs cursor-pointer ${
+                  showCustomStudio
+                    ? 'bg-charcoal-900 text-cream-50 border-charcoal-900'
+                    : 'bg-taupe-100 text-charcoal-800 border-taupe-300 hover:bg-taupe-200'
+                }`}
+              >
+                <Palette className="w-3 h-3" />
+                <span>{showCustomStudio ? 'Close Custom Studio' : 'Custom Color & Tone Studio'}</span>
+              </button>
+            </div>
           </div>
+
+          {/* Quick Presets Carousel (18 Curated Hues) */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {COLOR_PRESETS.map((col) => {
               const isSelected = (safePrefs.colour || '').toLowerCase().includes(col.id.toLowerCase());
@@ -588,7 +701,7 @@ export const Recommendations = () => {
                   key={col.id}
                   onClick={() => handleColorChange(col.id)}
                   disabled={isGenerating}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 border ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 border cursor-pointer ${
                     isSelected
                       ? 'bg-charcoal-900 text-cream-50 border-charcoal-900 shadow-sm ring-2 ring-charcoal-900/20'
                       : 'bg-white text-charcoal-700 border-taupe-200 hover:border-charcoal-700 hover:bg-taupe-50'
@@ -600,6 +713,215 @@ export const Recommendations = () => {
               );
             })}
           </div>
+
+          {/* Interactive Custom Color & Dark/Light Tone Studio */}
+          {showCustomStudio && (
+            <div className="mt-3 p-4 bg-cream-50/80 rounded-2xl border border-taupe-300 shadow-sm animate-in fade-in duration-200">
+              <div className="flex items-center justify-between mb-3 border-b border-taupe-200 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg shadow-sm border border-black/20 shrink-0" style={{ background: customHex }} />
+                  <div>
+                    <h4 className="text-xs font-bold text-charcoal-900 uppercase tracking-wider">
+                      Interactive Custom Color Studio
+                    </h4>
+                    <p className="text-[11px] text-charcoal-500">
+                      Move the pointer across colors & adjust light/dark theme tones to choose your target color.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-mono font-bold text-charcoal-700 bg-white px-2 py-0.5 rounded-md border border-taupe-200">
+                    {customHex}
+                  </span>
+                  <span className="text-[11px] font-bold text-charcoal-800 bg-taupe-200 px-2 py-0.5 rounded-md">
+                    {detectFamilyFromHsl(customHue, customSat, customLightness).name}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Column 1: Color Spectrum & Pointer Selection */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-charcoal-700 flex items-center justify-between mb-1.5">
+                      <span className="flex items-center gap-1">
+                        <Palette className="w-3.5 h-3.5 text-charcoal-900" />
+                        1. Move Pointer Across Color Spectrum:
+                      </span>
+                      <span className="text-[10px] text-charcoal-500 font-semibold">
+                        Hue: {customHue}°
+                      </span>
+                    </label>
+
+                    {/* Rainbow Hue Spectrum Track with Pointer */}
+                    <div className="relative flex items-center gap-2">
+                      <input
+                        type="range"
+                        min="0"
+                        max="360"
+                        value={customHue}
+                        onChange={(e) => handleHueSlider(Number(e.target.value))}
+                        className="w-full h-4 rounded-lg cursor-pointer appearance-none transition-all shadow-inner"
+                        style={{
+                          background: 'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)'
+                        }}
+                      />
+                      {/* Integrated Native 2D Color Canvas Pointer */}
+                      <div className="relative group shrink-0">
+                        <input
+                          type="color"
+                          value={customHex}
+                          onChange={(e) => handleNativeColorInput(e.target.value)}
+                          className="w-7 h-7 rounded-lg border border-black/20 cursor-pointer p-0 opacity-0 absolute inset-0 z-10"
+                        />
+                        <div
+                          className="w-7 h-7 rounded-lg border-2 border-white shadow-md ring-1 ring-black/20 cursor-pointer flex items-center justify-center text-[10px]"
+                          style={{ background: customHex }}
+                          title="Open 2D Color Picker Canvas"
+                        >
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-[9px] drop-shadow">🎯</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 2: Dark / Light Tone Slider & Presets */}
+                  <div>
+                    <label className="text-[11px] font-bold text-charcoal-700 flex items-center justify-between mb-1.5">
+                      <span className="flex items-center gap-1">
+                        {customLightness <= 30 ? (
+                          <Moon className="w-3.5 h-3.5 text-indigo-700" />
+                        ) : customLightness >= 70 ? (
+                          <Sun className="w-3.5 h-3.5 text-amber-500" />
+                        ) : (
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-charcoal-900" />
+                        )}
+                        2. Dark / Light Theme & Shade Tone Slider:
+                      </span>
+                      <span className="text-[10px] font-bold text-charcoal-700">
+                        {customLightness <= 30 ? '🌙 Deep / Dark' : customLightness >= 70 ? '☀️ Light / Pastel' : '💎 Balanced'} ({customLightness}%)
+                      </span>
+                    </label>
+
+                    {/* Tone Gradient Slider: Deep Dark -> Vibrant -> Light Pastel */}
+                    <input
+                      type="range"
+                      min="15"
+                      max="85"
+                      value={customLightness}
+                      onChange={(e) => handleToneSlider(Number(e.target.value))}
+                      className="w-full h-3 rounded-lg cursor-pointer appearance-none transition-all shadow-inner"
+                      style={{
+                        background: `linear-gradient(to right, #18181B 0%, hsl(${customHue}, ${customSat}%, 50%) 50%, #FFFFFF 100%)`
+                      }}
+                    />
+
+                    {/* Quick Tone Mode Presets */}
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToneSlider(25)}
+                        className={`py-1 px-2 rounded-lg text-[10px] font-bold transition-all border flex items-center justify-center gap-1 cursor-pointer ${
+                          customLightness <= 30
+                            ? 'bg-charcoal-900 text-cream-50 border-charcoal-900 shadow-2xs'
+                            : 'bg-white text-charcoal-700 border-taupe-200 hover:bg-taupe-100'
+                        }`}
+                      >
+                        <Moon className="w-3 h-3" />
+                        <span>Deep / Dark</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToneSlider(50)}
+                        className={`py-1 px-2 rounded-lg text-[10px] font-bold transition-all border flex items-center justify-center gap-1 cursor-pointer ${
+                          customLightness > 30 && customLightness < 70
+                            ? 'bg-charcoal-900 text-cream-50 border-charcoal-900 shadow-2xs'
+                            : 'bg-white text-charcoal-700 border-taupe-200 hover:bg-taupe-100'
+                        }`}
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        <span>Vibrant</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToneSlider(82)}
+                        className={`py-1 px-2 rounded-lg text-[10px] font-bold transition-all border flex items-center justify-center gap-1 cursor-pointer ${
+                          customLightness >= 70
+                            ? 'bg-charcoal-900 text-cream-50 border-charcoal-900 shadow-2xs'
+                            : 'bg-white text-charcoal-700 border-taupe-200 hover:bg-taupe-100'
+                        }`}
+                      >
+                        <Sun className="w-3 h-3" />
+                        <span>Light / Pastel</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Column 2: Single Selected Colour Preview & Direct Apply */}
+                <div className="bg-white p-3.5 rounded-xl border border-taupe-200 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-charcoal-800 uppercase tracking-wider">
+                        Selected Palette Shade
+                      </span>
+                      <span className="text-[10px] font-mono font-bold text-charcoal-700 bg-taupe-100 px-2 py-0.5 rounded-full border border-taupe-200">
+                        {customHex}
+                      </span>
+                    </div>
+
+                    {/* Single Color Highlight Swatch */}
+                    <div className="flex items-center gap-3 p-3 bg-taupe-50/80 rounded-xl border border-taupe-200 mb-3">
+                      <div
+                        className="w-12 h-12 rounded-xl shadow-md border-2 border-white ring-1 ring-black/10 shrink-0"
+                        style={{ background: customHex }}
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-black text-charcoal-900 truncate">
+                          {detectFamilyFromHsl(customHue, customSat, customLightness).name}
+                        </div>
+                        <div className="text-[10px] font-semibold text-charcoal-500 uppercase tracking-wide">
+                          {customLightness <= 30 ? '🌙 Deep / Dark Tone' : customLightness >= 70 ? '☀️ Light / Pastel Tone' : '💎 Balanced Tone'} ({customLightness}%)
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 text-[11px] text-charcoal-600 leading-snug">
+                      <p className="flex items-start gap-1.5">
+                        <span className="text-emerald-600 font-bold">✓</span>
+                        <span><strong>Full Sets:</strong> Sarees, Lehengas, Anarkalis & Gowns feature this selected color entirely.</span>
+                      </p>
+                      <p className="flex items-start gap-1.5">
+                        <span className="text-emerald-600 font-bold">✓</span>
+                        <span><strong>Separates:</strong> Topwear takes this color, paired with aesthetically matching bottomwear.</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleApplyCustomColor}
+                    disabled={isGenerating}
+                    className="mt-3 w-full py-2.5 px-3 rounded-xl bg-charcoal-900 hover:bg-black text-cream-50 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Curating in {detectFamilyFromHsl(customHue, customSat, customLightness).name}...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Apply {detectFamilyFromHsl(customHue, customSat, customLightness).name} to Outfits</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Row 3: Unified Budget & Live Price Range Filter (Direct Product Matching) */}
@@ -1330,16 +1652,21 @@ export const Recommendations = () => {
 
                     <div>
                       <h4 className="editorial-heading text-2xl sm:text-3xl font-bold text-charcoal-900">
-                        {bottomwearSlot.name}
+                        {bottomwearSlot.is_wardrobe_match
+                          ? (bottomwearSlot.matched_item_name || bottomwearSlot.name)
+                          : bottomwearSlot.name}
                       </h4>
                       <p className="text-xs text-charcoal-500 mt-1 font-medium">
-                        Silhouette: <strong className="text-charcoal-800">{bottomwearSlot.type}</strong> • Fabric: <strong className="text-charcoal-800">{bottomwearSlot.fabric}</strong>
+                        Silhouette: <strong className="text-charcoal-800">{bottomwearSlot.is_wardrobe_match ? `Owned ${bottomwearSlot.matched_item_name || 'Bottomwear'}` : bottomwearSlot.type}</strong>
+                        {bottomwearSlot.fabric && <> • Fabric: <strong className="text-charcoal-800">{bottomwearSlot.fabric}</strong></>}
                       </p>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-taupe-200 text-xs sm:text-sm text-charcoal-700 leading-relaxed">
                       <strong className="text-charcoal-900 block mb-1 font-bold">Proportion & Pairing Harmony:</strong>
-                      {bottomwearSlot.styling_tip}
+                      {bottomwearSlot.is_wardrobe_match
+                        ? `Pairing your owned "${bottomwearSlot.matched_item_name || bottomwearSlot.name}" balances proportions smartly with the ${dressSlot.name} for an effortless, coordinated look.`
+                        : bottomwearSlot.styling_tip}
                     </div>
 
                     {/* Direct Product Buying Card for Bottomwear or Wardrobe Reuse Banner */}

@@ -1,5 +1,5 @@
 -- ============================================================
--- Fashion VISTA Seed Data Export from SQLite (20261018_150303)
+-- Fashion VISTA Seed Data Export from SQLite (20261025_214535)
 -- Inserts default / existing wardrobe items into Supabase PostgreSQL
 -- Safe and idempotent (ON CONFLICT DO NOTHING)
 -- ============================================================

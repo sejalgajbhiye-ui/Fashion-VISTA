@@ -173,7 +173,9 @@ class OutfitCompatibilityLayer:
     def evaluate_wardrobe_reuse(
         self,
         ensemble_pieces: List[Dict[str, Any]],
-        wardrobe: Optional[List[Dict[str, Any]]]
+        wardrobe: Optional[List[Dict[str, Any]]],
+        req_occasion: Optional[str] = None,
+        req_style: Optional[str] = None
     ) -> Tuple[float, List[Dict[str, Any]], int]:
         """
         Matches ensemble pieces against the user's digital wardrobe.
@@ -188,6 +190,19 @@ class OutfitCompatibilityLayer:
         matched_items = []
         total_savings = 0
         used_wardrobe_ids = set()
+
+        # Comprehensive ethnic / traditional classification
+        is_ethnic_ensemble = (
+            any(
+                any(k in str(p.get("name", "")).lower() or k in str(p.get("category", "")).lower() for k in [
+                    "kurta", "kurti", "anarkali", "saree", "lehenga", "sharara", "suit", "chikankari",
+                    "ethnic", "chanderi", "dupatta", "zardozi", "bandhani", "banarasi", "mojari", "potli"
+                ])
+                for p in ensemble_pieces
+            ) or
+            any(k in str(req_occasion or "").lower() for k in ["wedding", "festive", "traditional", "reception", "sangeet"]) or
+            "traditional" in str(req_style or "").lower()
+        )
 
         for piece in ensemble_pieces:
             slot = piece.get("slot", "").lower()
@@ -222,11 +237,41 @@ class OutfitCompatibilityLayer:
                     else:
                         slot_match = any(k in w_cat or k in w_sub or k in w_name for k in ["dress", "saree", "kurta"])
                 elif slot in ["bottomwear", "bottom"]:
-                    slot_match = any(k in w_cat or k in w_sub or k in w_name for k in ["pant", "trouser", "palazzo", "churidar", "sharara", "skirt", "bottom", "jeans", "salwar", "legging"])
+                    if w_cat in ["dresses", "dress", "saree", "top", "tops", "shirt", "shoes", "outerwear", "accessories"]:
+                        slot_match = False
+                    else:
+                        is_denim = any(k in w_sub or k in w_name for k in ["jean", "denim", "ripped", "torn", "distressed"])
+                        is_skirt = any(k in w_sub or k in w_name or k in w_cat for k in ["skirt", "mini"])
+                        is_athletic = any(k in w_sub or k in w_name or k in w_cat for k in ["jogger", "track", "sweat", "athletic", "gym"])
+
+                        # Rule 1: NEVER pair traditional ethnic straight kurtas / anarkalis / sarees with torn jeans or denim!
+                        if is_ethnic_ensemble and is_denim:
+                            slot_match = False
+                        # Rule 2: NEVER pair ethnic kurtas with mini/short skirts!
+                        elif is_ethnic_ensemble and is_skirt:
+                            slot_match = False
+                        # Rule 3: NEVER pair athletic bottoms with ethnic wear
+                        elif is_ethnic_ensemble and is_athletic:
+                            slot_match = False
+                        else:
+                            slot_match = (
+                                w_cat in ["bottoms", "bottom"] or
+                                any(k in w_sub or k in w_name for k in ["pant", "trouser", "palazzo", "churidar", "sharara", "salwar", "legging", "jeans"])
+                            )
                 elif slot in ["shoes", "footwear"]:
-                    slot_match = any(k in w_cat or k in w_sub or k in w_name for k in ["shoe", "footwear", "sandal", "heel", "mojaris", "juttis", "sneaker", "flats"])
+                    w_is_sneaker = any(k in w_cat or k in w_sub or k in w_name for k in ["sneaker", "running", "athletic", "trainer", "sport"])
+                    # Rule: NEVER pair sneakers / athletic shoes with traditional ethnic attire!
+                    if is_ethnic_ensemble and w_is_sneaker:
+                        slot_match = False
+                    else:
+                        slot_match = any(k in w_cat or k in w_sub or k in w_name for k in ["shoe", "footwear", "sandal", "heel", "mojaris", "juttis", "sneaker", "flats", "loafer"])
                 elif slot in ["handbag", "bag"]:
-                    slot_match = any(k in w_cat or k in w_sub or k in w_name for k in ["bag", "clutch", "potli", "purse", "handbag", "tote"])
+                    w_is_backpack = any(k in w_cat or k in w_sub or k in w_name for k in ["backpack", "rucksack", "gym bag", "duffel"])
+                    # Rule: NEVER pair a backpack with traditional ethnic attire!
+                    if is_ethnic_ensemble and w_is_backpack:
+                        slot_match = False
+                    else:
+                        slot_match = any(k in w_cat or k in w_sub or k in w_name for k in ["bag", "clutch", "potli", "purse", "handbag", "tote", "sling"])
                 elif slot in ["jewellery", "jewelry"]:
                     slot_match = any(k in w_cat or k in w_sub or k in w_name for k in ["jewel", "necklace", "earring", "choker", "set"])
 
@@ -371,7 +416,7 @@ class OutfitCompatibilityLayer:
         s_style = self.evaluate_style_compatibility(pieces, req_style)
 
         # 5. Wardrobe Synergy
-        s_wardrobe, matched_items, total_savings = self.evaluate_wardrobe_reuse(pieces, wardrobe)
+        s_wardrobe, matched_items, total_savings = self.evaluate_wardrobe_reuse(pieces, wardrobe, req_occ, req_style)
 
         # 6. Unified Composite Score:
         # Outfit score = 0.25*relevance + 0.25*color + 0.20*occasion + 0.15*style + 0.15*wardrobe

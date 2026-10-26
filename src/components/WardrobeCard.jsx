@@ -62,19 +62,27 @@ export const WardrobeCard = ({
         {/* Actions */}
         <div className="flex items-center justify-between pt-3 mt-3 border-t border-taupe-100 text-xs">
           <button
-            onClick={() => onEdit && onEdit(item)}
-            className="inline-flex items-center gap-1 text-charcoal-600 hover:text-charcoal-900 font-medium transition-colors p-1"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onEdit) onEdit(item);
+            }}
+            className="inline-flex items-center gap-1 text-charcoal-600 hover:text-charcoal-900 font-medium transition-colors p-1 rounded hover:bg-taupe-100 cursor-pointer"
             title="Edit item details"
           >
             <Edit3 className="w-3.5 h-3.5" />
             <span>Edit</span>
           </button>
           <button
-            onClick={() => onDelete && onDelete(item.id)}
-            className="inline-flex items-center gap-1 text-roseAccent-500 hover:text-roseAccent-700 font-medium transition-colors p-1"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onDelete) onDelete(item);
+            }}
+            className="inline-flex items-center gap-1 text-roseAccent-600 hover:text-roseAccent-700 hover:bg-roseAccent-50 font-medium transition-colors px-2 py-1 rounded cursor-pointer"
             title="Remove from wardrobe"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-3.5 h-3.5 text-roseAccent-600" />
             <span>Delete</span>
           </button>
         </div>

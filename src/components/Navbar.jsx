@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Sparkles, Menu, X, User, Shirt, ShoppingBag, Eye, History, HelpCircle, LogIn, LogOut } from 'lucide-react';
+import { Sparkles, Menu, X, User, Shirt, ShoppingBag, Eye, History, HelpCircle, LogIn, LogOut, Calendar } from 'lucide-react';
 import { useFashion } from '../context/FashionContext';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
@@ -17,10 +17,9 @@ export const Navbar = () => {
 
   const navLinks = [
     { to: '/', label: 'Home' },
-    { to: '/stylist', label: 'AI Stylist' },
     { to: '/wardrobe', label: 'My Wardrobe' },
-    { to: '/recommendations', label: 'Occasion Stylist' },
-    { to: '/try-existing', label: 'Try What I Own' },
+    { to: '/stylist', label: 'AI Stylist' },
+    { to: '/planner', label: 'Weekly Planner' },
     { to: '/history', label: 'History' },
   ];
 
@@ -149,43 +148,19 @@ export const Navbar = () => {
               <div className="text-xs text-charcoal-500">
                 Wardrobe: <span className="font-semibold text-charcoal-900">{wardrobeStats.total} Items</span>
               </div>
-              {user ? (
-                <div className="flex items-center gap-3">
-                  <Link
-                    to="/profile"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-xs font-semibold text-charcoal-900 underline"
-                  >
-                    View Profile
-                  </Link>
-                  <button
-                    onClick={() => {
-                      signOut();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-xs text-red-600 font-semibold"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setAuthModalOpen(true);
-                  }}
-                  className="text-xs font-semibold text-charcoal-900 underline"
-                >
-                  Sign In →
-                </button>
-              )}
+              <div className="text-xs text-charcoal-500">
+                {isConfigured ? 'Supabase Connected' : 'Guest / Local Storage'}
+              </div>
             </div>
           </div>
         )}
       </header>
 
-      {/* Supabase Auth Modal */}
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
     </>
   );
 };

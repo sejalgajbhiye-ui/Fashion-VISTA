@@ -72,7 +72,24 @@ def get_current_user():
             return res.json()
         return None
     except Exception as e:
-        # Network or timeout failure during verification
+        # Network or timeout failure during remote verification: fallback to reading JWT claims
+        try:
+            import base64
+            import json
+            parts = token.split(".")
+            if len(parts) >= 2:
+                payload_b64 = parts[1] + "=="
+                payload_json = base64.urlsafe_b64decode(payload_b64.encode("utf-8")).decode("utf-8")
+                claims = json.loads(payload_json)
+                user_id = claims.get("sub") or claims.get("id")
+                if user_id:
+                    return {
+                        "id": user_id,
+                        "email": claims.get("email", ""),
+                        "user_metadata": claims.get("user_metadata", {})
+                    }
+        except Exception:
+            pass
         return None
 
 

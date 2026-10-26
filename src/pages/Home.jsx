@@ -29,10 +29,10 @@ export const Home = () => {
             </h1>
 
             <p className="text-base sm:text-lg text-charcoal-600 max-w-xl leading-relaxed font-normal">
-              Fashion VISTA recommends complete outfits based on your style, occasion and wardrobe — helping you decide what to wear before deciding what to buy.
+              Fashion VISTA recommends complete occasion outfits and smart weekly outfit plans using clothes you already own — helping you look your best while curbing fast-fashion waste.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
               <Button
                 variant="primary"
                 size="lg"
@@ -40,14 +40,21 @@ export const Home = () => {
                 iconRight={<ArrowRight className="w-4 h-4" />}
                 className="shadow-card"
               >
-                Build My Outfit →
+                Open AI Stylist →
               </Button>
               <Button
                 variant="secondary"
                 size="lg"
+                onClick={() => navigate('/planner')}
+              >
+                Weekly Planner
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
                 onClick={() => navigate('/wardrobe')}
               >
-                Explore My Wardrobe
+                My Wardrobe
               </Button>
             </div>
 
@@ -211,18 +218,18 @@ export const Home = () => {
               <div className="flex items-center justify-between mb-6">
                 <span className="editorial-heading text-3xl font-light text-taupe-400">04</span>
                 <span className="w-8 h-8 rounded-full bg-taupe-100 flex items-center justify-center text-charcoal-800">
-                  <Eye className="w-4 h-4" />
+                  <Sparkles className="w-4 h-4" />
                 </span>
               </div>
               <h3 className="editorial-heading text-xl font-bold text-charcoal-900 mb-2">
-                Try it virtually
+                Plan weekly outfits
               </h3>
               <p className="text-xs sm:text-sm text-charcoal-500 leading-relaxed">
-                See yourself in the outfit with before-and-after photo visualization and comprehensive compatibility analysis.
+                Schedule your combinations for Monday through Sunday directly from your closet with repetition alerts and rotation tracking.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-taupe-100 text-[11px] font-semibold text-charcoal-400 uppercase tracking-wider">
-              Step 04 / Virtual Preview
+              Step 04 / Weekly Planner
             </div>
           </div>
 
@@ -254,7 +261,14 @@ export const Home = () => {
                 size="md"
                 onClick={() => navigate('/wardrobe')}
               >
-                Inspect Virtual Wardrobe
+                My Wardrobe
+              </Button>
+              <Button
+                variant="white"
+                size="md"
+                onClick={() => navigate('/planner')}
+              >
+                Weekly Planner
               </Button>
               <Button
                 variant="outline"
@@ -334,27 +348,27 @@ export const Home = () => {
             </div>
           </div>
 
-          {/* Feature 3 */}
+          {/* Feature 3: Smart Weekly Outfit Planner */}
           <div className="bg-white rounded-2xl overflow-hidden border border-taupe-200 hover:border-taupe-400 hover:shadow-card transition-all duration-300 flex flex-col">
             <div className="aspect-[4/3] bg-taupe-100 overflow-hidden">
               <img
                 src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=700&q=80"
-                alt="360° Occasion Stylist"
+                alt="Smart Weekly Outfit Planner"
                 className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
               />
             </div>
             <div className="p-6 sm:p-7 flex-1 flex flex-col justify-between">
               <div>
                 <h3 className="editorial-heading text-xl font-bold text-charcoal-900 mb-2">
-                  360° Occasion Stylist
+                  Smart Weekly Outfit Planner
                 </h3>
                 <p className="text-xs sm:text-sm text-charcoal-500 leading-relaxed">
-                  5-slot ensemble blueprints (Dress, Jewellery, Hairstyle, Footwear, Handbag) with comparative price links across Myntra, Amazon, Meesho, Flipkart, and Ajio.
+                  Plan outfits for Monday through Sunday using your existing clothes. Generates smart combinations, tracks worn status, and alerts you to outfit repetition.
                 </p>
               </div>
               <div className="pt-6">
-                <Link to="/recommendations" className="text-xs font-semibold text-charcoal-900 inline-flex items-center gap-1.5 hover:underline">
-                  Enter Occasion Studio <ArrowRight className="w-3.5 h-3.5" />
+                <Link to="/planner" className="text-xs font-semibold text-charcoal-900 inline-flex items-center gap-1.5 hover:underline">
+                  Open Weekly Planner <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </div>
@@ -375,14 +389,21 @@ export const Home = () => {
           <p className="text-sm sm:text-base text-charcoal-600 max-w-md mx-auto">
             Take the 6-step styling questionnaire and see what you own in a completely new light.
           </p>
-          <div className="pt-2">
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button
               variant="primary"
               size="lg"
-              onClick={() => navigate('/stylist')}
+              onClick={() => navigate('/planner')}
               iconRight={<ArrowRight className="w-4 h-4" />}
             >
-              Find your next outfit →
+              Plan Your Weekly Outfits →
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => navigate('/stylist')}
+            >
+              Explore AI Stylist
             </Button>
           </div>
         </div>

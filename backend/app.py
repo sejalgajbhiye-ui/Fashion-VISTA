@@ -10,6 +10,7 @@ Provides REST API endpoints for:
 - Digital Wardrobe Matching (/api/ml/wardrobe-match)
 - Virtual Try-On Interface (/api/ml/try-on)
 - Wardrobe Management & Clothing Recognition (/api/wardrobe/*)
+- Smart Weekly Outfit Planner (/api/planner/*)
 """
 
 import os
@@ -29,6 +30,7 @@ from backend.routes.recommendation_routes import recommendation_bp
 from backend.routes.tryon_routes import tryon_bp
 from backend.routes.shopping_routes import shopping_bp
 from backend.routes.fitinview_routes import fitinview_bp
+from backend.routes.planner_routes import planner_bp
 from backend.database import init_db
 
 
@@ -54,6 +56,7 @@ def create_app():
     app.register_blueprint(tryon_bp, url_prefix="/api")
     app.register_blueprint(shopping_bp, url_prefix="/api")
     app.register_blueprint(fitinview_bp, url_prefix="/api")
+    app.register_blueprint(planner_bp, url_prefix="/api/planner")
 
 
     @app.errorhandler(404)

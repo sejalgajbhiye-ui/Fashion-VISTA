@@ -11,6 +11,20 @@ import {
 } from '../services/api';
 import { useAuth } from './AuthContext';
 import {
+  fetchOutfitPlansAPI,
+  createOutfitPlanAPI,
+  updateOutfitPlanAPI,
+  deleteOutfitPlanAPI,
+  toggleOutfitPlanStatusAPI
+} from '../services/api';
+import {
+  fetchSupabaseOutfitPlans,
+  insertSupabaseOutfitPlan,
+  updateSupabaseOutfitPlan,
+  deleteSupabaseOutfitPlan
+} from '../services/supabasePlanner';
+
+import {
   fetchSupabaseWardrobeItems,
   insertSupabaseWardrobeItem,
   updateSupabaseWardrobeItem,
@@ -62,6 +76,15 @@ export const matchOutfitWithWardrobe = (outfit, userWardrobe = []) => {
   const wardrobeList = Array.isArray(userWardrobe) ? userWardrobe : [];
   const usedWardrobeIds = new Set();
 
+  const outfitOcc = String(outfit.occasion || '').toLowerCase();
+  const isEthnicOutfit = (outfit.items || []).some(i => {
+    const n = String(i?.name || '').toLowerCase();
+    const c = String(i?.category || i?.slot || '').toLowerCase();
+    return n.includes('kurta') || n.includes('kurti') || n.includes('anarkali') || n.includes('saree') || n.includes('lehenga') || n.includes('sharara') || c.includes('traditional');
+  }) || outfitOcc.includes('wedding') || outfitOcc.includes('festive') || outfitOcc.includes('traditional');
+
+  const isPartyOutfit = outfitOcc.includes('party') || outfitOcc.includes('cocktail') || outfitOcc.includes('gala');
+
   const items = (outfit.items || []).filter(Boolean).map(item => {
     const slot = String(item.slot || item.category || '').toLowerCase();
     const itemColor = String(item.colour || item.color || '').toLowerCase();
@@ -77,18 +100,39 @@ export const matchOutfitWithWardrobe = (outfit, userWardrobe = []) => {
       const wName = String(w.name || '').toLowerCase().trim();
       const wColor = String(w.colour || w.color || '').toLowerCase().trim();
 
+      // Incompatibility flags
+      const wIsDenim = wName.includes('jean') || wName.includes('denim') || wName.includes('ripped') || wName.includes('torn');
+      const wIsSkirt = wName.includes('skirt') || wCat.includes('skirt');
+      const wIsAthletic = wName.includes('jogger') || wName.includes('track') || wName.includes('sweat') || wName.includes('gym');
+      const wIsSneaker = wName.includes('sneaker') || wName.includes('running') || wName.includes('trainer') || wName.includes('sport') || wName.includes('athletic');
+      const wIsTraditionalShoe = wName.includes('mojari') || wName.includes('jutti') || wName.includes('kolhapuri') || wName.includes('zardozi');
+      const wIsBackpack = wName.includes('backpack') || wName.includes('rucksack') || wName.includes('gym bag');
+      const wIsPotli = wName.includes('potli') || wName.includes('batua') || wName.includes('zari');
+
       // Strict category checks
       const isTopMatch = (slot === 'top' || slot === 'topwear') &&
         (wCat === 'tops' || wCat === 'top' || wSub.includes('shirt') || wSub.includes('top') || wSub.includes('kurti') || wSub.includes('kurta') || wSub.includes('tee')) &&
         !wCat.includes('dress') && !wSub.includes('saree') && !wName.includes('saree') && !wCat.includes('bottom') && !wCat.includes('shoe');
 
-      const isBottomMatch = (slot === 'bottom' || slot === 'bottomwear') &&
+      let isBottomMatch = (slot === 'bottom' || slot === 'bottomwear') &&
         (wCat === 'bottoms' || wCat === 'bottom' || wSub.includes('jean') || wSub.includes('trouser') || wSub.includes('pant') || wSub.includes('skirt') || wSub.includes('palazzo') || wSub.includes('salwar')) &&
         !wCat.includes('top') && !wCat.includes('dress') && !wCat.includes('shoe');
 
-      const isShoesMatch = (slot === 'shoes' || slot === 'footwear') &&
+      // Rule: NEVER pair traditional ethnic kurtas/anarkalis/sarees with torn jeans or denim pants!
+      if (isEthnicOutfit && wIsDenim) isBottomMatch = false;
+      // Rule: NEVER pair traditional ethnic kurtas with mini/short skirts!
+      if (isEthnicOutfit && wIsSkirt) isBottomMatch = false;
+      // Rule: NEVER pair athletic joggers/sweatpants with ethnic or party outfits!
+      if ((isEthnicOutfit || isPartyOutfit) && wIsAthletic) isBottomMatch = false;
+
+      let isShoesMatch = (slot === 'shoes' || slot === 'footwear') &&
         (wCat === 'shoes' || wCat === 'footwear' || wSub.includes('shoe') || wSub.includes('sneaker') || wSub.includes('sandal') || wSub.includes('heel') || wSub.includes('boot') || wSub.includes('flat') || wSub.includes('jutti') || wSub.includes('loafer')) &&
         !wCat.includes('top') && !wCat.includes('bottom') && !wCat.includes('dress');
+
+      // Rule: NEVER pair sneakers / running shoes with traditional ethnic or wedding/festive attire!
+      if (isEthnicOutfit && wIsSneaker) isShoesMatch = false;
+      // Rule: NEVER pair bridal/traditional mojaris with western casual streetwear
+      if (outfitOcc.includes('casual') && !isEthnicOutfit && wIsTraditionalShoe) isShoesMatch = false;
 
       const isLayerMatch = (slot === 'layer' || slot === 'outerwear') &&
         (wCat === 'accessories' || wCat === 'outerwear' || wName.includes('jacket') || wName.includes('coat') || wName.includes('blazer') || wName.includes('cardigan') || wName.includes('shrug') || wName.includes('hoodie')) &&
@@ -98,7 +142,13 @@ export const matchOutfitWithWardrobe = (outfit, userWardrobe = []) => {
         (wCat === 'dresses' || wCat === 'dress' || wSub.includes('saree') || wName.includes('saree') || wSub.includes('dress') || wName.includes('dress') || wSub.includes('anarkali') || wName.includes('anarkali')) &&
         !wCat.includes('shoes') && !wCat.includes('bottoms');
 
-      if (isTopMatch || isBottomMatch || isShoesMatch || isLayerMatch || isDressMatch) {
+      let isBagMatch = (slot === 'accessory' || slot === 'bag' || slot === 'handbag') &&
+        (wCat === 'accessories' || wCat === 'bag' || wName.includes('bag') || wName.includes('purse') || wName.includes('clutch') || wName.includes('potli') || wName.includes('tote') || wName.includes('sling'));
+
+      if (isEthnicOutfit && wIsBackpack) isBagMatch = false;
+      if (outfitOcc.includes('casual') && !isEthnicOutfit && wIsPotli) isBagMatch = false;
+
+      if (isTopMatch || isBottomMatch || isShoesMatch || isLayerMatch || isDressMatch || isBagMatch) {
         // Strict color match - must be in the same color family
         const colorMatch = checkColorMatch(itemColor, wColor, itemName, wName);
 
@@ -219,6 +269,304 @@ export const normalizeOutfitObject = (raw, idx = 0, defaultPrefs = {}, userWardr
   return matchOutfitWithWardrobe(baseOutfit, userWardrobe);
 };
 
+
+export const generateSmartWardrobeCombinations = (wardrobe = [], occasion = 'Casual', maxCombinations = 8) => {
+  if (!Array.isArray(wardrobe) || wardrobe.length === 0) {
+    return {
+      combinations: [],
+      hasCompleteOutfits: false,
+      missingCategories: ['Tops', 'Bottoms'],
+      reason: 'Your wardrobe is currently empty. Add a few pieces to generate smart combinations.'
+    };
+  }
+
+  const tops = wardrobe.filter(i => {
+    const cat = (i.category || '').toLowerCase();
+    const name = (i.name || '').toLowerCase();
+    return (cat === 'tops' || cat === 'top' || name.includes('shirt') || name.includes('top') || name.includes('t-shirt') || name.includes('kurti') || name.includes('kurta')) && !cat.includes('dress');
+  });
+
+  const bottoms = wardrobe.filter(i => {
+    const cat = (i.category || '').toLowerCase();
+    const name = (i.name || '').toLowerCase();
+    return (cat === 'bottoms' || cat === 'bottom' || name.includes('jean') || name.includes('pant') || name.includes('trouser') || name.includes('skirt') || name.includes('palazzo') || name.includes('shorts')) && !cat.includes('top');
+  });
+
+  const dresses = wardrobe.filter(i => {
+    const cat = (i.category || '').toLowerCase();
+    const name = (i.name || '').toLowerCase();
+    return cat === 'dresses' || cat === 'dress' || name.includes('dress') || name.includes('saree') || name.includes('anarkali');
+  });
+
+  const shoes = wardrobe.filter(i => {
+    const cat = (i.category || '').toLowerCase();
+    const name = (i.name || '').toLowerCase();
+    return cat === 'shoes' || cat === 'footwear' || name.includes('sneaker') || name.includes('shoe') || name.includes('sandal') || name.includes('heel') || name.includes('boot') || name.includes('loafer');
+  });
+
+  const layers = wardrobe.filter(i => {
+    const cat = (i.category || '').toLowerCase();
+    const name = (i.name || '').toLowerCase();
+    return cat === 'accessories' || cat === 'outerwear' || name.includes('jacket') || name.includes('blazer') || name.includes('coat') || name.includes('cardigan') || name.includes('hoodie');
+  });
+
+  const combinations = [];
+
+  const isColorSynergy = (colA, colB) => {
+    if (!colA || !colB) return true;
+    const a = normalizeColorFamily(colA);
+    const b = normalizeColorFamily(colB);
+    if (!a || !b) return true;
+    if (a === b) return true;
+    const neutrals = ['black', 'white', 'grey', 'beige', 'brown', 'navy', 'gold'];
+    if (neutrals.includes(a) || neutrals.includes(b)) return true;
+
+    const pairs = {
+      blue: ['white', 'grey', 'beige', 'brown', 'black', 'navy', 'gold', 'pink'],
+      red: ['black', 'white', 'beige', 'grey', 'gold', 'navy'],
+      green: ['white', 'beige', 'black', 'gold', 'brown', 'navy'],
+      yellow: ['navy', 'white', 'black', 'grey', 'blue'],
+      pink: ['white', 'grey', 'navy', 'beige', 'black', 'blue'],
+      purple: ['white', 'grey', 'black', 'beige', 'gold'],
+      orange: ['beige', 'white', 'brown', 'black', 'navy', 'gold']
+    };
+
+    if (pairs[a] && pairs[a].includes(b)) return true;
+    if (pairs[b] && pairs[b].includes(a)) return true;
+
+    return false;
+  };
+
+  // 1. Top + Bottom pairs with strict aesthetic compatibility & footwear rotation
+  let shoeCounter = 0;
+  for (const top of tops) {
+    const topName = (top.name || '').toLowerCase();
+    const topCat = (top.category || '').toLowerCase();
+    const isEthnicTop = topName.includes('kurta') || topName.includes('kurti') || topName.includes('anarkali') || topName.includes('chikankari') || topCat.includes('traditional');
+
+    for (const bot of bottoms) {
+      if (combinations.length >= maxCombinations) break;
+
+      const botName = (bot.name || '').toLowerCase();
+      const botCat = (bot.category || '').toLowerCase();
+      const isDenim = botName.includes('jean') || botName.includes('denim') || botName.includes('ripped') || botName.includes('torn');
+      const isSkirt = botName.includes('skirt') || botCat.includes('skirt');
+      const isAthletic = botName.includes('jogger') || botName.includes('track') || botName.includes('sweat') || botName.includes('gym');
+
+      // Rule 1: NEVER pair traditional ethnic kurtas / kurtis / anarkalis with denim / torn / ripped jeans!
+      if (isEthnicTop && isDenim) continue;
+
+      // Rule 2: NEVER pair ethnic kurtas with mini/short skirts!
+      if (isEthnicTop && isSkirt) continue;
+
+      // Rule 3: NEVER pair athletic sweatpants with ethnic kurtas or formal tops!
+      if (isEthnicTop && isAthletic) continue;
+
+      // Rule 4: Top and bottomwear must look aesthetically harmonious together
+      if (!isColorSynergy(top.colour, bot.colour)) continue;
+
+      // Rule 5: Never pair formal shirts, ethnic tops, or oversized sweaters with mini skirts
+      const isMiniSkirt = botName.includes('mini') || botName.includes('short skirt') || botName.includes('small skirt');
+      const isOversizedOrFormalTop = topName.includes('oversized') || topName.includes('sweater') || topName.includes('formal') || topName.includes('blazer');
+      if (isMiniSkirt && (isEthnicTop || isOversizedOrFormalTop)) continue;
+
+      // Filter compatible footwear according to formality & style
+      const compatibleShoes = shoes.filter(s => {
+        const sName = (s.name || '').toLowerCase();
+        const sIsSneaker = sName.includes('sneaker') || sName.includes('running') || sName.includes('athletic');
+        const sIsTraditional = sName.includes('mojari') || sName.includes('jutti') || sName.includes('kolhapuri');
+
+        // Sneakers NEVER match ethnic kurtas
+        if (isEthnicTop && sIsSneaker) return false;
+        // Heavy bridal mojaris do not match casual t-shirts
+        if (!isEthnicTop && (occasion === 'Casual' || occasion === 'College') && sIsTraditional) return false;
+        return isColorSynergy(top.colour, s.colour);
+      });
+
+      // Rotate through compatible footwear so every outfit gets distinct shoes
+      const matchedShoe = compatibleShoes.length > 0
+        ? compatibleShoes[(shoeCounter++) % compatibleShoes.length]
+        : null;
+
+      const matchedLayer = layers.find(l => isColorSynergy(top.colour, l.colour)) || null;
+
+      const items = [
+        { ...top, slot: 'Top', inWardrobe: true, matchedWardrobeId: top.id },
+        { ...bot, slot: 'Bottom', inWardrobe: true, matchedWardrobeId: bot.id }
+      ];
+      if (matchedShoe) {
+        items.push({ ...matchedShoe, slot: 'Shoes', inWardrobe: true, matchedWardrobeId: matchedShoe.id });
+      }
+      if (matchedLayer) {
+        items.push({ ...matchedLayer, slot: 'Layer', inWardrobe: true, matchedWardrobeId: matchedLayer.id });
+      }
+
+      combinations.push({
+        id: `smart-${top.id}-${bot.id}`,
+        outfit_name: `${top.name} + ${bot.name}`,
+        occasion,
+        items,
+        wardrobe_item_ids: items.map(i => i.id),
+        coverage: 100,
+        type: isEthnicTop ? 'Coordinated Ethnic Kurta Look' : 'Tailored Separates Duo',
+        rationale: isEthnicTop
+          ? `Refined ${top.name} styled harmoniously with tailored ${bot.name}.`
+          : `Harmonious pairing of ${top.colour || 'versatile'} top with ${bot.colour || 'classic'} bottoms.`
+      });
+    }
+  }
+
+  // 2. Dress single-piece looks
+  for (const dress of dresses) {
+    if (combinations.length >= maxCombinations) break;
+    const dressName = (dress.name || '').toLowerCase();
+    const isEthnicDress = dressName.includes('saree') || dressName.includes('anarkali') || dressName.includes('lehenga');
+
+    const compatibleShoes = shoes.filter(s => {
+      const sName = (s.name || '').toLowerCase();
+      const sIsSneaker = sName.includes('sneaker') || sName.includes('running');
+      if (isEthnicDress && sIsSneaker) return false;
+      return isColorSynergy(dress.colour, s.colour);
+    });
+
+    const matchedShoe = compatibleShoes.length > 0
+      ? compatibleShoes[(shoeCounter++) % compatibleShoes.length]
+      : null;
+
+    const matchedLayer = layers.find(l => isColorSynergy(dress.colour, l.colour)) || null;
+
+    const items = [
+      { ...dress, slot: 'Dress', inWardrobe: true, matchedWardrobeId: dress.id }
+    ];
+    if (matchedShoe) {
+      items.push({ ...matchedShoe, slot: 'Shoes', inWardrobe: true, matchedWardrobeId: matchedShoe.id });
+    }
+    if (matchedLayer) {
+      items.push({ ...matchedLayer, slot: 'Layer', inWardrobe: true, matchedWardrobeId: matchedLayer.id });
+    }
+
+    combinations.push({
+      id: `smart-dress-${dress.id}`,
+      outfit_name: dress.name,
+      occasion,
+      items,
+      wardrobe_item_ids: items.map(i => i.id),
+      coverage: 100,
+      type: 'Single Piece Silhouette',
+      rationale: `Statement ${dress.name} complete with color-matched footwear.`
+    });
+  }
+
+  const hasCompleteOutfits = combinations.length > 0;
+  const missingCategories = [];
+  if (tops.length === 0 && dresses.length === 0) missingCategories.push('Tops / Kurti / Dress');
+  if (bottoms.length === 0 && dresses.length === 0) missingCategories.push('Bottoms / Trousers / Jeans');
+
+  if (!hasCompleteOutfits) {
+    if (tops.length > 0) {
+      tops.forEach(t => {
+        combinations.push({
+          id: `partial-top-${t.id}`,
+          outfit_name: `${t.name} (Missing Bottom)`,
+          occasion,
+          items: [{ ...t, slot: 'Top', inWardrobe: true, matchedWardrobeId: t.id }],
+          wardrobe_item_ids: [t.id],
+          coverage: 50,
+          isPartial: true,
+          missingCategory: 'Bottoms',
+          type: 'Partial Combination',
+          rationale: 'Valid top ready. Pair with any neutral trousers or jeans to complete.'
+        });
+      });
+    } else if (bottoms.length > 0) {
+      bottoms.forEach(b => {
+        combinations.push({
+          id: `partial-bot-${b.id}`,
+          outfit_name: `${b.name} (Missing Top)`,
+          occasion,
+          items: [{ ...b, slot: 'Bottom', inWardrobe: true, matchedWardrobeId: b.id }],
+          wardrobe_item_ids: [b.id],
+          coverage: 50,
+          isPartial: true,
+          missingCategory: 'Tops',
+          type: 'Partial Combination',
+          rationale: 'Valid bottoms ready. Pair with a shirt or kurti to complete.'
+        });
+      });
+    }
+  }
+
+  return {
+    combinations,
+    hasCompleteOutfits,
+    missingCategories,
+    reason: hasCompleteOutfits
+      ? `Generated ${combinations.length} smart combinations from ${wardrobe.length} owned items.`
+      : `Cannot assemble a full 2-piece outfit yet. Missing: ${missingCategories.join(', ')}.`
+  };
+};
+
+export const checkOutfitRepetition = (itemIds, plannedDate, allPlans = [], currentPlanId = null) => {
+  if (!Array.isArray(itemIds) || itemIds.length === 0 || !plannedDate) {
+    return { isRepeated: false, repeatedOn: null };
+  }
+
+  const cleanItemIds = itemIds.map(id => String(id).trim()).filter(Boolean);
+  if (cleanItemIds.length === 0) {
+    return { isRepeated: false, repeatedOn: null };
+  }
+
+  const target = new Date(plannedDate + 'T00:00:00');
+  const day = target.getDay();
+  const diffToMon = (day === 0 ? -6 : 1) - day;
+  const monday = new Date(target);
+  monday.setDate(target.getDate() + diffToMon);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  const formatLocalDate = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const monStr = formatLocalDate(monday);
+  const sunStr = formatLocalDate(sunday);
+
+  const sortedTargetIds = Array.from(new Set(cleanItemIds)).sort().join(',');
+
+  const otherDayPlans = (Array.isArray(allPlans) ? allPlans : []).filter(p => {
+    if (!p || !p.planned_date) return false;
+    if (currentPlanId && String(p.id) === String(currentPlanId)) return false;
+    // CRITICAL: A plan on the SAME date is never a repetition from another day!
+    if (p.planned_date === plannedDate) return false;
+    return p.planned_date >= monStr && p.planned_date <= sunStr;
+  });
+
+  for (const plan of otherDayPlans) {
+    const rawIds = Array.isArray(plan.wardrobe_item_ids) && plan.wardrobe_item_ids.length > 0
+      ? plan.wardrobe_item_ids
+      : (plan.items || []).map(i => i.matchedWardrobeId || i.id).filter(Boolean);
+    const cleanPlanIds = rawIds.map(id => String(id).trim()).filter(Boolean);
+    if (cleanPlanIds.length === 0) continue;
+
+    const sortedPlanIds = Array.from(new Set(cleanPlanIds)).sort().join(',');
+
+    if (sortedTargetIds && sortedPlanIds && sortedTargetIds === sortedPlanIds) {
+      const planDayName = new Date(plan.planned_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' });
+      return {
+        isRepeated: true,
+        repeatedOn: planDayName,
+        repeatedDate: plan.planned_date,
+        otherPlan: plan
+      };
+    }
+  }
+
+  return { isRepeated: false, repeatedOn: null };
+};
+
 export const FashionProvider = ({ children }) => {
   const { user, isConfigured: isSupabaseConfigured } = useAuth();
 
@@ -236,45 +584,88 @@ export const FashionProvider = ({ children }) => {
     }
   });
 
+  // Helper to get tombstoned (deleted) item IDs so they are NEVER resurrected
+  const getDeletedItemIds = () => {
+    try {
+      const raw = localStorage.getItem('fashion_vista_deleted_item_ids');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  };
+
   // Fetch persistent wardrobe from Supabase (if authenticated) or SQLite backend
   useEffect(() => {
     const syncWardrobe = async () => {
       const key = getWardrobeKey(user);
       try { localStorage.removeItem('fashion_vista_wardrobe'); } catch (_) {}
 
-      // 1. Supabase Cloud Sync (if configured & authenticated)
+      const deletedIds = getDeletedItemIds();
+      const mergedMap = new Map();
+
+      // 1. Locally cached items for this user
+      try {
+        const cached = localStorage.getItem(key);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(it => {
+              if (it?.id && !deletedIds.has(String(it.id))) {
+                mergedMap.set(String(it.id), it);
+              }
+            });
+          }
+        }
+      } catch (_) {}
+
+      // Also check guest cache so unauthenticated starter additions aren't lost
+      try {
+        const guestCached = localStorage.getItem('fashion_vista_wardrobe_guest');
+        if (guestCached) {
+          const parsedGuest = JSON.parse(guestCached);
+          if (Array.isArray(parsedGuest)) {
+            parsedGuest.forEach(it => {
+              if (it?.id && !deletedIds.has(String(it.id)) && !mergedMap.has(String(it.id))) {
+                mergedMap.set(String(it.id), it);
+              }
+            });
+          }
+        }
+      } catch (_) {}
+
+      // 2. Supabase Cloud Sync
       if (isSupabaseConfigured && user) {
         try {
           const cloudItems = await fetchSupabaseWardrobeItems(user.id);
-          if (cloudItems !== null && Array.isArray(cloudItems)) {
-            setWardrobe(cloudItems);
-            try { localStorage.setItem(key, JSON.stringify(cloudItems)); } catch (_) {}
-            return;
+          if (cloudItems && Array.isArray(cloudItems)) {
+            cloudItems.forEach(it => {
+              if (it?.id && !deletedIds.has(String(it.id))) {
+                mergedMap.set(String(it.id), it);
+              }
+            });
           }
         } catch (e) {
           console.warn('Supabase wardrobe sync fallback:', e);
         }
       }
 
-      // 2. Backend SQLite Sync
+      // 3. Backend SQLite Sync (contains user custom garments + all starter items)
       try {
         const backendItems = await fetchWardrobeItems();
-        if (backendItems !== null && Array.isArray(backendItems)) {
-          setWardrobe(backendItems);
-          try { localStorage.setItem(key, JSON.stringify(backendItems)); } catch (_) {}
-          return;
+        if (backendItems && Array.isArray(backendItems)) {
+          backendItems.forEach(it => {
+            if (it?.id && !deletedIds.has(String(it.id)) && !mergedMap.has(String(it.id))) {
+              mergedMap.set(String(it.id), it);
+            }
+          });
         }
       } catch (e) {
         console.warn('Backend wardrobe sync fallback to local cache:', e);
       }
 
-      // 3. User-specific localStorage fallback
-      try {
-        const cached = localStorage.getItem(key);
-        setWardrobe(cached ? JSON.parse(cached) : []);
-      } catch {
-        setWardrobe([]);
-      }
+      const allMerged = Array.from(mergedMap.values());
+      setWardrobe(allMerged);
+      try { localStorage.setItem(key, JSON.stringify(allMerged)); } catch (_) {}
     };
     syncWardrobe();
   }, [user, isSupabaseConfigured]);
@@ -519,6 +910,188 @@ export const FashionProvider = ({ children }) => {
     }, 3500);
   };
 
+
+  // 10. Weekly Outfit Planner State (User-Isolated)
+  const getPlansKey = (u) => (u?.id ? `fashion_vista_plans_${u.id}` : 'fashion_vista_plans_guest');
+
+  const [weeklyPlans, setWeeklyPlans] = useState(() => {
+    try {
+      const key = getPlansKey(user);
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Sync plans from Supabase / Backend SQLite
+  useEffect(() => {
+    const syncPlans = async () => {
+      const key = getPlansKey(user);
+
+      // 1. Supabase Cloud Sync
+      if (isSupabaseConfigured && user) {
+        try {
+          const cloudPlans = await fetchSupabaseOutfitPlans(user.id);
+          if (cloudPlans !== null && Array.isArray(cloudPlans)) {
+            setWeeklyPlans(cloudPlans);
+            try { localStorage.setItem(key, JSON.stringify(cloudPlans)); } catch (_) {}
+            return;
+          }
+        } catch (e) {
+          console.warn('Supabase plans sync fallback:', e);
+        }
+      }
+
+      // 2. Backend SQLite Sync
+      try {
+        const backendPlans = await fetchOutfitPlansAPI();
+        if (backendPlans !== null && Array.isArray(backendPlans)) {
+          setWeeklyPlans(backendPlans);
+          try { localStorage.setItem(key, JSON.stringify(backendPlans)); } catch (_) {}
+          return;
+        }
+      } catch (e) {
+        console.warn('Backend plans sync fallback to local cache:', e);
+      }
+
+      // 3. LocalStorage fallback
+      try {
+        const cached = localStorage.getItem(key);
+        setWeeklyPlans(cached ? JSON.parse(cached) : []);
+      } catch {
+        setWeeklyPlans([]);
+      }
+    };
+    syncPlans();
+  }, [user, isSupabaseConfigured]);
+
+  // Persist weeklyPlans to user-isolated localStorage
+  useEffect(() => {
+    const key = getPlansKey(user);
+    try {
+      localStorage.setItem(key, JSON.stringify(weeklyPlans));
+    } catch (_) {}
+  }, [weeklyPlans, user]);
+
+  const addOutfitPlan = async (planData) => {
+    const tempId = planData.id || `plan-${Date.now()}`;
+    const newPlan = {
+      ...planData,
+      id: tempId,
+      status: planData.status || 'planned',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    // Optimistic UI update
+    setWeeklyPlans(prev => {
+      // Replace existing plan for same date or prepend
+      const filtered = prev.filter(p => p.id !== tempId && p.planned_date !== newPlan.planned_date);
+      return [...filtered, newPlan].sort((a, b) => a.planned_date.localeCompare(b.planned_date));
+    });
+
+    showToast(`Outfit planned for ${newPlan.planned_date}!`, 'success');
+
+    // 1. Supabase Cloud
+    if (isSupabaseConfigured && user) {
+      try {
+        const cloudSaved = await insertSupabaseOutfitPlan(newPlan, user.id);
+        if (cloudSaved && cloudSaved.id) {
+          setWeeklyPlans(prev => prev.map(p => p.id === tempId ? cloudSaved : p));
+        }
+      } catch (err) {
+        console.warn('Supabase outfit plan save note:', err);
+      }
+    }
+
+    // 2. Backend SQLite
+    try {
+      await createOutfitPlanAPI(newPlan);
+    } catch (err) {
+      console.warn('Backend outfit plan save note:', err.message);
+    }
+
+    return newPlan;
+  };
+
+  const updateOutfitPlan = async (planId, updates) => {
+    setWeeklyPlans(prev => prev.map(p => p.id === planId ? { ...p, ...updates, updated_at: new Date().toISOString() } : p));
+    showToast('Outfit plan updated!', 'success');
+
+    if (isSupabaseConfigured && user) {
+      try {
+        await updateSupabaseOutfitPlan(planId, updates, user.id);
+      } catch (err) {
+        console.warn('Supabase outfit plan update note:', err);
+      }
+    }
+
+    try {
+      await updateOutfitPlanAPI(planId, updates);
+    } catch (err) {
+      console.warn('Backend outfit plan update note:', err.message);
+    }
+  };
+
+  const deleteOutfitPlan = async (target, plannedDate = null) => {
+    const planId = (typeof target === 'object' ? target?.id : target) || null;
+    const dateKey = (typeof target === 'object' ? (target?.planned_date || target?.dateKey) : plannedDate) || null;
+
+    setWeeklyPlans(prev => {
+      const remaining = prev.filter(p => {
+        if (!p) return false;
+        if (planId && (String(p.id) === String(planId) || String(p.plan_id) === String(planId))) return false;
+        if (dateKey && String(p.planned_date) === String(dateKey)) return false;
+        return true;
+      });
+      const key = getPlansKey(user);
+      try { localStorage.setItem(key, JSON.stringify(remaining)); } catch (_) {}
+      return remaining;
+    });
+
+    showToast('Outfit plan removed.', 'info');
+
+    if (isSupabaseConfigured && user && planId) {
+      try {
+        await deleteSupabaseOutfitPlan(planId, user.id);
+      } catch (err) {
+        console.warn('Supabase outfit plan delete note:', err);
+      }
+    }
+
+    if (planId || dateKey) {
+      try {
+        await deleteOutfitPlanAPI(planId || dateKey, dateKey);
+      } catch (err) {
+        console.warn('Backend outfit plan delete note:', err.message);
+      }
+    }
+  };
+
+  const togglePlanStatus = async (planId) => {
+    const existing = weeklyPlans.find(p => String(p.id) === String(planId));
+    if (!existing) return;
+    const newStatus = existing.status === 'worn' ? 'planned' : 'worn';
+
+    setWeeklyPlans(prev => prev.map(p => String(p.id) === String(planId) ? { ...p, status: newStatus, updated_at: new Date().toISOString() } : p));
+    showToast(newStatus === 'worn' ? 'Marked as worn!' : 'Marked as planned!', 'success');
+
+    if (isSupabaseConfigured && user) {
+      try {
+        await updateSupabaseOutfitPlan(planId, { status: newStatus }, user.id);
+      } catch (err) {
+        console.warn('Supabase plan status update note:', err);
+      }
+    }
+
+    try {
+      await toggleOutfitPlanStatusAPI(planId, newStatus);
+    } catch (err) {
+      console.warn('Backend plan status toggle note:', err.message);
+    }
+  };
+
   // Helper actions
   const addWardrobeItem = async (newItem) => {
     const tempId = newItem.id || `item-${Date.now()}`;
@@ -558,24 +1131,53 @@ export const FashionProvider = ({ children }) => {
   };
 
   const deleteWardrobeItem = async (id) => {
-    const itemToDelete = wardrobe.find(item => item.id === id);
-    setWardrobe(prev => prev.filter(item => item.id !== id));
+    const stringId = String(id);
+    const itemToDelete = wardrobe.find(item => String(item.id) === stringId);
+
+    // 1. Permanently register in tombstone set so it can NEVER be resurrected by syncWardrobe
+    try {
+      const raw = localStorage.getItem('fashion_vista_deleted_item_ids');
+      const list = raw ? JSON.parse(raw) : [];
+      if (!list.includes(stringId)) {
+        list.push(stringId);
+        localStorage.setItem('fashion_vista_deleted_item_ids', JSON.stringify(list));
+      }
+    } catch (_) {}
+
+    // 2. Remove immediately from React state
+    setWardrobe(prev => prev.filter(item => String(item.id) !== stringId));
+
+    // 3. Remove immediately from user and guest localStorage caches
+    try {
+      const key = getWardrobeKey(user);
+      const userCached = localStorage.getItem(key);
+      if (userCached) {
+        const filtered = JSON.parse(userCached).filter(i => String(i.id) !== stringId);
+        localStorage.setItem(key, JSON.stringify(filtered));
+      }
+      const guestCached = localStorage.getItem('fashion_vista_wardrobe_guest');
+      if (guestCached) {
+        const filtered = JSON.parse(guestCached).filter(i => String(i.id) !== stringId);
+        localStorage.setItem('fashion_vista_wardrobe_guest', JSON.stringify(filtered));
+      }
+    } catch (_) {}
+
     showToast(`Removed "${itemToDelete?.name || 'Item'}" from your wardrobe`, 'info');
 
-    // 1. Delete from Supabase if logged in
+    // 4. Delete from Supabase if logged in
     if (isSupabaseConfigured && user) {
       try {
-        await deleteSupabaseWardrobeItem(id);
+        await deleteSupabaseWardrobeItem(stringId);
       } catch (sbErr) {
         console.warn('Supabase wardrobe delete note:', sbErr.message);
       }
     }
 
-    // 2. Delete from SQLite
+    // 5. Delete from SQLite backend
     try {
-      await deleteWardrobeItemAPI(id);
+      await deleteWardrobeItemAPI(stringId);
     } catch (err) {
-      console.warn('Backend SQLite delete error:', err.message);
+      console.warn('Backend SQLite delete note:', err.message);
     }
   };
 
@@ -992,6 +1594,13 @@ export const FashionProvider = ({ children }) => {
         setUserProfile,
         toast,
         showToast,
+        weeklyPlans,
+        addOutfitPlan,
+        updateOutfitPlan,
+        deleteOutfitPlan,
+        togglePlanStatus,
+        generateSmartWardrobeCombinations,
+        checkOutfitRepetition,
       }}
     >
       {children}

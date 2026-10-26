@@ -24,6 +24,7 @@ import { VirtualTryOn } from './pages/VirtualTryOn';
 import { OutfitAnalysis } from './pages/OutfitAnalysis';
 import { History } from './pages/History';
 import { Profile } from './pages/Profile';
+import { WeeklyPlanner } from './pages/WeeklyPlanner';
 import { NotFound } from './pages/NotFound';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -78,6 +79,7 @@ function MainAppContent() {
               <Route path="/" element={<Home />} />
               <Route path="/stylist" element={<Stylist />} />
               <Route path="/wardrobe" element={<Wardrobe />} />
+              <Route path="/planner" element={<WeeklyPlanner />} />
               <Route path="/recommendations" element={<Recommendations />} />
               <Route path="/try-existing" element={<TryExisting />} />
               <Route path="/shop-new" element={<ShopNew />} />

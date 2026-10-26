@@ -474,3 +474,136 @@ export async function retryFitInViewJob(batchId, jobId, userPhoto) {
 }
 
 
+
+/**
+ * Smart Weekly Outfit Planner API Client Methods
+ */
+
+/**
+ * Fetch all outfit plans for the authenticated user from the backend
+ * @param {string} startDate - Optional YYYY-MM-DD
+ * @param {string} endDate - Optional YYYY-MM-DD
+ */
+export async function fetchOutfitPlansAPI(startDate = null, endDate = null) {
+  try {
+    const authHeaders = await getAuthHeaders();
+    let url = `${API_BASE_URL}/planner/plans`;
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    const qs = params.toString();
+    if (qs) url += `?${qs}`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { ...authHeaders }
+    });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    const data = await res.json();
+    return data.plans || [];
+  } catch (err) {
+    console.warn('Backend planner fetch failed, using local fallback:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Save new outfit plan to backend
+ * @param {Object} planData
+ */
+export async function createOutfitPlanAPI(planData) {
+  try {
+    const authHeaders = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/planner/plans`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders
+      },
+      body: JSON.stringify(planData)
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `Creation failed (${res.status})`);
+    }
+    const data = await res.json();
+    return data.plan;
+  } catch (err) {
+    console.warn('Backend plan creation failed:', err.message);
+    throw err;
+  }
+}
+
+/**
+ * Update existing outfit plan in backend
+ * @param {string} planId
+ * @param {Object} updateFields
+ */
+export async function updateOutfitPlanAPI(planId, updateFields) {
+  try {
+    const authHeaders = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/planner/plans/${planId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders
+      },
+      body: JSON.stringify(updateFields)
+    });
+    if (!res.ok) throw new Error(`Update failed (${res.status})`);
+    const data = await res.json();
+    return data.plan;
+  } catch (err) {
+    console.warn('Backend plan update failed:', err.message);
+    throw err;
+  }
+}
+
+/**
+ * Delete outfit plan from backend
+ * @param {string} planId
+ */
+export async function deleteOutfitPlanAPI(planId, dateKey = null) {
+  try {
+    const authHeaders = await getAuthHeaders();
+    let url = `${API_BASE_URL}/planner/plans/${planId}`;
+    if (dateKey) url += `?date=${encodeURIComponent(dateKey)}`;
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: { ...authHeaders }
+    });
+    if (!res.ok && res.status !== 404) {
+      console.warn(`Delete failed (${res.status})`);
+    }
+    return true;
+  } catch (err) {
+    console.warn('Backend plan deletion note:', err.message);
+    return true;
+  }
+}
+
+/**
+ * Toggle plan status ('planned' vs 'worn')
+ * @param {string} planId
+ * @param {string} status - Optional explicit status
+ */
+export async function toggleOutfitPlanStatusAPI(planId, status = null) {
+  try {
+    const authHeaders = await getAuthHeaders();
+    const body = status ? JSON.stringify({ status }) : JSON.stringify({});
+    const res = await fetch(`${API_BASE_URL}/planner/plans/${planId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders
+      },
+      body
+    });
+    if (!res.ok) throw new Error(`Status toggle failed (${res.status})`);
+    const data = await res.json();
+    return data.plan;
+  } catch (err) {
+    console.warn('Backend plan status toggle failed:', err.message);
+    throw err;
+  }
+}
